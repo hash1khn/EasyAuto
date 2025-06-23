@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -6,44 +6,112 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import { useToast } from "@/hooks/use-toast"
 
 interface ChangePasswordModalProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
 }
 
 export const ChangePasswordModal = ({ isOpen, onOpenChange }: ChangePasswordModalProps) => {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const { toast } = useToast()
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
+    setError("")
+
+    // Validation
+    if (!currentPassword) {
+      setError("Current password is required.")
+      return
+    }
+
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
-      return;
+      setError("New passwords do not match.")
+      return
     }
+
     if (newPassword.length < 8) {
-        setError('Password must be at least 8 characters long.');
-        return;
+      setError("Password must be at least 8 characters long.")
+      return
     }
-    setError('');
-    // TODO: Implement actual password change logic
-    console.log('Password updated');
-    onOpenChange(false); // Close modal on success
-  };
+
+    if (newPassword === currentPassword) {
+      setError("New password must be different from current password.")
+      return
+    }
+
+    // Check password strength
+    const hasUpperCase = /[A-Z]/.test(newPassword)
+    const hasLowerCase = /[a-z]/.test(newPassword)
+    const hasNumbers = /\d/.test(newPassword)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+      setError("Password must contain at least one uppercase letter, one lowercase letter, and one number.")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // First, verify the current password by attempting to sign in
+      const { data: user } = await supabase.auth.getUser()
+      if (!user.user?.email) {
+        throw new Error("User email not found")
+      }
+
+      // Attempt to sign in with current credentials to verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.user.email,
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        setError("Current password is incorrect.")
+        return
+      }
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (updateError) {
+        throw updateError
+      }
+
+      toast({
+        title: "Password updated successfully",
+        description: "Your password has been changed.",
+      })
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error updating password:", error)
+      setError(error.message || "Failed to update password. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Reset state on close
   const handleClose = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setError('');
-    onOpenChange(false);
+    setCurrentPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+    setError("")
+    onOpenChange(false)
   }
 
   return (
@@ -52,7 +120,8 @@ export const ChangePasswordModal = ({ isOpen, onOpenChange }: ChangePasswordModa
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
           <DialogDescription>
-            Enter your current password and a new password below.
+            Enter your current password and a new password below. Your new password must be at least 8 characters long
+            and contain uppercase, lowercase, and numeric characters.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -66,6 +135,7 @@ export const ChangePasswordModal = ({ isOpen, onOpenChange }: ChangePasswordModa
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="col-span-3"
+              disabled={loading}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -78,6 +148,7 @@ export const ChangePasswordModal = ({ isOpen, onOpenChange }: ChangePasswordModa
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="col-span-3"
+              disabled={loading}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -90,15 +161,27 @@ export const ChangePasswordModal = ({ isOpen, onOpenChange }: ChangePasswordModa
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="col-span-3"
+              disabled={loading}
             />
           </div>
           {error && <p className="text-sm text-destructive col-span-4 text-center">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
-          <Button onClick={handlePasswordChange}>Update Password</Button>
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handlePasswordChange} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Password"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}; 
+  )
+}

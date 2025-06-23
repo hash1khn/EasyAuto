@@ -5,7 +5,7 @@ export interface Vehicle {
   vin: string;
 }
 
-export interface PartRequest {
+export interface Part {
   part_name: string;
   part_number?: string;
   condition: 'New' | 'Used' | 'Refurbished';

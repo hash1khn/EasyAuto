@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { AuthModal } from '@/components/AuthModal';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import  DashboardLayout from '@/components/dashboard/DashboardLayout'
 import { BuyerDashboard } from '@/components/dashboard/BuyerDashboard';
 import { QuoteHistory } from '@/components/dashboard/QuoteHistory';
 import { Support } from '@/components/dashboard/Support';
