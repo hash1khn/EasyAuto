@@ -104,6 +104,12 @@ function App() {
                 {/* Add other sourcer pages here */}
               </Route>
 
+              <Route path="/sourcer" element={
+                <ProtectedRoute allowedRoles={['sourcer']}>
+                  <SourcerDashboard />
+                </ProtectedRoute>
+              } />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
