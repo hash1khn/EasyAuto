@@ -1,6 +1,6 @@
 import { User, Session } from '@supabase/supabase-js';
 
-export type UserRole = 'buyer' | 'vendor' | 'admin' | 'driver';
+export type UserRole = 'buyer' | 'vendor' | 'admin' | 'driver' | 'sourcer';
 
 export interface SignUpData {
   email: string;

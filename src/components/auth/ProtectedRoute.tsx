@@ -121,9 +121,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to="/admin" replace />;
       case 'vendor':
         return <Navigate to="/vendor" replace />;
-      case'driver':
+      case 'sourcer':
+        return <Navigate to="/sourcer" replace />;
+      case 'driver':
         return <Navigate to="/driver/dashboard" replace />;
-
       default:
         return <Navigate to="/dashboard" replace />;
     }
