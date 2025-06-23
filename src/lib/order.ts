@@ -28,6 +28,7 @@ export interface Order {
   is_paid: boolean;
 }
 
+// In your type definitions file (e.g., @/lib/types.ts)
 export interface Part {
   id: string;
   order_id: string;
@@ -44,6 +45,10 @@ export interface Part {
   admin_collected_by: string | null;
   admin_collected_at: string | null;
   is_accepted: boolean | null;
+  // New fields
+  expected_delivery_date?: string | null;
+  delivery_photo_url?: string | null;
+  photos?: string[];
   // Relations
   vehicle?: Vehicle;
   order?: Order;

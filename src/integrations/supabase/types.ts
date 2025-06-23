@@ -9,176 +9,200 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      application_tag_assignments: {
+      admin_logs: {
         Row: {
-          application_id: string
+          action: string
+          admin_id: string
           created_at: string
+          details: Json | null
           id: string
-          tag_id: string
+          target_id: string | null
+          target_table: string | null
         }
         Insert: {
-          application_id: string
+          action: string
+          admin_id: string
           created_at?: string
+          details?: Json | null
           id?: string
-          tag_id: string
+          target_id?: string | null
+          target_table?: string | null
         }
         Update: {
-          application_id?: string
+          action?: string
+          admin_id?: string
           created_at?: string
+          details?: Json | null
           id?: string
-          tag_id?: string
+          target_id?: string | null
+          target_table?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "application_tag_assignments_application_id_fkey"
-            columns: ["application_id"]
+            foreignKeyName: "admin_logs_admin_id_fkey"
+            columns: ["admin_id"]
             isOneToOne: false
-            referencedRelation: "vendor_applications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "application_tag_assignments_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_tags"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      deliveries: {
+      bids: {
         Row: {
-          collected_at: string | null
+          condition: Database["public"]["Enums"]["quote_condition"]
           created_at: string
-          delivered_at: string | null
-          driver_id: string | null
           id: string
-          order_id: string
-          pickup_address_id: string | null
+          image_url: string | null
+          notes: string | null
+          part_id: string
+          price: number
           shipped_at: string | null
-          status: Database["public"]["Enums"]["shipping_status"]
+          status: Database["public"]["Enums"]["bid_status"]
           updated_at: string
+          vendor_id: string
+          warranty: Database["public"]["Enums"]["quote_warranty"]
         }
         Insert: {
-          collected_at?: string | null
+          condition?: Database["public"]["Enums"]["quote_condition"]
           created_at?: string
-          delivered_at?: string | null
-          driver_id?: string | null
           id?: string
-          order_id: string
-          pickup_address_id?: string | null
+          image_url?: string | null
+          notes?: string | null
+          part_id: string
+          price: number
           shipped_at?: string | null
-          status?: Database["public"]["Enums"]["shipping_status"]
+          status?: Database["public"]["Enums"]["bid_status"]
           updated_at?: string
+          vendor_id: string
+          warranty?: Database["public"]["Enums"]["quote_warranty"]
         }
         Update: {
-          collected_at?: string | null
+          condition?: Database["public"]["Enums"]["quote_condition"]
           created_at?: string
-          delivered_at?: string | null
-          driver_id?: string | null
           id?: string
-          order_id?: string
-          pickup_address_id?: string | null
+          image_url?: string | null
+          notes?: string | null
+          part_id?: string
+          price?: number
           shipped_at?: string | null
-          status?: Database["public"]["Enums"]["shipping_status"]
+          status?: Database["public"]["Enums"]["bid_status"]
           updated_at?: string
+          vendor_id?: string
+          warranty?: Database["public"]["Enums"]["quote_warranty"]
         }
         Relationships: [
           {
-            foreignKeyName: "deliveries_driver_id_fkey"
-            columns: ["driver_id"]
+            foreignKeyName: "bids_part_id_fkey"
+            columns: ["part_id"]
             isOneToOne: false
-            referencedRelation: "drivers"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "deliveries_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "parts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "deliveries_pickup_address_id_fkey"
-            columns: ["pickup_address_id"]
+            foreignKeyName: "bids_vendor_id_fkey"
+            columns: ["vendor_id"]
             isOneToOne: false
-            referencedRelation: "user_addresses"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      drivers: {
+      delivery_options: {
         Row: {
           created_at: string
-          license_number: string
-          updated_at: string
-          user_id: string
+          estimated_days: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number
         }
         Insert: {
           created_at?: string
-          license_number: string
-          updated_at?: string
-          user_id: string
+          estimated_days: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
         }
         Update: {
           created_at?: string
-          license_number?: string
-          updated_at?: string
-          user_id?: string
+          estimated_days?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "drivers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       invoices: {
         Row: {
           created_at: string
+          delivery_address: string | null
           delivery_fee: number
+          delivery_option_id: string | null
           id: string
+          invoice_url: string | null
           order_id: string
           paid_at: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          refund_status: Database["public"]["Enums"]["invoice_refund_status"]
           service_fee: number
-          status: Database["public"]["Enums"]["payment_status"]
+          status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           subtotal: number
-          total_amount: number | null
+          total_amount: number
+          user_id: string
           vat_amount: number
         }
         Insert: {
           created_at?: string
+          delivery_address?: string | null
           delivery_fee?: number
+          delivery_option_id?: string | null
           id?: string
+          invoice_url?: string | null
           order_id: string
           paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          refund_status?: Database["public"]["Enums"]["invoice_refund_status"]
           service_fee?: number
-          status?: Database["public"]["Enums"]["payment_status"]
+          status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
-          subtotal: number
-          total_amount?: number | null
+          subtotal?: number
+          total_amount: number
+          user_id: string
           vat_amount?: number
         }
         Update: {
           created_at?: string
+          delivery_address?: string | null
           delivery_fee?: number
+          delivery_option_id?: string | null
           id?: string
+          invoice_url?: string | null
           order_id?: string
           paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          refund_status?: Database["public"]["Enums"]["invoice_refund_status"]
           service_fee?: number
-          status?: Database["public"]["Enums"]["payment_status"]
+          status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
-          total_amount?: number | null
+          total_amount?: number
+          user_id?: string
           vat_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_delivery_option_id_fkey"
+            columns: ["delivery_option_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_order_id_fkey"
             columns: ["order_id"]
@@ -186,227 +210,268 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          sent_at: string | null
-          status: Database["public"]["Enums"]["notification_status"]
-          type: Database["public"]["Enums"]["notification_type"]
-          user_id: string
-          whatsapp_sent: boolean | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["notification_status"]
-          type: Database["public"]["Enums"]["notification_type"]
-          user_id: string
-          whatsapp_sent?: boolean | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["notification_status"]
-          type?: Database["public"]["Enums"]["notification_type"]
-          user_id?: string
-          whatsapp_sent?: boolean | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "notifications_user_id_fkey"
+            foreignKeyName: "invoices_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
       orders: {
         Row: {
-          buyer_id: string
           created_at: string
-          delivery_address_id: string | null
           id: string
-          quote_id: string
-          request_id: string
+          is_paid: boolean
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
-          vendor_id: string
+          user_id: string
         }
         Insert: {
-          buyer_id: string
           created_at?: string
-          delivery_address_id?: string | null
           id?: string
-          quote_id: string
-          request_id: string
+          is_paid?: boolean
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
-          vendor_id: string
+          user_id: string
         }
         Update: {
-          buyer_id?: string
           created_at?: string
-          delivery_address_id?: string | null
           id?: string
-          quote_id?: string
-          request_id?: string
+          is_paid?: boolean
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
-          vendor_id?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "orders_buyer_id_fkey"
-            columns: ["buyer_id"]
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_delivery_address_id_fkey"
-            columns: ["delivery_address_id"]
-            isOneToOne: false
-            referencedRelation: "user_addresses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_quote_id_fkey"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "part_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["user_id"]
           },
         ]
       }
-      part_requests: {
+      part_activity_logs: {
         Row: {
-          buyer_id: string
           created_at: string
-          description: string | null
           id: string
-          part_condition: Database["public"]["Enums"]["part_condition"]
+          note: string | null
+          part_id: string
+          status: string
+          updated_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          part_id: string
+          status: string
+          updated_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          part_id?: string
+          status?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_activity_logs_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parts: {
+        Row: {
+          admin_collected_at: string | null
+          admin_collected_by: string | null
+          collected_at: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_photo_url: string | null
+          description: string | null
+          estimated_budget: number | null
+          expected_delivery_date: string | null
+          id: string
+          is_accepted: boolean | null
+          order_id: string
           part_name: string
+          part_number: string | null
+          photos: string[] | null
           quantity: number
-          status: Database["public"]["Enums"]["request_status"]
-          updated_at: string
+          shipped_at: string | null
+          shipping_status: string | null
           vehicle_id: string
         }
         Insert: {
-          buyer_id: string
+          admin_collected_at?: string | null
+          admin_collected_by?: string | null
+          collected_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_photo_url?: string | null
           description?: string | null
+          estimated_budget?: number | null
+          expected_delivery_date?: string | null
           id?: string
-          part_condition?: Database["public"]["Enums"]["part_condition"]
+          is_accepted?: boolean | null
+          order_id: string
           part_name: string
+          part_number?: string | null
+          photos?: string[] | null
           quantity?: number
-          status?: Database["public"]["Enums"]["request_status"]
-          updated_at?: string
+          shipped_at?: string | null
+          shipping_status?: string | null
           vehicle_id: string
         }
         Update: {
-          buyer_id?: string
+          admin_collected_at?: string | null
+          admin_collected_by?: string | null
+          collected_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_photo_url?: string | null
           description?: string | null
+          estimated_budget?: number | null
+          expected_delivery_date?: string | null
           id?: string
-          part_condition?: Database["public"]["Enums"]["part_condition"]
+          is_accepted?: boolean | null
+          order_id?: string
           part_name?: string
+          part_number?: string | null
+          photos?: string[] | null
           quantity?: number
-          status?: Database["public"]["Enums"]["request_status"]
-          updated_at?: string
+          shipped_at?: string | null
+          shipping_status?: string | null
           vehicle_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_vehicle_buyer"
-            columns: ["vehicle_id", "buyer_id"]
+            foreignKeyName: "parts_order_id_fkey"
+            columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id", "user_id"]
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "part_requests_buyer_id_fkey"
-            columns: ["buyer_id"]
+            foreignKeyName: "parts_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
       }
-      quotes: {
+      refund_requests: {
         Row: {
+          admin_notes: string | null
           created_at: string
-          estimated_days: number | null
           id: string
-          notes: string | null
-          price: number
-          request_id: string
-          status: Database["public"]["Enums"]["quote_status"]
+          images: string[] | null
+          order_id: string
+          part_id: string | null
+          reason: string
+          status: Database["public"]["Enums"]["refund_status"]
           updated_at: string
-          vendor_id: string
+          user_id: string
+          vendor_id: string | null
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
-          estimated_days?: number | null
           id?: string
-          notes?: string | null
-          price: number
-          request_id: string
-          status?: Database["public"]["Enums"]["quote_status"]
+          images?: string[] | null
+          order_id: string
+          part_id?: string | null
+          reason: string
+          status?: Database["public"]["Enums"]["refund_status"]
           updated_at?: string
-          vendor_id: string
+          user_id: string
+          vendor_id?: string | null
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
-          estimated_days?: number | null
           id?: string
-          notes?: string | null
-          price?: number
-          request_id?: string
-          status?: Database["public"]["Enums"]["quote_status"]
+          images?: string[] | null
+          order_id?: string
+          part_id?: string | null
+          reason?: string
+          status?: Database["public"]["Enums"]["refund_status"]
           updated_at?: string
-          vendor_id?: string
+          user_id?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_request_id_fkey"
-            columns: ["request_id"]
+            foreignKeyName: "refund_requests_order_id_fkey"
+            columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "part_requests"
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "quotes_vendor_id_fkey"
+            foreignKeyName: "refund_requests_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["user_id"]
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
-      user_addresses: {
+      subscription_plans: {
+        Row: {
+          created_at: string
+          duration_months: number
+          features: Json | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          duration_months: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+        }
+        Update: {
+          created_at?: string
+          duration_months?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      user_delivery_addresses: {
         Row: {
           address: string
           created_at: string
@@ -416,7 +481,6 @@ export type Database = {
           is_default: boolean
           name: string
           phone: string
-          updated_at: string
           user_id: string
         }
         Insert: {
@@ -428,7 +492,6 @@ export type Database = {
           is_default?: boolean
           name: string
           phone: string
-          updated_at?: string
           user_id: string
         }
         Update: {
@@ -440,12 +503,93 @@ export type Database = {
           is_default?: boolean
           name?: string
           phone?: string
-          updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          application_status: string | null
+          application_submitted_at: string | null
+          bank_iban: string | null
+          bank_name: string | null
+          business_name: string | null
+          created_at: string
+          default_payment_method: Database["public"]["Enums"]["payment_method"]
+          delivery_address: string | null
+          delivery_instructions: string | null
+          delivery_phone: string | null
+          email_notifications: boolean
+          full_name: string
+          google_maps_url: string | null
+          id: string
+          location: string
+          rejection_reason: string | null
+          sms_notifications: boolean
+          updated_at: string
+          user_id: string | null
+          vendor_tags: string[] | null
+          whatsapp_notifications: boolean
+          whatsapp_number: string
+        }
+        Insert: {
+          application_status?: string | null
+          application_submitted_at?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
+          created_at?: string
+          default_payment_method?: Database["public"]["Enums"]["payment_method"]
+          delivery_address?: string | null
+          delivery_instructions?: string | null
+          delivery_phone?: string | null
+          email_notifications?: boolean
+          full_name: string
+          google_maps_url?: string | null
+          id: string
+          location: string
+          rejection_reason?: string | null
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id?: string | null
+          vendor_tags?: string[] | null
+          whatsapp_notifications?: boolean
+          whatsapp_number: string
+        }
+        Update: {
+          application_status?: string | null
+          application_submitted_at?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
+          created_at?: string
+          default_payment_method?: Database["public"]["Enums"]["payment_method"]
+          delivery_address?: string | null
+          delivery_instructions?: string | null
+          delivery_phone?: string | null
+          email_notifications?: boolean
+          full_name?: string
+          google_maps_url?: string | null
+          id?: string
+          location?: string
+          rejection_reason?: string | null
+          sms_notifications?: boolean
+          updated_at?: string
+          user_id?: string | null
+          vendor_tags?: string[] | null
+          whatsapp_notifications?: boolean
+          whatsapp_number?: string
         }
         Relationships: [
           {
-            foreignKeyName: "user_addresses_user_id_fkey"
+            foreignKeyName: "user_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -453,39 +597,98 @@ export type Database = {
           },
         ]
       }
-      users: {
+      user_roles: {
         Row: {
-          auth_id: string | null
-          created_at: string
-          email: string
-          full_name: string
+          created_at: string | null
           id: string
-          location: string | null
-          phone: string
+          is_approved: boolean | null
           role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
+          user_id: string
         }
         Insert: {
-          auth_id?: string | null
-          created_at?: string
-          email: string
-          full_name: string
+          created_at?: string | null
           id?: string
-          location?: string | null
-          phone: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          is_approved?: boolean | null
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
         }
         Update: {
-          auth_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_approved?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          is_active: boolean
+          plan_id: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          is_active?: boolean
+          plan_id: string
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          plan_id?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+        }
+        Update: {
           created_at?: string
           email?: string
-          full_name?: string
           id?: string
-          location?: string | null
-          phone?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
         }
         Relationships: []
       }
@@ -495,7 +698,6 @@ export type Database = {
           id: string
           make: string
           model: string
-          updated_at: string
           user_id: string
           vin: string | null
           year: number
@@ -505,7 +707,6 @@ export type Database = {
           id?: string
           make: string
           model: string
-          updated_at?: string
           user_id: string
           vin?: string | null
           year: number
@@ -515,7 +716,6 @@ export type Database = {
           id?: string
           make?: string
           model?: string
-          updated_at?: string
           user_id?: string
           vin?: string | null
           year?: number
@@ -525,173 +725,272 @@ export type Database = {
             foreignKeyName: "vehicles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      vendor_applications: {
+      vendor_payouts: {
         Row: {
-          admin_notes: string | null
-          business_description: string | null
-          business_name: string
+          amount: number
+          amount_due_aed: number
+          bid_id: string | null
           created_at: string
           id: string
-          location: string
-          status: Database["public"]["Enums"]["vendor_application_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          admin_notes?: string | null
-          business_description?: string | null
-          business_name: string
-          created_at?: string
-          id?: string
-          location: string
-          status?: Database["public"]["Enums"]["vendor_application_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          admin_notes?: string | null
-          business_description?: string | null
-          business_name?: string
-          created_at?: string
-          id?: string
-          location?: string
-          status?: Database["public"]["Enums"]["vendor_application_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendor_applications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendor_tag_assignments: {
-        Row: {
-          tag_id: string
+          invoice_id: string | null
+          order_id: string | null
+          processed_at: string | null
+          status: string
+          transaction_id: string | null
           vendor_id: string
         }
         Insert: {
-          tag_id: string
+          amount: number
+          amount_due_aed?: number
+          bid_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          order_id?: string | null
+          processed_at?: string | null
+          status?: string
+          transaction_id?: string | null
           vendor_id: string
         }
         Update: {
-          tag_id?: string
+          amount?: number
+          amount_due_aed?: number
+          bid_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          order_id?: string | null
+          processed_at?: string | null
+          status?: string
+          transaction_id?: string | null
           vendor_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vendor_tag_assignments_tag_id_fkey"
-            columns: ["tag_id"]
+            foreignKeyName: "vendor_payouts_bid_id_fkey"
+            columns: ["bid_id"]
             isOneToOne: false
-            referencedRelation: "vendor_tags"
+            referencedRelation: "bids"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vendor_tag_assignments_vendor_id_fkey"
+            foreignKeyName: "vendor_payouts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payouts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payouts_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      vendor_tags: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      vendors: {
-        Row: {
-          bank_iban: string | null
-          bank_name: string | null
-          business_name: string
-          created_at: string
-          referred_by: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          bank_iban?: string | null
-          bank_name?: string | null
-          business_name: string
-          created_at?: string
-          referred_by?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          bank_iban?: string | null
-          bank_name?: string | null
-          business_name?: string
-          created_at?: string
-          referred_by?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendors_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendor_pickup_addresses: {
+        Row: {
+          address: string
+          created_at: string
+          google_maps_url: string | null
+          id: string
+          instructions: string | null
+          is_default: boolean
+          name: string
+          phone: string
+          vendor_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          google_maps_url?: string | null
+          id?: string
+          instructions?: string | null
+          is_default?: boolean
+          name: string
+          phone: string
+          vendor_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          google_maps_url?: string | null
+          id?: string
+          instructions?: string | null
+          is_default?: boolean
+          name?: string
+          phone?: string
+          vendor_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_bid_and_update_part: {
+        Args: { bid_id: string; part_id: string }
+        Returns: undefined
+      }
+      collect_parts: {
+        Args: { p_part_ids: string[]; p_driver_id: string }
+        Returns: undefined
+      }
+      create_pickup_note_for_driver: {
+        Args: { p_driver_id: string; p_vendor_id: string; p_notes?: string }
+        Returns: string
+      }
+      delete_user_admin: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      get_admin_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          platform_stats: Json
+          all_orders: Json
+          all_users: Json
+          vendor_applications: Json
+        }[]
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_driver_logistics_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_live_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_parts_with_pending_bids_for_user: {
+        Args: { user_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          vehicle: string
+          order_id: string
+          pending_bids_count: number
+        }[]
+      }
+      get_user_orders: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      get_user_roles: {
+        Args: { check_user_id: string }
+        Returns: {
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_vehicle_for_open_order_part: {
+        Args: { part_id_param: string }
+        Returns: {
+          id: string
+          make: string
+          model: string
+          year: number
+          vin: string
+        }[]
+      }
+      has_user_role: {
+        Args: {
+          check_user_id: string
+          check_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
+      has_vendor_access: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_vendor: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      update_individual_part_collection_status: {
+        Args: {
+          p_part_id: string
+          p_driver_id: string
+          p_pickup_notes_id: string
+        }
+        Returns: undefined
+      }
+      update_individual_part_delivery_status: {
+        Args: {
+          p_part_id: string
+          p_driver_id: string
+          p_delivery_notes_id: string
+        }
+        Returns: undefined
+      }
+      update_part_collection_status: {
+        Args: {
+          p_part_ids: string[]
+          p_driver_id: string
+          p_pickup_notes_id: string
+        }
+        Returns: undefined
+      }
+      update_part_shipping_status: {
+        Args:
+          | { part_id_arg: string; new_status: string }
+          | { part_id_arg: string; new_status: string; updater_id_arg: string }
+        Returns: undefined
+      }
+      update_user_roles: {
+        Args: { p_user_id: string; p_roles: string[] }
+        Returns: undefined
+      }
     }
     Enums: {
-      notification_status: "pending" | "sent" | "failed"
-      notification_type:
-        | "new_request"
-        | "quote_accepted"
-        | "payment_received"
-        | "order_shipped"
+      bid_status: "pending" | "accepted" | "rejected"
+      driver_role: "delivery_driver"
+      invoice_refund_status: "none" | "requested" | "approved" | "processed"
       order_status:
-        | "created"
-        | "paid"
-        | "preparing"
-        | "ready_for_pickup"
-        | "in_transit"
-        | "delivered"
-      part_condition: "new" | "used" | "new_or_used"
-      payment_status: "unpaid" | "paid" | "failed" | "refunded"
-      quote_status: "submitted" | "accepted" | "rejected"
-      request_status: "open" | "quoted" | "accepted" | "fulfilled" | "cancelled"
-      shipping_status:
-        | "pending_pickup"
-        | "collected"
-        | "admin_collected"
-        | "delivered"
-      user_role: "buyer" | "vendor" | "admin" | "driver"
-      vendor_application_status: "pending" | "approved" | "rejected"
+        | "open"
+        | "partial"
+        | "closed"
+        | "cancelled"
+        | "refunded"
+        | "ready_for_checkout"
+        | "completed"
+      payment_method: "cod" | "card" | "bank_transfer"
+      payment_status: "unpaid" | "paid" | "failed"
+      quote_condition:
+        | "New"
+        | "Used - Excellent"
+        | "Used - Good"
+        | "Used - Fair"
+      quote_warranty:
+        | "No Warranty"
+        | "3 Days"
+        | "7 Days"
+        | "14 Days"
+        | "30 Days"
+      refund_status: "pending" | "approved" | "rejected" | "processed"
+      role_type: "buyer" | "vendor" | "admin"
+      user_role: "buyer" | "vendor" | "admin" | "driver" | "sourcer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -807,33 +1106,30 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      notification_status: ["pending", "sent", "failed"],
-      notification_type: [
-        "new_request",
-        "quote_accepted",
-        "payment_received",
-        "order_shipped",
-      ],
+      bid_status: ["pending", "accepted", "rejected"],
+      driver_role: ["delivery_driver"],
+      invoice_refund_status: ["none", "requested", "approved", "processed"],
       order_status: [
-        "created",
-        "paid",
-        "preparing",
-        "ready_for_pickup",
-        "in_transit",
-        "delivered",
+        "open",
+        "partial",
+        "closed",
+        "cancelled",
+        "refunded",
+        "ready_for_checkout",
+        "completed",
       ],
-      part_condition: ["new", "used", "new_or_used"],
-      payment_status: ["unpaid", "paid", "failed", "refunded"],
-      quote_status: ["submitted", "accepted", "rejected"],
-      request_status: ["open", "quoted", "accepted", "fulfilled", "cancelled"],
-      shipping_status: [
-        "pending_pickup",
-        "collected",
-        "admin_collected",
-        "delivered",
+      payment_method: ["cod", "card", "bank_transfer"],
+      payment_status: ["unpaid", "paid", "failed"],
+      quote_condition: [
+        "New",
+        "Used - Excellent",
+        "Used - Good",
+        "Used - Fair",
       ],
-      user_role: ["buyer", "vendor", "admin", "driver"],
-      vendor_application_status: ["pending", "approved", "rejected"],
+      quote_warranty: ["No Warranty", "3 Days", "7 Days", "14 Days", "30 Days"],
+      refund_status: ["pending", "approved", "rejected", "processed"],
+      role_type: ["buyer", "vendor", "admin"],
+      user_role: ["buyer", "vendor", "admin", "driver", "sourcer"],
     },
   },
 } as const

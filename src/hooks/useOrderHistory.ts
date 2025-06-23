@@ -34,6 +34,9 @@ interface OrderHistoryItem {
     collected_at: string | null
     delivered_at: string | null
     is_accepted: boolean
+    expected_delivery_date: string | null
+    delivery_photo_url: string | null
+    photos: string[] | null
     vehicle: {
       id: string
       make: string
@@ -48,6 +51,7 @@ interface OrderHistoryItem {
       warranty: string
       notes: string | null
       status: string
+      image_url: string | null
       vendor: {
         full_name: string
         business_name: string | null
@@ -61,6 +65,7 @@ interface OrderHistoryItem {
     status: string
     created_at: string
     admin_notes: string | null
+    images: string[] | null
   }>
 }
 
@@ -112,6 +117,7 @@ export const useOrderHistory = () => {
               warranty,
               notes,
               status,
+              image_url,
               vendor:user_profiles!vendor_id (
                 full_name,
                 business_name,
@@ -140,7 +146,8 @@ export const useOrderHistory = () => {
             reason,
             status,
             created_at,
-            admin_notes
+            admin_notes,
+            images
           )
         `)
         .eq("user_id", userProfile.id)
@@ -180,6 +187,9 @@ export const useOrderHistory = () => {
               collected_at: part.collected_at,
               delivered_at: part.delivered_at,
               is_accepted: part.is_accepted,
+              expected_delivery_date: part.expected_delivery_date,
+              delivery_photo_url: part.delivery_photo_url,
+              photos: part.photos || [],
               vehicle: part.vehicles,
               winning_bid: winningBid
                 ? {
@@ -189,12 +199,20 @@ export const useOrderHistory = () => {
                     warranty: winningBid.warranty,
                     notes: winningBid.notes,
                     status: winningBid.status,
+                    image_url: winningBid.image_url,
                     vendor: winningBid.vendor,
                   }
                 : null,
             }
           }),
-          refund_requests: order.refund_requests || [],
+          refund_requests: order.refund_requests?.map((req: any) => ({
+            id: req.id,
+            reason: req.reason,
+            status: req.status,
+            created_at: req.created_at,
+            admin_notes: req.admin_notes,
+            images: req.images || []
+          })) || [],
         }
       })
 
