@@ -1,30 +1,42 @@
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
-import { VehicleGroup } from "./VehicleGroup"
-import { TopCards } from "./TopCards"
-import { useDashboardData } from "@/hooks/useDashboardData"
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { VehicleGroup } from "./VehicleGroup";
+import { TopCards } from "./TopCards";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
-export const DashboardTab = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const { vehiclesWithParts, dashboardStats, loading, refetchOrders } = useDashboardData()
+type DashboardTabProps = {
+  setRefetchOrders?: (fn: () => void) => void;
+};
+
+export const DashboardTab = ({ setRefetchOrders }: DashboardTabProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { vehiclesWithParts, dashboardStats, loading, refetchOrders } = useDashboardData();
+
+  // Register the refetchOrders function with the parent
+  useEffect(() => {
+    if (setRefetchOrders) {
+      setRefetchOrders(refetchOrders);
+    }
+  }, [setRefetchOrders, refetchOrders]);
 
   const filteredVehicles = vehiclesWithParts
     .filter((vehicle) => {
       if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase()
+        const searchLower = searchTerm.toLowerCase();
         return (
           vehicle.make.toLowerCase().includes(searchLower) ||
           vehicle.model.toLowerCase().includes(searchLower) ||
           vehicle.parts.some(
             (part) =>
-              part.part_name.toLowerCase().includes(searchLower) || part.order_id.toLowerCase().includes(searchLower),
+              part.part_name.toLowerCase().includes(searchLower) ||
+              part.order_id.toLowerCase().includes(searchLower)
           )
-        )
+        );
       }
-      return true
+      return true;
     })
-    .sort((a, b) => a.make.localeCompare(b.make))
+    .sort((a, b) => a.make.localeCompare(b.make));
 
   if (loading) {
     return (
@@ -48,7 +60,7 @@ export const DashboardTab = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -69,12 +81,17 @@ export const DashboardTab = () => {
 
       <div className="space-y-4">
         {filteredVehicles.length > 0 ? (
-          filteredVehicles.map((vehicle) => <VehicleGroup key={vehicle.id} vehicle={vehicle} parts={vehicle.parts} />)
+          filteredVehicles.map((vehicle) => (
+            <VehicleGroup key={vehicle.id} vehicle={vehicle} parts={vehicle.parts} />
+          ))
         ) : (
           <div className="text-center py-12 border rounded-lg">
             <p className="text-muted-foreground">No ongoing orders found</p>
             {searchTerm && (
-              <button className="text-primary text-sm mt-2 hover:underline" onClick={() => setSearchTerm("")}>
+              <button
+                className="text-primary text-sm mt-2 hover:underline"
+                onClick={() => setSearchTerm("")}
+              >
                 Clear search
               </button>
             )}
@@ -82,5 +99,5 @@ export const DashboardTab = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};

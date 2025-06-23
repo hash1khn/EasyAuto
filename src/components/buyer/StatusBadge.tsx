@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { PartStatus } from "@/data/buyerDashboardMockData";
+import { PartStatus } from "@/lib/order"
 
 interface StatusBadgeProps {
   status: PartStatus;
@@ -8,37 +8,37 @@ interface StatusBadgeProps {
 export const StatusBadge = ({ status }: StatusBadgeProps) => {
   const getStatusConfig = (status: PartStatus) => {
     switch (status) {
-      case "PENDING":
+      case "pending":
         return {
           label: "Pending",
           variant: "outline" as const,
           icon: "🔹",
         };
-      case "CONFIRMED":
+      case "confirmed":
         return {
           label: "Confirmed",
           variant: "secondary" as const,
           icon: "✅",
         };
-      case "OUT_FOR_DELIVERY":
+      case "out_for_delivery":
         return {
           label: "Out for Delivery",
           variant: "default" as const,
           icon: "🚚",
         };
-      case "DELIVERED":
+      case "delivered":
         return {
           label: "Delivered",
           variant: "secondary" as const,
           icon: "✔️",
         };
-      case "CANCELLED":
+      case "cancelled":
         return {
           label: "Cancelled",
           variant: "destructive" as const,
           icon: "❌",
         };
-      case "REFUNDED":
+      case "refunded":
         return {
           label: "Refunded",
           variant: "warning" as const,
@@ -60,4 +60,4 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
       {icon} {label}
     </Badge>
   );
-}; 
+};

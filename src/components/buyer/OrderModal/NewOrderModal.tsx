@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { VehicleStep } from './VehicleStep';
-import { PartsStep } from './PartsStep';
+import { VehicleStep } from '@/components/dashboard/OrderModal/VehicleStep';
+import { PartsStep } from '@/components/dashboard/OrderModal/PartsStep';
 import { ReviewStep } from './ReviewStep';
 import { OrderModalHeader } from './OrderModalHeader';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Vehicle, Part } from './types';
 
 interface OrderModalProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onClose: () => void;
+  onOrderCreated?: () => void;
 }
 
-export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onOpenChange }) => {
+export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrderCreated  }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -26,14 +32,21 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onOpenChange 
     vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimated_budget: ''
   });
   
-  const handleClose = () => {
-    setStep(1);
-    setVehicles([]);
-    setParts([]);
-    setCurrentVehicle({ make: '', model: '', year: new Date().getFullYear(), vin: '' });
-    setCurrentPart({ vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimated_budget: '' });
-    onOpenChange(false);
-  };
+   const handleClose = () => {
+  setStep(1);
+  setVehicles([]);
+  setParts([]);
+  setCurrentVehicle({ make: '', model: '', year: new Date().getFullYear(), vin: '' });
+  setCurrentPart({ 
+    vehicleIndex: 0, 
+    partName: '', 
+    partNumber: '', 
+    description: '', 
+    quantity: 1, 
+    estimated_budget: ''  // Added this line for consistency
+  });
+  onClose();
+};
 
   const addVehicle = () => {
     if (!currentVehicle.make || !currentVehicle.model) {
@@ -66,8 +79,125 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onOpenChange 
   };
 
   const handleSubmitOrder = async () => {
-    toast({ title: "Order Submitted!", description: "This is a frontend-only demo." });
-    handleClose();
+    if (!user || vehicles.length === 0 || parts.length === 0) {
+      toast({
+        title: "Cannot submit order",
+        description: "Please add at least one vehicle and one part.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Group parts by vehicle index
+      const partsByVehicle: Record<number, Part[]> = {};
+      parts.forEach(part => {
+        if (!partsByVehicle[part.vehicleIndex]) {
+          partsByVehicle[part.vehicleIndex] = [];
+        }
+        partsByVehicle[part.vehicleIndex].push(part);
+      });
+
+      // Process each vehicle and its parts
+      const orderPromises = Object.entries(partsByVehicle).map(async ([vehicleIndexStr, vehicleParts]) => {
+        const vehicleIndex = parseInt(vehicleIndexStr);
+        const vehicle = vehicles[vehicleIndex];
+
+        // Create order
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            status: 'open'
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        // Create vehicle record
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .insert({
+            user_id: user.id,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            vin: vehicle.vin || null
+          })
+          .select()
+          .single();
+
+        if (vehicleError) throw vehicleError;
+
+        // Create parts with estimated_budget
+        const partPromises = vehicleParts.map(part =>
+          supabase
+            .from('parts')
+            .insert({
+              order_id: orderData.id,
+              vehicle_id: vehicleData.id,
+              part_name: part.partName,
+              part_number: part.partNumber || null,
+              description: part.description || null,
+              quantity: part.quantity,
+              estimated_budget: part.estimated_budget ? parseFloat(part.estimated_budget) : null
+            })
+        );
+
+        await Promise.all(partPromises);
+
+        // Trigger WhatsApp notifications
+        const { error: notificationError } = await supabase.functions.invoke('whatsapp-notify', {
+          body: {
+            vehicle: {
+              make: vehicle.make,
+              model: vehicle.model,
+              year: vehicle.year,
+              vin: vehicle.vin || null,
+            },
+            parts: vehicleParts.map(p => ({
+              partName: p.partName,
+              partNumber: p.partNumber || null,
+              estimatedBudget: p.estimated_budget || null
+            })),
+            orderId: orderData.id,
+          }
+        });
+
+        if (notificationError) {
+          console.error("WhatsApp notification failed:", notificationError);
+          // Handle silently or show non-blocking toast to admin
+        }
+
+        return orderData.id;
+
+      });
+
+      await Promise.all(orderPromises);
+
+      toast({
+        title: "Order submitted successfully!",
+        description: "Vendors are being notified via WhatsApp."
+      });
+
+      handleClose();
+
+      if (onOrderCreated) {
+        onOrderCreated();
+      }
+    } catch (error: any) {
+      console.error('Error submitting order:', error);
+      toast({
+        title: "Error submitting order",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -85,7 +215,9 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onOpenChange 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl w-full max-h-[95vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden flex flex-col" onOpenAutoFocus={(e) => {
+              e.preventDefault(); // Prevent auto-focus on open
+            }}>
         <OrderModalHeader currentStep={step} />
         <div className="flex-1 overflow-y-auto p-6">
           {renderStepContent()}

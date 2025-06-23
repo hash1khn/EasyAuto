@@ -1,81 +1,87 @@
-export type PartStatus = "waiting_for_bid" | "pending_pickup" | "collected" | "admin_collected" | "delivered"
-export type OrderStatus = "open" | "closed" | "cancelled"
-export type BidStatus = "pending" | "accepted" | "rejected"
-export type PaymentStatus = "unpaid" | "paid" | "failed" | "refunded"
+export type PartStatus =
+  | "pending"
+  | "confirmed"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled"
+  | "refunded";
+export type OrderStatus = "open" | "closed" | "cancelled";
+export type BidStatus = "pending" | "accepted" | "rejected";
+export type PaymentStatus = "unpaid" | "paid" | "failed" | "refunded";
 
 export interface Vehicle {
-  id: string
-  user_id: string
-  make: string
-  model: string
-  year: number
-  vin: string | null
-  created_at: string
+  id: string;
+  user_id: string;
+  make: string;
+  model: string;
+  year: number;
+  vin: string | null;
+  created_at: string;
 }
 
 export interface Order {
-  id: string
-  user_id: string
-  status: OrderStatus
-  created_at: string
-  updated_at: string
-  is_paid: boolean
+  id: string;
+  user_id: string;
+  status: OrderStatus;
+  created_at: string;
+  updated_at: string;
+  is_paid: boolean;
 }
 
 export interface Part {
-  id: string
-  order_id: string
-  vehicle_id: string
-  part_name: string
-  part_number: string | null
-  description: string | null
-  quantity: number
-  created_at: string
-  shipping_status: PartStatus
-  shipped_at: string | null
-  collected_at: string | null
-  delivered_at: string | null
-  admin_collected_by: string | null
-  admin_collected_at: string | null
-  is_accepted: boolean | null
+  id: string;
+  order_id: string;
+  vehicle_id: string;
+  part_name: string;
+  part_number: string | null;
+  description: string | null;
+  quantity: number;
+  created_at: string;
+  shipping_status: PartStatus;
+  shipped_at: string | null;
+  collected_at: string | null;
+  delivered_at: string | null;
+  admin_collected_by: string | null;
+  admin_collected_at: string | null;
+  is_accepted: boolean | null;
   // Relations
-  vehicle?: Vehicle
-  order?: Order
-  bids?: Bid[]
+  vehicle?: Vehicle;
+  order?: Order;
+  bids?: Bid[];
 }
 
 export interface Bid {
-  id: string
-  part_id: string
-  vendor_id: string
-  price: number
-  notes: string | null
-  status: BidStatus
-  image_url: string | null
-  created_at: string
-  updated_at: string
-  shipped_at: string | null
-  warranty: string
-  condition: string
+  id: string;
+  part_id: string;
+  vendor_id: string;
+  price: number;
+  notes: string | null;
+  status: BidStatus;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  shipped_at: string | null;
+  warranty: string;
+  condition: string;
   // Relations
-  vendor?: UserProfile
+  vendor?: UserProfile;
 }
 
 export interface UserProfile {
-  id: string
-  full_name: string
-  whatsapp_number: string
-  business_name: string | null
-  location: string
+  id: string;
+  full_name: string;
+  whatsapp_number: string;
+  business_name: string | null;
+  location: string;
 }
 
 export interface Invoice {
-  id: string
-  order_id: string
-  user_id: string
-  total_amount: number
-  status: string
-  created_at: string
-  paid_at: string | null
-  payment_status: PaymentStatus
+  id: string;
+  order_id: string;
+  user_id: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  paid_at: string | null;
+  payment_status: PaymentStatus;
 }

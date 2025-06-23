@@ -17,13 +17,17 @@ export const VehicleGroup = ({ vehicle, parts }: VehicleGroupProps) => {
 
   // Get group status based on parts
   const getGroupStatus = () => {
-    const statuses = parts.map((part) => part.shipping_status)
+  const statuses = parts.map((part) => part.shipping_status);
 
-    if (statuses.every((status) => status === "delivered")) return "COMPLETE"
-    if (statuses.some((status) => status === "collected" || status === "admin_collected")) return "IN_PROGRESS"
-    if (statuses.some((status) => status === "pending_pickup")) return "IN_PROGRESS"
-    return "NEW"
-  }
+  if (statuses.every((status) => status === "delivered")) return "COMPLETE";
+  if (statuses.some((status) => 
+    status === "out_for_delivery" || 
+    status === "confirmed" ||
+    status === "cancelled" ||
+    status === "refunded"
+  )) return "IN_PROGRESS";
+  return "NEW";
+}
 
   const groupStatus = getGroupStatus()
   const orderId = parts[0]?.order_id || "N/A"
