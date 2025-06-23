@@ -41,9 +41,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, parts, vehicle }) => {
               </h3>
               <StatusBadge status={groupStatus} size="sm" />
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              Order #{order.id} • {formattedDate} • {parts.length} part{parts.length !== 1 ? "s" : ""}
-            </p>
+            
           </div>
           <div className="flex items-center mt-2 md:mt-0">
             {isExpanded ? (

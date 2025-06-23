@@ -16,13 +16,22 @@ import { NewOrderModal } from "@/components/buyer/OrderModal/NewOrderModal";
 export default function DashboardLayout() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showOrderModal, setShowOrderModal] = useState(false);
-  const refetchOrdersRef = useRef<() => void>(() => { });
+  const refetchOrdersRef = useRef<() => void>(() => {});
+  
+  // WhatsApp support details
+  const whatsappNumber = "+971551776860";
+  const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
+  const defaultMessage = "Hello! I need help with my order.";
+
   const handleOrderCreated = () => {
     setShowOrderModal(false);
-    // Call the refetchOrders if it's defined
     if (refetchOrdersRef.current) {
       refetchOrdersRef.current();
     }
+  };
+
+  const handleWhatsAppClick = () => {
+    window.open(`${whatsappUrl}?text=${encodeURIComponent(defaultMessage)}`, '_blank');
   };
 
   const renderTabContent = () => {
@@ -85,7 +94,10 @@ export default function DashboardLayout() {
             <Button onClick={() => setShowOrderModal(true)}>
               <Plus className="mr-2 h-4 w-4" /> New Order
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700">
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleWhatsAppClick}
+            >
               <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp Help
             </Button>
           </div>
@@ -95,9 +107,12 @@ export default function DashboardLayout() {
           {renderTabContent()}
         </main>
       </div>
-      <NewOrderModal isOpen={showOrderModal}
+      
+      <NewOrderModal 
+        isOpen={showOrderModal}
         onClose={() => setShowOrderModal(false)}
-        onOrderCreated={handleOrderCreated} />
+        onOrderCreated={handleOrderCreated} 
+      />
     </div>
   );
-} 
+}

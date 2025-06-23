@@ -85,10 +85,10 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ userId }) => {
           <AccordionTrigger>
             <div className="flex justify-between items-center w-full pr-4">
               <div className="text-left">
-                <p className="font-semibold">
+                {/* <p className="font-semibold">
                   Order #{order.id.substring(0, 8)}
                   {order.vehicle && ` for ${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.year})`}
-                </p>
+                </p> */}
                 <p className="text-sm text-gray-500">
                   {new Date(order.created_at).toLocaleDateString()}
                   {order.parts && ` - ${order.parts.reduce((acc, p) => acc + p.quantity, 0)} items`}

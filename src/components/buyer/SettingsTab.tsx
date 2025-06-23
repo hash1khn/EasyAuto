@@ -8,6 +8,9 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { ChangePasswordModal } from "./ChangePasswordModal"
 
+
+type PaymentMethod = 'cod' | 'card' | 'bank_transfer';
+
 interface UserProfile {
   id: string
   full_name: string
@@ -20,7 +23,7 @@ interface UserProfile {
   email_notifications: boolean
   sms_notifications: boolean
   whatsapp_notifications: boolean
-  default_payment_method: string
+  default_payment_method: PaymentMethod;
   created_at: string
   updated_at: string
 }

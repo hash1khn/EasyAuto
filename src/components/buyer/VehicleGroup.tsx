@@ -61,7 +61,7 @@ export const VehicleGroup = ({ vehicle, parts }: VehicleGroupProps) => {
                 {getGroupStatusBadge(groupStatus)}
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                Order #{orderId.slice(0, 8)} • {orderDate} • {parts.length} part{parts.length !== 1 ? "s" : ""}
+                {orderDate} • {parts.length} part{parts.length !== 1 ? "s" : ""}
               </div>
             </div>
             <Button variant="ghost" size="sm">
