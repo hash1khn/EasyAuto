@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo,useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   MessageSquare,
@@ -183,20 +183,24 @@ export const SupportTab = () => {
   const [userProfile, setUserProfile] = useState<any>(null)
 
   // Get user profile for contact info
-  useState(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return
+  useEffect(() => {
+  const fetchUserProfile = async () => {
+    if (!user) return;
 
-      try {
-        const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single()
-        setUserProfile(data)
-      } catch (error) {
-        console.error("Error fetching user profile:", error)
-      }
+    try {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      setUserProfile(data);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
     }
+  };
 
-    fetchUserProfile()
-  }, [user])
+  fetchUserProfile();
+}, [user]);
 
   // Filter completed orders for refund requests
   const completedOrders = useMemo(() => {
