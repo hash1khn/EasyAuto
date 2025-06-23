@@ -20,6 +20,8 @@ import { DriverDashboardPage } from '@/pages/DriverDashboardPage';
 import { VendorApplicationStatus } from './pages/VendorApplicationStatus';
 import BuyerDesign1 from './pages/BuyerDesign1';
 import NewDashboard from './pages/NewDashboard';
+import SourcerLayout from './layout/SourcerLayout'; // Import the SourcerLayout
+import SourcerDashboard from './pages/SourcerDashboard'; // Import SourcerDashboard
 
 const queryClient = new QueryClient();
 
@@ -91,6 +93,16 @@ function App() {
                   <DriverDashboardPage />
                 </ProtectedRoute>
               } />
+
+              {/* Sourcer Routes */}
+              <Route path="/sourcer/*" element={
+                <ProtectedRoute allowedRoles={['sourcer']}>
+                  <SourcerLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="dashboard" element={<SourcerDashboard />} />
+                {/* Add other sourcer pages here */}
+              </Route>
 
               <Route path="*" element={<NotFound />} />
             </Routes>
