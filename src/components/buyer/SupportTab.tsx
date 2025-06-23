@@ -22,6 +22,20 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 
+// Constants for contact information
+const CONTACT_INFO = {
+  whatsapp: {
+    number: "+971551776860",
+    formatted: "+971 55 177 6860",
+    url: "https://wa.me/971551776860"
+  },
+  phone: {
+    number: "+971551776860",
+    formatted: "+971 55 177 6860"
+  },
+  email: "support@sgsservices.ae"
+};
+
 const faqCategories = [
   {
     icon: Wrench,
@@ -156,7 +170,7 @@ const faqCategories = [
       },
     ],
   },
-]
+];
 
 export const SupportTab = () => {
   const { user } = useAuth()
@@ -175,7 +189,6 @@ export const SupportTab = () => {
 
       try {
         const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single()
-
         setUserProfile(data)
       } catch (error) {
         console.error("Error fetching user profile:", error)
@@ -268,12 +281,8 @@ Reason: "${refundNotes}"
 
 Please review and follow up.`
 
-      // Encode message for WhatsApp
-      const encodedMessage = encodeURIComponent(message)
-      const whatsappUrl = `https://wa.me/971501234567?text=${encodedMessage}`
-
-      // Open WhatsApp
-      window.open(whatsappUrl, "_blank")
+      // Open WhatsApp with support number
+      window.open(`${CONTACT_INFO.whatsapp.url}?text=${encodeURIComponent(message)}`, "_blank")
 
       toast({
         title: "Refund request submitted",
@@ -297,23 +306,29 @@ Please review and follow up.`
   }
 
   const handleContactClick = (method: string) => {
-    switch (method) {
-      case "whatsapp":
-        const customerName = userProfile?.full_name || user?.email || "Customer"
-        const message = `Hello, I need support with my EasyAuto account.
+    const customerName = userProfile?.full_name || user?.email || "Customer"
+    const defaultMessage = `Hello, I need support with my EasyAuto account.
 
 Customer: ${customerName}
 Email: ${user?.email}
 
 Please assist me with my inquiry.`
-        const encodedMessage = encodeURIComponent(message)
-        window.open(`https://wa.me/971501234567?text=${encodedMessage}`, "_blank")
+
+    switch (method) {
+      case "whatsapp":
+        window.open(
+          `${CONTACT_INFO.whatsapp.url}?text=${encodeURIComponent(defaultMessage)}`,
+          "_blank"
+        )
         break
       case "phone":
-        window.open("tel:+971501234567", "_self")
+        window.open(`tel:${CONTACT_INFO.phone.number}`, "_self")
         break
       case "email":
-        window.open("mailto:support@sgsservices.ae", "_self")
+        window.open(
+          `mailto:${CONTACT_INFO.email}?subject=EasyAuto Support Request&body=${encodeURIComponent(defaultMessage)}`,
+          "_self"
+        )
         break
     }
   }
@@ -343,7 +358,7 @@ Please assist me with my inquiry.`
             <MessageSquare className="h-6 w-6 mr-4 text-green-500" />
             <div>
               <p className="font-semibold">WhatsApp</p>
-              <p className="text-sm text-muted-foreground">Chat with an agent</p>
+              <p className="text-sm text-muted-foreground">{CONTACT_INFO.whatsapp.formatted}</p>
             </div>
           </Button>
           <Button
@@ -354,7 +369,7 @@ Please assist me with my inquiry.`
             <Phone className="h-6 w-6 mr-4 text-blue-500" />
             <div>
               <p className="font-semibold">Phone Call</p>
-              <p className="text-sm text-muted-foreground">+971 50 123 4567</p>
+              <p className="text-sm text-muted-foreground">{CONTACT_INFO.phone.formatted}</p>
             </div>
           </Button>
           <Button
@@ -365,7 +380,7 @@ Please assist me with my inquiry.`
             <Mail className="h-6 w-6 mr-4 text-gray-500" />
             <div>
               <p className="font-semibold">Email</p>
-              <p className="text-sm text-muted-foreground">support@sgsservices.ae</p>
+              <p className="text-sm text-muted-foreground">{CONTACT_INFO.email}</p>
             </div>
           </Button>
         </CardContent>
