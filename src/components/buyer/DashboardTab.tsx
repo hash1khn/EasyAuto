@@ -12,6 +12,7 @@ type DashboardTabProps = {
 export const DashboardTab = ({ setRefetchOrders }: DashboardTabProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { vehiclesWithParts, dashboardStats, loading, refetchOrders } = useDashboardData();
+  const allParts = vehiclesWithParts.flatMap(vehicle => vehicle.parts)
 
   // Register the refetchOrders function with the parent
   useEffect(() => {
@@ -77,7 +78,7 @@ export const DashboardTab = ({ setRefetchOrders }: DashboardTabProps) => {
         </div>
       </div>
 
-      <TopCards stats={dashboardStats} />
+     <TopCards parts={allParts} />
 
       <div className="space-y-4">
         {filteredVehicles.length > 0 ? (
