@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -27,22 +29,32 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, refundId }: RefundRec
 
     setLoading(true)
     try {
+      // Get user profile first
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profileError) throw profileError
+
       const { data, error } = await supabase
         .from("refund_requests")
         .select(`
+        *,
+        user_profiles!user_id (*),
+        parts:part_id (
           *,
-          user_profiles (*),
-          parts:part_id (
-            *,
-            vehicles (make, model, year, vin),
-            bids!part_id (
-              id, price, condition, warranty, status,
-              vendor:user_profiles!vendor_id (full_name, business_name)
-            )
-          ),
-          invoices:invoice_id (*)
-        `)
+          vehicles (make, model, year, vin),
+          bids!part_id (
+            id, price, condition, warranty, status,
+            vendor:user_profiles!vendor_id (full_name, business_name)
+          )
+        ),
+        invoices:invoice_id (*)
+      `)
         .eq("id", refundId)
+        .eq("user_id", userProfile.id)
         .single()
 
       if (error) throw error
@@ -109,7 +121,8 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, refundId }: RefundRec
                 </p>
                 {refundData.invoices && (
                   <p className="text-muted-foreground">
-                    Original Invoice: <span className="font-medium text-foreground">{refundData.invoices.id.slice(0, 8)}</span>
+                    Original Invoice:{" "}
+                    <span className="font-medium text-foreground">{refundData.invoices.id.slice(0, 8)}</span>
                   </p>
                 )}
               </div>
@@ -140,11 +153,11 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, refundId }: RefundRec
           {/* Refund Details */}
           <div className="space-y-4 mb-8">
             <h3 className="text-lg font-semibold text-foreground mb-3">Refund Details</h3>
-            
+
             <div className="border rounded-lg p-4">
               <p className="font-medium mb-2">Refund Reason:</p>
               <p className="text-sm text-gray-700 mb-2">{refundData.reason}</p>
-              
+
               {refundData.admin_notes && (
                 <div className="bg-gray-50 p-3 rounded mt-2">
                   <p className="text-sm">

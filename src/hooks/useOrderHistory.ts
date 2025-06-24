@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useMemo } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
@@ -73,6 +75,7 @@ interface OrderHistoryItem {
         name: string
         estimated_days: number
       } | null
+      created_at: string
     } | null
   }>
   refund_requests: Array<{
@@ -120,22 +123,21 @@ export const useOrderHistory = () => {
       if (profileError) throw profileError
 
       // First fetch all orders for the user
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("user_id", userProfile.id)
-        .order("created_at", { ascending: false })
+      // const { data: ordersData, error: ordersError } = await supabase
+      //   .from("orders")
+      //   .select("*")
+      //   .eq("user_id", userProfile.id)
+      //   .order("created_at", { ascending: false })
 
-      if (ordersError) throw ordersError
+      // if (ordersError) throw ordersError
 
       // Then fetch all parts for these orders with their invoices
-      const orderIds = ordersData?.map(order => order.id) || []
-      
+      // const orderIds = ordersData?.map(order => order.id) || []
+
       const { data: partsData, error: partsError } = await supabase
         .from("parts")
         .select(`
           *,
-          order_id,
           vehicles (id, make, model, year, vin),
           bids!part_id (
             id,
@@ -157,6 +159,7 @@ export const useOrderHistory = () => {
             unit_price,
             invoices (
               id,
+              user_id,
               total_amount,
               subtotal,
               vat_amount,
@@ -166,6 +169,7 @@ export const useOrderHistory = () => {
               paid_at,
               invoice_url,
               delivery_address,
+              created_at,
               delivery_options (
                 name,
                 estimated_days
@@ -181,126 +185,108 @@ export const useOrderHistory = () => {
             images
           )
         `)
-        .in("order_id", orderIds)
+        .eq("vehicles.user_id", userProfile.id)
 
       if (partsError) throw partsError
 
-      // Group parts by order
-      const partsByOrderId: Record<string, any[]> = {}
-      partsData?.forEach(part => {
-        if (!partsByOrderId[part.order_id]) {
-          partsByOrderId[part.order_id] = []
+      // Group parts by invoice instead of order
+      const partsByInvoiceId: Record<string, any[]> = {}
+      partsData?.forEach((part) => {
+        const invoiceId = part.invoice_parts?.[0]?.invoice_id || "no-invoice"
+        if (!partsByInvoiceId[invoiceId]) {
+          partsByInvoiceId[invoiceId] = []
         }
-        partsByOrderId[part.order_id].push(part)
+        partsByInvoiceId[invoiceId].push(part)
       })
 
-      // Transform data into our structure
-      const transformedOrders: OrderHistoryItem[] = (ordersData || []).map((order) => {
-        const orderParts = partsByOrderId[order.id] || []
-        
-        // Calculate order totals from all parts' invoices
-        let orderTotal = 0
-        let orderSubtotal = 0
-        let orderVat = 0
-        let orderServiceFee = 0
-        let orderDeliveryFee = 0
-        
-        const partsWithInvoices = orderParts.map((part: any) => {
-          const invoicePart = part.invoice_parts?.[0]
-          const invoice = invoicePart?.invoices
-          
-          if (invoice) {
-            orderTotal += invoice.total_amount || 0
-            orderSubtotal += invoice.subtotal || 0
-            orderVat += invoice.vat_amount || 0
-            orderServiceFee += invoice.service_fee || 0
-            orderDeliveryFee += invoice.delivery_fee || 0
-          }
+      // Transform data into our structure - group by invoice instead of order
+      const transformedOrders: OrderHistoryItem[] = Object.entries(partsByInvoiceId)
+        .filter(([invoiceId]) => invoiceId !== "no-invoice") // Only include parts with invoices
+        .map(([invoiceId, invoiceParts]) => {
+          const firstPart = invoiceParts[0]
+          const invoice = firstPart.invoice_parts?.[0]?.invoices
 
-          const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
-          
+          if (!invoice) return null
+
+          const partsWithInvoices = invoiceParts.map((part: any) => {
+            const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
+
+            return {
+              id: part.id,
+              part_name: part.part_name,
+              part_number: part.part_number,
+              description: part.description,
+              quantity: part.quantity,
+              shipping_status: part.shipping_status,
+              shipped_at: part.shipped_at,
+              collected_at: part.collected_at,
+              delivered_at: part.delivered_at,
+              is_accepted: part.is_accepted,
+              expected_delivery_date: part.expected_delivery_date,
+              delivery_photo_url: part.delivery_photo_url,
+              photos: part.photos || [],
+              vehicle: part.vehicles,
+              winning_bid: winningBid
+                ? {
+                    id: winningBid.id,
+                    price: winningBid.price,
+                    condition: winningBid.condition,
+                    warranty: winningBid.warranty,
+                    notes: winningBid.notes,
+                    status: winningBid.status,
+                    image_url: winningBid.image_url,
+                    vendor: winningBid.vendor,
+                  }
+                : null,
+              invoice: {
+                id: invoice.id,
+                total_amount: invoice.total_amount,
+                subtotal: invoice.subtotal,
+                vat_amount: invoice.vat_amount,
+                service_fee: invoice.service_fee,
+                delivery_fee: invoice.delivery_fee,
+                payment_status: invoice.payment_status,
+                paid_at: invoice.paid_at,
+                invoice_url: invoice.invoice_url,
+                delivery_address: invoice.delivery_address,
+                delivery_option: invoice.delivery_options,
+                created_at: invoice.created_at,
+              },
+            }
+          })
+
           return {
-            id: part.id,
-            part_name: part.part_name,
-            part_number: part.part_number,
-            description: part.description,
-            quantity: part.quantity,
-            shipping_status: part.shipping_status,
-            shipped_at: part.shipped_at,
-            collected_at: part.collected_at,
-            delivered_at: part.delivered_at,
-            is_accepted: part.is_accepted,
-            expected_delivery_date: part.expected_delivery_date,
-            delivery_photo_url: part.delivery_photo_url,
-            photos: part.photos || [],
-            vehicle: part.vehicles,
-            winning_bid: winningBid
-              ? {
-                  id: winningBid.id,
-                  price: winningBid.price,
-                  condition: winningBid.condition,
-                  warranty: winningBid.warranty,
-                  notes: winningBid.notes,
-                  status: winningBid.status,
-                  image_url: winningBid.image_url,
-                  vendor: winningBid.vendor,
-                }
-              : null,
-            invoice: invoice ? {
-              id: invoice.id,
-              total_amount: invoice.total_amount,
-              subtotal: invoice.subtotal,
-              vat_amount: invoice.vat_amount,
-              service_fee: invoice.service_fee,
-              delivery_fee: invoice.delivery_fee,
-              payment_status: invoice.payment_status,
-              paid_at: invoice.paid_at,
-              invoice_url: invoice.invoice_url,
-              delivery_address: invoice.delivery_address,
-              delivery_option: invoice.delivery_options,
-              created_at:invoice.created_at
-            } : null
+            id: invoiceId, // Use invoice ID as the "order" ID
+            created_at: invoice.created_at,
+            updated_at: invoice.created_at,
+            status: invoice.payment_status === "paid" ? "completed" : "open",
+            is_paid: invoice.payment_status === "paid",
+            parts_count: partsWithInvoices.length,
+            total_amount: invoice.total_amount,
+            subtotal: invoice.subtotal,
+            vat_amount: invoice.vat_amount,
+            service_fee: invoice.service_fee,
+            delivery_fee: invoice.delivery_fee,
+            payment_status: invoice.payment_status,
+            paid_at: invoice.paid_at,
+            invoice_url: invoice.invoice_url,
+            delivery_address: invoice.delivery_address,
+            delivery_option: invoice.delivery_options,
+            parts: partsWithInvoices,
+            refund_requests: invoiceParts.flatMap(
+              (part) =>
+                part.refund_requests?.map((req: any) => ({
+                  id: req.id,
+                  reason: req.reason,
+                  status: req.status,
+                  created_at: req.created_at,
+                  admin_notes: req.admin_notes,
+                  images: req.images || [],
+                })) || [],
+            ),
           }
         })
-
-        // Find the most recent invoice for the order (if needed for display)
-        const latestInvoice = partsWithInvoices
-          .filter(part => part.invoice)
-          .sort((a, b) => 
-            new Date(b.invoice?.paid_at || b.invoice?.created_at || 0).getTime() - 
-            new Date(a.invoice?.paid_at || a.invoice?.created_at || 0).getTime()
-          )[0]?.invoice
-
-        return {
-          id: order.id,
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-          status: order.status,
-          is_paid: order.is_paid,
-          parts_count: partsWithInvoices.length,
-          total_amount: orderTotal,
-          subtotal: orderSubtotal,
-          vat_amount: orderVat,
-          service_fee: orderServiceFee,
-          delivery_fee: orderDeliveryFee,
-          payment_status: latestInvoice?.payment_status || "unpaid",
-          paid_at: latestInvoice?.paid_at || null,
-          invoice_url: latestInvoice?.invoice_url || null,
-          delivery_address: latestInvoice?.delivery_address || null,
-          delivery_option: latestInvoice?.delivery_option || null,
-          parts: partsWithInvoices,
-          refund_requests: orderParts.flatMap(part => 
-            part.refund_requests?.map((req: any) => ({
-              id: req.id,
-              reason: req.reason,
-              status: req.status,
-              created_at: req.created_at,
-              admin_notes: req.admin_notes,
-              images: req.images || []
-            })) || []
-          )
-        }
-      })
+        .filter(Boolean) as OrderHistoryItem[]
 
       setOrders(transformedOrders)
     } catch (error) {

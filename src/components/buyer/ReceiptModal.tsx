@@ -1,4 +1,3 @@
-// Updated ReceiptModal.tsx
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -28,24 +27,35 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
 
     setLoading(true)
     try {
+      // Get user profile first
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profileError) throw profileError
+
       const { data, error } = await supabase
         .from("invoices")
         .select(`
+        *,
+        invoice_parts (
           *,
-          invoice_parts (
+          parts (
             *,
-            parts (
-              *,
-              vehicles (make, model, year, vin),
-              bids!part_id (
-                id, price, condition, warranty, notes, status,
-                vendor:user_profiles!vendor_id (full_name, business_name)
-              )
-            ),
-          user_profiles (*),
-          delivery_options (name, estimated_days)
-        `)
+            vehicles (make, model, year, vin),
+            bids!part_id (
+              id, price, condition, warranty, notes, status,
+              vendor:user_profiles!vendor_id (full_name, business_name)
+            )
+          )
+        ),
+        user_profiles!user_id (*),
+        delivery_options (name, estimated_days)
+      `)
         .eq("id", invoiceId)
+        .eq("user_id", userProfile.id)
         .single()
 
       if (error) throw error
