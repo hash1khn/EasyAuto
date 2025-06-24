@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const SourcerLayout: React.FC = () => {
+  const { signOut } = useAuth();  // Add auth hook
   const location = useLocation();
   const sourcerName = "John Smith";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -25,6 +28,11 @@ const SourcerLayout: React.FC = () => {
   };
   
   const currentPageTitle = pageTitles[location.pathname] || "Sourcer Portal";
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Auth context will handle navigation
+  };
 
   return (
     <div className="relative min-h-screen bg-gray-50 md:flex">
@@ -57,10 +65,14 @@ const SourcerLayout: React.FC = () => {
             </nav>
           </div>
           <div className="mt-auto p-6">
-            <button className="w-full flex items-center px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-              <span className="text-lg mr-3">🚪</span>
-              <span className="font-medium">Logout</span>
-            </button>
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              <span className="font-medium">Sign Out</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -76,11 +88,13 @@ const SourcerLayout: React.FC = () => {
               <button className="md:hidden mr-4" onClick={() => setIsSidebarOpen(true)}>
                 <Menu className="h-6 w-6" />
               </button>
-               <h1 className="text-2xl font-bold text-gray-900">{currentPageTitle}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{currentPageTitle}</h1>
             </div>
-             <div className="flex items-center">
-              <span className="text-sm text-gray-600 mr-3 hidden sm:block">Welcome, {sourcerName}</span>
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 hidden sm:block">
+                Welcome back
+              </span>
+              <span className="bg-mint-100 text-mint-800 px-3 py-1 rounded-full text-sm font-medium">
                 Sourcer
               </span>
             </div>
