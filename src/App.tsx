@@ -16,14 +16,18 @@ import { PaymentReceipt } from "./components/checkout/PaymentReceipt";
 import DashboardDesign from "./pages/DashboardDesign";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { DriverLoginPage } from "@/pages/DriverLoginPage";
-import { DriverDashboardPage } from "@/pages/DriverDashboardPage";
 import { VendorApplicationStatus } from "./pages/VendorApplicationStatus";
 import BuyerDesign1 from "./pages/BuyerDesign1";
 import NewDashboard from "./pages/NewDashboard";
 import SourcerLayout from "./layout/SourcerLayout"; // Import the SourcerLayout
 import SourcerDashboard from "./components/sourcer/SourcerDashboard"; // Import SourcerDashboard
-import QuoteHistory from '@/components/sourcer/QuoteHistory';
+import QuoteHistory from "@/components/sourcer/QuoteHistory";
 import { Navigate } from "react-router-dom";
+import { DriverLayout } from "./components/driver/DriverLayout";
+import Delivering from "@/components/driver/Delivering";
+import DriverHistory from "@/components/driver/DriverHistory";
+import { DeliverySettings } from "@/components/driver/DeliverySettings";
+import { DriverDashboard } from "@/components/driver/DriverDashboard";
 
 const queryClient = new QueryClient();
 
@@ -129,14 +133,36 @@ function App() {
                                 element={<DriverLoginPage />}
                             />
                             <Route
-                                path="/driver/dashboard"
+                                path="/driver"
                                 element={
                                     <ProtectedRoute
                                         allowedRoles={["driver", "admin"]}>
-                                        <DriverDashboardPage />
+                                        <DriverLayout />
                                     </ProtectedRoute>
-                                }
-                            />
+                                }>
+                                <Route
+                                    index
+                                    element={
+                                        <Navigate to="dashboard" replace />
+                                    }
+                                />
+                                <Route
+                                    path="dashboard"
+                                    element={<DriverDashboard />}
+                                />
+                                <Route
+                                    path="delivering"
+                                    element={<Delivering />}
+                                />
+                                <Route
+                                    path="history"
+                                    element={<DriverHistory />}
+                                />
+                                <Route
+                                    path="settings"
+                                    element={<DeliverySettings />}
+                                />
+                            </Route>
                             <Route
                                 path="/sourcer"
                                 element={
@@ -159,7 +185,6 @@ function App() {
                                     element={<QuoteHistory />}
                                 />
                             </Route>
-                            Í
                             <Route path="*" element={<NotFound />} />
                         </Routes>
                     </BrowserRouter>

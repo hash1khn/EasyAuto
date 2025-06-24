@@ -1,147 +1,166 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { mockDeliveryOrders, DeliveryOrder, DeliveryPart } from '../../data/deliveryMockData';
+import { mockDeliveryOrders, DeliveryOrder, DeliveryPart } from '@/data/deliveryMockData';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Phone, Map } from 'lucide-react';
-import PickupModal from '../delivery/PickupModal';
-import PartDetailsModal from '../delivery/PartDetailsModal';
+import DeliveringModal from '../delivery/DeliveringModal';
+import PartDetailsModal from '@/components/delivery/PartDetailsModal';
 
-export type EnrichedPart = DeliveryPart & { orderId: string; vehicleName: string; };
+// @ts-ignore
+if (typeof window !== 'undefined' && !window.deliveryHistory) {
+  // @ts-ignore
+  window.deliveryHistory = [];
+}
 
-export type GroupedByVendor = {
-    vendor: {
-        id: string;
-        name: string;
-        address: string;
-        phone: string;
-        lat: number;
-        lng: number;
-    };
-    parts: EnrichedPart[];
+declare global {
+  interface Window {
+    deliveryHistory: any[];
+  }
+}
+
+export type EnrichedDeliveryPart = DeliveryPart & { orderId: string; vehicleName: string; };
+
+export type GroupedByAddress = {
+    address: string;
+    buyerName: string;
+    phone: string;
+    lat: number;
+    lng: number;
+    parts: EnrichedDeliveryPart[];
 };
 
-export const DriverDashboard: React.FC = () => {
+const Delivering: React.FC = () => {
     const [orders, setOrders] = useState<DeliveryOrder[]>(mockDeliveryOrders);
     const [selectedParts, setSelectedParts] = useState<Record<string, Set<string>>>({});
-    const [pickupModalState, setPickupModalState] = useState<{ isOpen: boolean; vendorId: string | null }>({ isOpen: false, vendorId: null });
-    const [detailsModalState, setDetailsModalState] = useState<{ isOpen: boolean; part: EnrichedPart | null }>({ isOpen: false, part: null });
+    const [deliveringModalState, setDeliveringModalState] = useState<{ isOpen: boolean; address: string | null }>({ isOpen: false, address: null });
+    const [detailsModalState, setDetailsModalState] = useState<{ isOpen: boolean; part: EnrichedDeliveryPart | null }>({ isOpen: false, part: null });
     const location = useLocation();
     const navigate = useNavigate();
 
-    const partsByVendor = useMemo((): GroupedByVendor[] => {
-        const allParts: EnrichedPart[] = orders.flatMap(order => 
+    // Group by delivery address, only parts with status 'Out for Delivery'
+    const partsByAddress = useMemo((): GroupedByAddress[] => {
+        const allParts: EnrichedDeliveryPart[] = orders.flatMap(order => 
             order.vehicles.flatMap(vehicle => 
                 vehicle.parts
-                .filter(part => part.status === 'Accepted')
+                .filter(part => part.status === 'Out for Delivery')
                 .map(part => ({ ...part, orderId: order.id, vehicleName: vehicle.vehicleName }))
             )
         );
-
         const grouped = allParts.reduce((acc, part) => {
-            if (!acc[part.vendorId]) {
-                acc[part.vendorId] = {
-                    vendor: {
-                        id: part.vendorId,
-                        name: part.vendorName,
-                        address: part.vendorAddress,
-                        phone: part.vendorPhone,
-                        lat: part.vendorLat,
-                        lng: part.vendorLng,
-                    },
+            const order = orders.find(o => o.id === part.orderId);
+            if (!order) return acc;
+            if (!acc[order.deliveryAddress]) {
+                acc[order.deliveryAddress] = {
+                    address: order.deliveryAddress,
+                    buyerName: order.buyerName,
+                    phone: order.phone,
+                    lat: part.vendorLat, // Use vendorLat as a fallback for address
+                    lng: part.vendorLng, // Use vendorLng as a fallback for address
                     parts: [],
                 };
             }
-            acc[part.vendorId].parts.push(part);
+            acc[order.deliveryAddress].parts.push(part);
             return acc;
-        }, {} as Record<string, GroupedByVendor>);
-
+        }, {} as Record<string, GroupedByAddress>);
         return Object.values(grouped);
     }, [orders]);
 
-    const handleSelectPart = (vendorId: string, partId: string) => {
+    const handleSelectPart = (address: string, partId: string) => {
         setSelectedParts(prev => {
             const newSelection = { ...prev };
-            if (!newSelection[vendorId]) {
-                newSelection[vendorId] = new Set();
+            if (!newSelection[address]) {
+                newSelection[address] = new Set();
             }
-
-            const vendorSelection = new Set(newSelection[vendorId]);
-            if (vendorSelection.has(partId)) {
-                vendorSelection.delete(partId);
+            const addressSelection = new Set(newSelection[address]);
+            if (addressSelection.has(partId)) {
+                addressSelection.delete(partId);
             } else {
-                vendorSelection.add(partId);
+                addressSelection.add(partId);
             }
-            newSelection[vendorId] = vendorSelection;
+            newSelection[address] = addressSelection;
             return newSelection;
         });
     };
 
-    const handleOpenPickupModal = (vendorId: string) => {
-        if (!selectedParts[vendorId] || selectedParts[vendorId].size === 0) {
-            alert("Please select parts to pick up.");
+    const handleOpenDeliveringModal = (address: string) => {
+        if (!selectedParts[address] || selectedParts[address].size === 0) {
+            alert("Please select parts to mark as delivered.");
             return;
         }
-        setPickupModalState({ isOpen: true, vendorId });
+        setDeliveringModalState({ isOpen: true, address });
     };
 
-    const handleClosePickupModal = () => {
-        setPickupModalState({ isOpen: false, vendorId: null });
+    const handleCloseDeliveringModal = () => {
+        setDeliveringModalState({ isOpen: false, address: null });
     };
 
-    const handleOpenDetailsModal = (part: EnrichedPart) => {
+    const handleOpenDetailsModal = (part: EnrichedDeliveryPart) => {
         setDetailsModalState({ isOpen: true, part });
     };
 
     const handleCloseDetailsModal = () => {
         setDetailsModalState({ isOpen: false, part: null });
     };
-    
-    const handleConfirmPickup = (pickupNotes: string, photo?: File) => {
-        const { vendorId } = pickupModalState;
-        if (!vendorId) return;
 
-        console.log("Confirming pickup for vendor:", vendorId);
-        console.log("Notes:", pickupNotes);
-        console.log("Photo:", photo?.name);
-
-        const partIdsToUpdate = selectedParts[vendorId];
-
+    const handleConfirmDelivered = (invoice: any) => {
+        const address = invoice.address;
+        const partIdsToUpdate = new Set(invoice.parts.map((p: any) => p.id));
         const newOrders = orders.map(order => ({
             ...order,
             vehicles: order.vehicles.map(vehicle => ({
                 ...vehicle,
                 parts: vehicle.parts.map(part => 
-                    partIdsToUpdate.has(part.id) ? { ...part, status: 'Out for Delivery' as const } : part
+                    partIdsToUpdate.has(part.id) ? { ...part, status: 'Delivered' as const } : part
                 )
             }))
         }));
-
         setOrders(newOrders);
         setSelectedParts(prev => {
             const newSelection = { ...prev };
-            delete newSelection[vendorId];
+            delete newSelection[address];
             return newSelection;
         });
-        handleClosePickupModal();
-        alert(`${partIdsToUpdate.size} part(s) marked as 'Out for Delivery'.`);
+        handleCloseDeliveringModal();
+        alert(`${partIdsToUpdate.size} part(s) marked as 'Delivered'.`);
+        // Save invoice to history (in-memory for demo)
+        if (!window.deliveryHistory) window.deliveryHistory = [];
+        window.deliveryHistory.unshift({
+            id: 'INV-' + Math.floor(Math.random() * 100000),
+            date: new Date().toLocaleString(),
+            customer: invoice.buyerName,
+            phone: invoice.phone,
+            address: invoice.address,
+            driver: invoice.driverName,
+            grandTotal: invoice.grandTotal,
+            paymentMethod: invoice.paymentMethod,
+            deliveryFee: invoice.deliveryFee,
+            parts: invoice.parts.map((p: any) => ({
+                partName: p.partName,
+                quantity: p.quantity,
+                unitPrice: 500, // Use mock price for now
+                vendor: { name: p.vendorName || 'Vendor', address: p.vendorAddress || '', phone: p.vendorPhone || '' }
+            })),
+            notes: invoice.deliveryNotes,
+            photos: (invoice.deliveryPhotos || []).map((f: File) => URL.createObjectURL(f)),
+        });
     };
 
-    const pickupModalParts = partsByVendor
-        .find(group => group.vendor.id === pickupModalState.vendorId)
-        ?.parts.filter(p => selectedParts[pickupModalState.vendorId!]?.has(p.id)) || [];
+    const deliveringModalParts = partsByAddress
+        .find(group => group.address === deliveringModalState.address)
+        ?.parts.filter(p => selectedParts[deliveringModalState.address!]?.has(p.id)) || [];
 
     useEffect(() => {
-        if (location.state && location.state.vendorId && location.state.partIds) {
-            const { vendorId, partIds } = location.state;
+        if (location.state && location.state.address && location.state.partIds) {
+            const { address, partIds } = location.state;
             setSelectedParts(prev => ({
                 ...prev,
-                [vendorId]: new Set(partIds)
+                [address]: new Set(partIds)
             }));
-            setPickupModalState({ isOpen: true, vendorId });
+            setDeliveringModalState({ isOpen: true, address });
             navigate(location.pathname, { replace: true, state: {} });
         }
     }, [location.state, navigate, location.pathname]);
@@ -149,34 +168,33 @@ export const DriverDashboard: React.FC = () => {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Ready for Pickup</h1>
+                <h1 className="text-2xl font-bold">Delivering</h1>
                 <Button asChild variant="outline">
-                    <Link to="/delivery/map">
+                    <Link to="/delivery/map-delivering">
                         <Map className="mr-2 h-4 w-4" />
                         Map View
                     </Link>
                 </Button>
             </div>
-            
-            <Accordion type="multiple" defaultValue={partsByVendor.map(v => v.vendor.id)} className="space-y-4">
-                {partsByVendor.map(({ vendor, parts }) => {
-                    const selectedCount = selectedParts[vendor.id]?.size || 0;
+            <Accordion type="multiple" defaultValue={partsByAddress.map(a => a.address)} className="space-y-4">
+                {partsByAddress.map(({ address, buyerName, phone, parts }) => {
+                    const selectedCount = selectedParts[address]?.size || 0;
                     return (
-                        <AccordionItem value={vendor.id} key={vendor.id} className="bg-white rounded-lg border">
+                        <AccordionItem value={address} key={address} className="bg-white rounded-lg border">
                             <AccordionTrigger className="p-4 hover:no-underline">
                                 <div className="flex justify-between w-full pr-4 items-center">
                                     <div className="flex flex-col text-left">
-                                        <h3 className="font-bold text-lg">{vendor.name}</h3>
+                                        <h3 className="font-bold text-lg">{buyerName}</h3>
                                         <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                                             <a
-                                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vendor.address)}`}
+                                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
                                                 target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                                                 className="flex items-center gap-1 hover:text-blue-600"
                                             >
-                                                <MapPin className="h-4 w-4" /> {vendor.address}
+                                                <MapPin className="h-4 w-4" /> {address}
                                             </a>
-                                            <a href={`tel:${vendor.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-blue-600">
-                                                <Phone className="h-4 w-4" /> {vendor.phone}
+                                            <a href={`tel:${phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-blue-600">
+                                                <Phone className="h-4 w-4" /> {phone}
                                             </a>
                                         </div>
                                     </div>
@@ -201,8 +219,8 @@ export const DriverDashboard: React.FC = () => {
                                                 <TableRow key={part.id}>
                                                     <TableCell>
                                                         <Checkbox
-                                                            checked={selectedParts[vendor.id]?.has(part.id)}
-                                                            onCheckedChange={() => handleSelectPart(vendor.id, part.id)}
+                                                            checked={selectedParts[address]?.has(part.id)}
+                                                            onCheckedChange={() => handleSelectPart(address, part.id)}
                                                         />
                                                     </TableCell>
                                                     <TableCell className="font-medium">
@@ -228,8 +246,8 @@ export const DriverDashboard: React.FC = () => {
                                     </Table>
                                 </div>
                                 <div className="mt-4 flex justify-end">
-                                    <Button onClick={() => handleOpenPickupModal(vendor.id)} disabled={selectedCount === 0}>
-                                        Mark as Picked Up ({selectedCount})
+                                    <Button onClick={() => handleOpenDeliveringModal(address)} disabled={selectedCount === 0}>
+                                        Mark as Delivered ({selectedCount})
                                     </Button>
                                 </div>
                             </AccordionContent>
@@ -237,17 +255,17 @@ export const DriverDashboard: React.FC = () => {
                     )
                 })}
             </Accordion>
-            
-            {pickupModalState.isOpen && (
-                <PickupModal
-                    isOpen={pickupModalState.isOpen}
-                    onClose={handleClosePickupModal}
-                    parts={pickupModalParts}
-                    vendorName={partsByVendor.find(v => v.vendor.id === pickupModalState.vendorId)?.vendor.name || ''}
-                    onConfirm={handleConfirmPickup}
+            {deliveringModalState.isOpen && (
+                <DeliveringModal
+                    isOpen={deliveringModalState.isOpen}
+                    onClose={handleCloseDeliveringModal}
+                    parts={deliveringModalParts}
+                    address={deliveringModalState.address || ''}
+                    onConfirm={handleConfirmDelivered}
+                    buyerName={partsByAddress.find(g => g.address === deliveringModalState.address)?.buyerName || ''}
+                    phone={partsByAddress.find(g => g.address === deliveringModalState.address)?.phone || ''}
                 />
             )}
-
             <PartDetailsModal
                 isOpen={detailsModalState.isOpen}
                 onClose={handleCloseDetailsModal}
@@ -256,3 +274,5 @@ export const DriverDashboard: React.FC = () => {
         </div>
     );
 };
+
+export default Delivering; 

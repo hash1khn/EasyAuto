@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface VendorQuote {
   id: string;
@@ -59,6 +61,9 @@ interface Order {
 }
 
 const SourcerDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedQuote, setSelectedQuote] = useState<VendorQuote | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isViewAllQuotesModalOpen, setIsViewAllQuotesModalOpen] = useState(false);
@@ -85,321 +90,73 @@ const SourcerDashboard: React.FC = () => {
     vendorNotes: ''
   });
 
-  // Comprehensive mock data with 3 orders, multiple vehicles per order
-  const orders: Order[] = [
-    {
-      id: "ORD-009",
-      vehicles: [
-        {
-          id: "V1",
-          make: "Toyota",
-          model: "Camry",
-          year: 2020,
-          vin: "1HGBH41JXMN109186",
-          parts: [
-            {
-              id: "P1",
-              partName: "Front Bumper",
-              quantity: 1,
-              buyerNotes: "Needs to match factory color - Pearl White",
-              requestedCondition: "New or Used - Excellent",
-              requestedWarranty: "1 year minimum",
-              maxBudget: 800,
-              partNumber: 'TY-CM-FB-01',
-              vendorQuotes: [
-                {
-                  id: "VQ1",
-                  vendorName: "Al Ain Auto Parts",
-                  vendorAddress: "Shop 15, Al Ain Mall, Sheikh Khalifa Street, Al Ain",
-                  vendorPhone: "+971 3 123 4567",
-                  vendorEmail: "info@alainautoparts.ae",
-                  price: 650,
-                  condition: "New",
-                  warranty: "2 years",
-                  imageUrl: "/assets/parts/download (1).jpeg",
-                  vendorNotes: "Genuine Toyota OEM part, perfect color match",
-                  submittedAt: "2024-01-15T10:30:00Z"
-                },
-                {
-                  id: "VQ2",
-                  vendorName: "Dubai Spare Parts Center",
-                  vendorAddress: "Unit 8, Industrial Area 3, Dubai Investment Park",
-                  vendorPhone: "+971 4 987 6543",
-                  vendorEmail: "sales@dubaispares.ae",
-                  price: 450,
-                  condition: "Used - Excellent",
-                  warranty: "6 months",
-                  imageUrl: "/assets/parts/download (2).jpeg",
-                  vendorNotes: "Excellent condition, minor scratch on underside",
-                  submittedAt: "2024-01-16T14:20:00Z"
-                }
-              ]
-            },
-            {
-              id: "P2",
-              partName: "Headlight Assembly",
-              quantity: 1,
-              buyerNotes: "Driver side, LED preferred",
-              requestedCondition: "New",
-              requestedWarranty: "1 year",
-              maxBudget: 1200,
-              partNumber: 'TY-CM-HL-01',
-              vendorQuotes: [
-                {
-                  id: "VQ3",
-                  vendorName: "Abu Dhabi Auto Solutions",
-                  vendorAddress: "Building 12, Mussafah Industrial Area, Abu Dhabi",
-                  vendorPhone: "+971 2 456 7890",
-                  vendorEmail: "contact@adautosolutions.ae",
-                  price: 950,
-                  condition: "New",
-                  warranty: "1 year",
-                  imageUrl: "/assets/parts/images (1).jpeg",
-                  vendorNotes: "Genuine Toyota LED headlight assembly",
-                  submittedAt: "2024-01-17T09:15:00Z",
-                  isAccepted: true,
-                  sourcerReview: {
-                    inspectionImages: ["/assets/parts/images.jpeg", "/assets/parts/download.jpeg"],
-                    reviewNotes: "Visited vendor location. Part is genuine OEM, perfect condition. Vendor facility is clean and professional.",
-                    acceptedAt: "2024-01-18T11:00:00Z"
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id: "V2",
-          make: "Honda",
-          model: "Civic",
-          year: 2019,
-          vin: "2T1BURHE0JC123456",
-          parts: [
-            {
-              id: "P3",
-              partName: "Rear Bumper",
-              quantity: 1,
-              buyerNotes: "Any color, will be painted",
-              requestedCondition: "Used - Good or better",
-              maxBudget: 400,
-              partNumber: 'HO-CV-RB-01',
-              vendorQuotes: []
-            },
-            {
-              id: "P4",
-              partName: "Grille",
-              quantity: 1,
-              buyerNotes: "Sport grille with chrome finish",
-              requestedCondition: "New",
-              maxBudget: 300,
-              partNumber: 'HO-CV-GR-01',
-              vendorQuotes: [
-                {
-                  id: "VQ4",
-                  vendorName: "Sharjah Auto Parts",
-                  vendorAddress: "Industrial Area 6, Sharjah",
-                  vendorPhone: "+971 6 789 0123",
-                  vendorEmail: "info@sharjahautoparts.ae",
-                  price: 280,
-                  condition: "New",
-                  warranty: "1 year",
-                  imageUrl: "/assets/parts/download.jpeg",
-                  vendorNotes: "Genuine Honda sport grille",
-                  submittedAt: "2024-01-19T16:45:00Z"
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      buyer: {
-        name: "Ahmed Al Mansouri",
-        email: "ahmed@example.com",
-        phone: "+971 50 123 4567",
-        address: "Al Quoz, Dubai, UAE",
-        maxBudget: 2000
-      },
-      createdAt: "2024-01-10T08:00:00Z"
-    },
-    {
-      id: "ORD-010",
-      vehicles: [
-        {
-          id: "V3",
-          make: "BMW",
-          model: "X5",
-          year: 2021,
-          vin: "5UXCR6C54KL123789",
-          parts: [
-            {
-              id: "P5",
-              partName: "Side Mirror",
-              quantity: 1,
-              buyerNotes: "Driver side, heated and power folding",
-              requestedCondition: "New",
-              requestedWarranty: "2 years",
-              maxBudget: 1800,
-              vendorQuotes: [
-                {
-                  id: "VQ5",
-                  vendorName: "Ras Al Khaimah Motors",
-                  vendorAddress: "Al Hamra Industrial Zone, Ras Al Khaimah",
-                  vendorPhone: "+971 7 234 5678",
-                  vendorEmail: "sales@rakmotors.ae",
-                  price: 1400,
-                  condition: "Used - Excellent",
-                  warranty: "1 year",
-                  imageUrl: "/assets/parts/download (1).jpeg",
-                  vendorNotes: "Slightly used, excellent condition",
-                  submittedAt: "2024-01-20T11:00:00Z"
-                },
-                {
-                  id: "VQ6",
-                  vendorName: "Dubai Luxury Auto Parts",
-                  vendorAddress: "Sheikh Zayed Road, Dubai",
-                  vendorPhone: "+971 4 567 8901",
-                  vendorEmail: "info@dubailuxuryparts.ae",
-                  price: 1650,
-                  condition: "New",
-                  warranty: "2 years",
-                  imageUrl: "/assets/parts/download (2).jpeg",
-                  vendorNotes: "Brand new OEM part, in original packaging.",
-                  submittedAt: "2024-01-21T12:30:00Z",
-                  isAccepted: true,
-                  sourcerReview: {
-                    inspectionImages: ["/assets/parts/images (1).jpeg"],
-                    reviewNotes: "Confirmed part is new and OEM. Vendor is very reliable.",
-                    acceptedAt: "2024-01-22T10:00:00Z"
-                  }
-                }
-              ]
-            },
-            {
-              id: "P6",
-              partName: "Wheel Cap",
-              quantity: 4,
-              buyerNotes: "Center caps for 20-inch wheels",
-              requestedCondition: "New",
-              maxBudget: 200,
-              vendorQuotes: []
-            }
-          ]
-        }
-      ],
-      buyer: {
-        name: "Sarah Johnson",
-        email: "sarah@example.com",
-        phone: "+971 55 987 6543",
-        address: "Jumeirah Beach Road, Dubai, UAE"
-      },
-      createdAt: "2024-01-12T10:30:00Z"
-    },
-    {
-      id: "ORD-011",
-      vehicles: [
-        {
-          id: "V4",
-          make: "Mercedes",
-          model: "C-Class",
-          year: 2022,
-          vin: "WDDWF4JB0FR123456",
-          parts: [
-            {
-              id: "P7",
-              partName: "Fog Light",
-              quantity: 1,
-              buyerNotes: "Passenger side, LED",
-              requestedCondition: "New",
-              requestedWarranty: "1 year",
-              maxBudget: 350,
-              vendorQuotes: [
-                {
-                  id: "VQ7",
-                  vendorName: "Fujairah Auto Parts",
-                  vendorAddress: "Industrial Area 2, Fujairah",
-                  vendorPhone: "+971 9 876 5432",
-                  vendorEmail: "contact@fujairahautoparts.ae",
-                  price: 320,
-                  condition: "New",
-                  warranty: "1 year",
-                  imageUrl: "/assets/parts/download.jpeg",
-                  vendorNotes: "Genuine Mercedes LED fog light",
-                  submittedAt: "2024-01-22T11:20:00Z"
-                }
-              ]
-            },
-            {
-              id: "P8",
-              partName: "Door Handle",
-              quantity: 1,
-              buyerNotes: "Driver side, chrome finish",
-              requestedCondition: "New",
-              maxBudget: 250,
-              vendorQuotes: []
-            }
-          ]
-        },
-        {
-          id: "V5",
-          make: "Lexus",
-          model: "RX",
-          year: 2020,
-          vin: "2T2ZZMCA0LC123789",
-          parts: [
-            {
-              id: "P9",
-              partName: "Tail Light",
-              quantity: 1,
-              buyerNotes: "Driver side, LED",
-              requestedCondition: "New",
-              requestedWarranty: "1 year",
-              maxBudget: 450,
-              vendorQuotes: [
-                {
-                  id: "VQ8",
-                  vendorName: "Umm Al Quwain Auto",
-                  vendorAddress: "Industrial Area 1, Umm Al Quwain",
-                  vendorPhone: "+971 6 123 4567",
-                  vendorEmail: "info@uaqauto.ae",
-                  price: 420,
-                  condition: "New",
-                  warranty: "1 year",
-                  imageUrl: "/assets/parts/images.jpeg",
-                  vendorNotes: "Genuine Lexus LED tail light",
-                  submittedAt: "2024-01-23T14:30:00Z"
-                },
-                {
-                  id: "VQ9",
-                  vendorName: "Ajman Auto Parts",
-                  vendorAddress: "Industrial Area 3, Ajman",
-                  vendorPhone: "+971 6 987 6543",
-                  vendorEmail: "sales@ajmanautoparts.ae",
-                  price: 380,
-                  condition: "Used - Excellent",
-                  warranty: "6 months",
-                  imageUrl: "/assets/parts/download (1).jpeg",
-                  vendorNotes: "Excellent condition, minor wear",
-                  submittedAt: "2024-01-24T10:45:00Z"
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      buyer: {
-        name: "Mohammed Al Rashid",
-        email: "mohammed@example.com",
-        phone: "+971 52 456 7890",
-        address: "Sheikh Zayed Road, Dubai, UAE"
-      },
-      createdAt: "2024-01-14T14:20:00Z"
+  useEffect(() => {
+    if (user) {
+      handleLoadData();
     }
-  ];
+  }, [user]);
 
-  // Calculate metrics for parts that do not have an accepted quote
+  const handleLoadData = async () => {
+    setLoading(true);
+    await fetchLiveOrders();
+    setLoading(false);
+  };
+
+  const fetchLiveOrders = async () => {
+    try {
+      // Fetch all open orders with their parts, vehicles, and bids
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          parts!inner(
+            *,
+            vehicle:vehicles(*),
+            bids(*)
+          )
+        `)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Process orders to include all necessary information
+      const processedOrders = (data || [])
+        .map((order) => ({
+          ...order,
+          parts: order.parts
+            .map((part) => ({
+              ...part,
+              vendorQuotes: part.bids.map(bid => ({
+                id: bid.id,
+                vendorName: bid.vendor_name,
+                vendorAddress: bid.vendor_address,
+                vendorPhone: bid.vendor_phone,
+                vendorEmail: bid.vendor_email,
+                price: bid.price,
+                condition: bid.condition,
+                warranty: bid.warranty,
+                imageUrl: bid.image_url,
+                vendorNotes: bid.notes,
+                submittedAt: bid.created_at,
+                isAccepted: bid.status === 'accepted',
+                sourcerReview: bid.sourcer_review
+              }))
+            }))
+        }))
+        // Remove orders that have no parts after filtering
+        .filter(order => order.parts.length > 0);
+
+      setOrders(processedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+
+  // Calculate metrics for parts that need sourcer review
   const partsForDashboard = orders
     .flatMap(order => order.vehicles.flatMap(v => v.parts))
-    .filter(part => !part.vendorQuotes.some(q => q.isAccepted));
+    .filter(part => !part.vendorQuotes.some(q => q.sourcerReview));
 
   const metrics = {
     pendingQuotes: partsForDashboard.reduce((total, part) => total + part.vendorQuotes.length, 0),
@@ -1245,4 +1002,4 @@ const SourcerDashboard: React.FC = () => {
   );
 };
 
-export default SourcerDashboard; 
+export default SourcerDashboard;
