@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useState, useMemo, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -13,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/integrations/supabase/client"
 import PickupModal from "../delivery/PickupModal"
 import PartDetailsModal from "../delivery/PartDetailsModal"
+import { usePickupActions } from "@/hooks/usePickupActions"
 import type { QuoteCondition } from "@/types/orders"
 
 interface SupabaseVendor {
@@ -206,6 +205,7 @@ export const DriverDashboard: React.FC = () => {
     part: EnrichedPart | null
   }>({ isOpen: false, part: null })
 
+  const { confirmPickup } = usePickupActions()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -497,48 +497,28 @@ export const DriverDashboard: React.FC = () => {
     try {
       const partIdsToUpdate = Array.from(selectedParts[vendorId] || [])
 
-      // Upload photo if provided
-      let photoUrl: string | null = null
-      if (photo) {
-        const fileExt = photo.name.split(".").pop()
-        const fileName = `pickup-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-        const filePath = `pickup-photos/${fileName}`
+      // Use the centralized pickup action
+      const result = await confirmPickup(partIdsToUpdate, pickupNotes, photo)
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("delivery-photos")
-          .upload(filePath, photo)
-
-        if (!uploadError) {
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("delivery-photos").getPublicUrl(filePath)
-          photoUrl = publicUrl
-        }
-      }
-
-      const { error } = await supabase
-        .from("parts")
-        .update({
-          shipping_status: "out_for_delivery",
-          delivery_note: pickupNotes,
-          delivery_photo_url: photoUrl,
+      if (result.success) {
+        // Clear selections
+        setSelectedParts((prev) => {
+          const newSelection = { ...prev }
+          delete newSelection[vendorId]
+          return newSelection
         })
-        .in("id", partIdsToUpdate)
 
-      if (error) throw error
+        // Refresh data
+        await fetchPartsForPickup()
 
-      await fetchPartsForPickup()
-      setSelectedParts((prev) => {
-        const newSelection = { ...prev }
-        delete newSelection[vendorId]
-        return newSelection
-      })
-
-      handleClosePickupModal()
-      alert(`${partIdsToUpdate.length} part(s) marked as 'Out for Delivery'`)
+        // Show success message
+        alert(result.message)
+      } else {
+        alert(`Error: ${result.error}`)
+      }
     } catch (error) {
-      console.error("Error updating parts:", error)
-      alert("Failed to update parts status")
+      console.error("Error in handleConfirmPickup:", error)
+      alert("Failed to confirm pickup. Please try again.")
     }
   }
 
@@ -796,11 +776,13 @@ export const DriverDashboard: React.FC = () => {
         />
       )}
 
-      <PartDetailsModal
-        isOpen={detailsModalState.isOpen}
-        onClose={handleCloseDetailsModal}
-        part={detailsModalState.part}
-      />
+      {detailsModalState.isOpen && (
+        <PartDetailsModal
+          isOpen={detailsModalState.isOpen}
+          onClose={handleCloseDetailsModal}
+          part={detailsModalState.part}
+        />
+      )}
     </div>
   )
 }
