@@ -1,3 +1,5 @@
+import { QuoteCondition } from './orders';
+
 export interface DeliveryPart {
   id: string
   part_name: string
@@ -60,17 +62,41 @@ export interface GroupedDeliveryData {
   parts: DeliveryPart[]
 }
 
-export interface EnrichedPart extends DeliveryPart {
-  // Legacy compatibility
-  partName: string
-  partNumber: string
-  imageUrls: string[]
-  condition: string
-  vendorName: string
-  vendorAddress: string
-  vendorPhone: string
-  sourcerName: string
-  sourcerId: string
-  sourcerPhone: string
-  orderId: string
+export interface EnrichedPart {
+  id: string;
+  partName: string;
+  partNumber: string;
+  quantity: number;
+  orderId: string;
+  vehicleName: string;
+  imageUrls: string[];
+  condition: QuoteCondition;
+  status: string;
+  vendorId: string;
+  vendorName: string;
+  vendorAddress: string;
+  vendorPhone: string;
+  vendorLat: number;
+  vendorLng: number;
+  shipping_status?: string;
+  created_at?: string;
+  delivered_at?: string;
+  vehicle?: {
+    make: string;
+    model: string;
+    year: number;
+  };
+  winning_bid?: {
+    price: number;
+    warranty: string;
+    vendor?: {
+      business_name?: string;
+    };
+  };
+  order?: {
+    user_profile?: {
+      full_name: string;
+      delivery_address: string;
+    };
+  };
 }
