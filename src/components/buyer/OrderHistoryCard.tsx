@@ -1,3 +1,4 @@
+// Updated OrderHistoryCard.tsx
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,8 +23,8 @@ const getStatusStyle = (status: string) => {
 interface OrderHistoryCardProps {
   order: any
   onViewDetails: (partId: string) => void
-  onShowReceipt: (orderId: string) => void
-  onShowRefundReceipt: (orderId: string) => void
+  onShowReceipt: (invoiceId: string) => void
+  onShowRefundReceipt: (refundId: string) => void
 }
 
 export const OrderHistoryCard = ({
@@ -41,13 +42,16 @@ export const OrderHistoryCard = ({
     year: "numeric",
   })
 
+  // Find the first invoice with a receipt URL
+  const firstInvoice = order.parts.find((part: any) => part.invoice?.invoice_url)?.invoice
+
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3">
-              <h3 className="font-bold text-lg">Order #{order.id.slice(0, 8)}</h3>
+              {/* <h3 className="font-bold text-lg">Order #{order.id.slice(0, 8)}</h3> */}
               <Badge className={getStatusStyle(order.status)}>
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </Badge>
@@ -71,14 +75,14 @@ export const OrderHistoryCard = ({
               {isExpanded ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
               More Details
             </Button>
-            {order.status === "completed" && (
+            {order.status === "completed" && firstInvoice && (
               <>
-                <Button variant="outline" onClick={() => onShowReceipt(order.id)}>
+                <Button variant="outline" onClick={() => onShowReceipt(firstInvoice.id)}>
                   <FileText className="mr-2 h-4 w-4" />
                   Receipt
                 </Button>
                 {hasRefunds && (
-                  <Button variant="destructive" onClick={() => onShowRefundReceipt(order.id)}>
+                  <Button variant="destructive" onClick={() => onShowRefundReceipt(order.refund_requests[0].id)}>
                     <FileText className="mr-2 h-4 w-4" />
                     Refund Receipt
                   </Button>

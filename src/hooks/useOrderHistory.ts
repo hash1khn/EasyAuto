@@ -58,6 +58,22 @@ interface OrderHistoryItem {
         whatsapp_number: string
       }
     } | null
+    invoice: {
+      id: string
+      total_amount: number
+      subtotal: number
+      vat_amount: number
+      service_fee: number
+      delivery_fee: number
+      payment_status: string
+      paid_at: string | null
+      invoice_url: string | null
+      delivery_address: string | null
+      delivery_option: {
+        name: string
+        estimated_days: number
+      } | null
+    } | null
   }>
   refund_requests: Array<{
     id: string
@@ -103,45 +119,60 @@ export const useOrderHistory = () => {
 
       if (profileError) throw profileError
 
-      const { data, error } = await supabase
+      // First fetch all orders for the user
+      const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
+        .select("*")
+        .eq("user_id", userProfile.id)
+        .order("created_at", { ascending: false })
+
+      if (ordersError) throw ordersError
+
+      // Then fetch all parts for these orders with their invoices
+      const orderIds = ordersData?.map(order => order.id) || []
+      
+      const { data: partsData, error: partsError } = await supabase
+        .from("parts")
         .select(`
           *,
-          parts (
-            *,
-            vehicles (id, make, model, year, vin),
-            bids!part_id (
+          order_id,
+          vehicles (id, make, model, year, vin),
+          bids!part_id (
+            id,
+            price,
+            condition,
+            warranty,
+            notes,
+            status,
+            image_url,
+            vendor:user_profiles!vendor_id (
+              full_name,
+              business_name,
+              whatsapp_number
+            )
+          ),
+          invoice_parts!part_id (
+            invoice_id,
+            quantity,
+            unit_price,
+            invoices (
               id,
-              price,
-              condition,
-              warranty,
-              notes,
-              status,
-              image_url,
-              vendor:user_profiles!vendor_id (
-                full_name,
-                business_name,
-                whatsapp_number
+              total_amount,
+              subtotal,
+              vat_amount,
+              service_fee,
+              delivery_fee,
+              payment_status,
+              paid_at,
+              invoice_url,
+              delivery_address,
+              delivery_options (
+                name,
+                estimated_days
               )
             )
           ),
-          invoices (
-            id,
-            total_amount,
-            subtotal,
-            vat_amount,
-            service_fee,
-            delivery_fee,
-            payment_status,
-            paid_at,
-            invoice_url,
-            delivery_address,
-            delivery_options (
-              name,
-              estimated_days
-            )
-          ),
-          refund_requests (
+          refund_requests!part_id (
             id,
             reason,
             status,
@@ -150,69 +181,124 @@ export const useOrderHistory = () => {
             images
           )
         `)
-        .eq("user_id", userProfile.id)
-        .order("created_at", { ascending: false })
+        .in("order_id", orderIds)
 
-      if (error) throw error
+      if (partsError) throw partsError
 
-      const transformedOrders: OrderHistoryItem[] = (data || []).map((order) => {
-        const invoice = order.invoices?.[0]
+      // Group parts by order
+      const partsByOrderId: Record<string, any[]> = {}
+      partsData?.forEach(part => {
+        if (!partsByOrderId[part.order_id]) {
+          partsByOrderId[part.order_id] = []
+        }
+        partsByOrderId[part.order_id].push(part)
+      })
+
+      // Transform data into our structure
+      const transformedOrders: OrderHistoryItem[] = (ordersData || []).map((order) => {
+        const orderParts = partsByOrderId[order.id] || []
+        
+        // Calculate order totals from all parts' invoices
+        let orderTotal = 0
+        let orderSubtotal = 0
+        let orderVat = 0
+        let orderServiceFee = 0
+        let orderDeliveryFee = 0
+        
+        const partsWithInvoices = orderParts.map((part: any) => {
+          const invoicePart = part.invoice_parts?.[0]
+          const invoice = invoicePart?.invoices
+          
+          if (invoice) {
+            orderTotal += invoice.total_amount || 0
+            orderSubtotal += invoice.subtotal || 0
+            orderVat += invoice.vat_amount || 0
+            orderServiceFee += invoice.service_fee || 0
+            orderDeliveryFee += invoice.delivery_fee || 0
+          }
+
+          const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
+          
+          return {
+            id: part.id,
+            part_name: part.part_name,
+            part_number: part.part_number,
+            description: part.description,
+            quantity: part.quantity,
+            shipping_status: part.shipping_status,
+            shipped_at: part.shipped_at,
+            collected_at: part.collected_at,
+            delivered_at: part.delivered_at,
+            is_accepted: part.is_accepted,
+            expected_delivery_date: part.expected_delivery_date,
+            delivery_photo_url: part.delivery_photo_url,
+            photos: part.photos || [],
+            vehicle: part.vehicles,
+            winning_bid: winningBid
+              ? {
+                  id: winningBid.id,
+                  price: winningBid.price,
+                  condition: winningBid.condition,
+                  warranty: winningBid.warranty,
+                  notes: winningBid.notes,
+                  status: winningBid.status,
+                  image_url: winningBid.image_url,
+                  vendor: winningBid.vendor,
+                }
+              : null,
+            invoice: invoice ? {
+              id: invoice.id,
+              total_amount: invoice.total_amount,
+              subtotal: invoice.subtotal,
+              vat_amount: invoice.vat_amount,
+              service_fee: invoice.service_fee,
+              delivery_fee: invoice.delivery_fee,
+              payment_status: invoice.payment_status,
+              paid_at: invoice.paid_at,
+              invoice_url: invoice.invoice_url,
+              delivery_address: invoice.delivery_address,
+              delivery_option: invoice.delivery_options,
+              created_at:invoice.created_at
+            } : null
+          }
+        })
+
+        // Find the most recent invoice for the order (if needed for display)
+        const latestInvoice = partsWithInvoices
+          .filter(part => part.invoice)
+          .sort((a, b) => 
+            new Date(b.invoice?.paid_at || b.invoice?.created_at || 0).getTime() - 
+            new Date(a.invoice?.paid_at || a.invoice?.created_at || 0).getTime()
+          )[0]?.invoice
+
         return {
           id: order.id,
           created_at: order.created_at,
           updated_at: order.updated_at,
           status: order.status,
           is_paid: order.is_paid,
-          parts_count: order.parts?.length || 0,
-          total_amount: invoice?.total_amount || 0,
-          subtotal: invoice?.subtotal || 0,
-          vat_amount: invoice?.vat_amount || 0,
-          service_fee: invoice?.service_fee || 0,
-          delivery_fee: invoice?.delivery_fee || 0,
-          payment_status: invoice?.payment_status || "unpaid",
-          paid_at: invoice?.paid_at || null,
-          invoice_url: invoice?.invoice_url || null,
-          delivery_address: invoice?.delivery_address || null,
-          delivery_option: invoice?.delivery_options || null,
-          parts: (order.parts || []).map((part: any) => {
-            const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
-            return {
-              id: part.id,
-              part_name: part.part_name,
-              part_number: part.part_number,
-              description: part.description,
-              quantity: part.quantity,
-              shipping_status: part.shipping_status,
-              shipped_at: part.shipped_at,
-              collected_at: part.collected_at,
-              delivered_at: part.delivered_at,
-              is_accepted: part.is_accepted,
-              expected_delivery_date: part.expected_delivery_date,
-              delivery_photo_url: part.delivery_photo_url,
-              photos: part.photos || [],
-              vehicle: part.vehicles,
-              winning_bid: winningBid
-                ? {
-                    id: winningBid.id,
-                    price: winningBid.price,
-                    condition: winningBid.condition,
-                    warranty: winningBid.warranty,
-                    notes: winningBid.notes,
-                    status: winningBid.status,
-                    image_url: winningBid.image_url,
-                    vendor: winningBid.vendor,
-                  }
-                : null,
-            }
-          }),
-          refund_requests: order.refund_requests?.map((req: any) => ({
-            id: req.id,
-            reason: req.reason,
-            status: req.status,
-            created_at: req.created_at,
-            admin_notes: req.admin_notes,
-            images: req.images || []
-          })) || [],
+          parts_count: partsWithInvoices.length,
+          total_amount: orderTotal,
+          subtotal: orderSubtotal,
+          vat_amount: orderVat,
+          service_fee: orderServiceFee,
+          delivery_fee: orderDeliveryFee,
+          payment_status: latestInvoice?.payment_status || "unpaid",
+          paid_at: latestInvoice?.paid_at || null,
+          invoice_url: latestInvoice?.invoice_url || null,
+          delivery_address: latestInvoice?.delivery_address || null,
+          delivery_option: latestInvoice?.delivery_option || null,
+          parts: partsWithInvoices,
+          refund_requests: orderParts.flatMap(part => 
+            part.refund_requests?.map((req: any) => ({
+              id: req.id,
+              reason: req.reason,
+              status: req.status,
+              created_at: req.created_at,
+              admin_notes: req.admin_notes,
+              images: req.images || []
+            })) || []
+          )
         }
       })
 

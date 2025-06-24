@@ -134,15 +134,53 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_parts: {
+        Row: {
+          invoice_id: string
+          part_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          invoice_id: string
+          part_id: string
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          invoice_id?: string
+          part_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_parts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_parts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           created_at: string
           delivery_address: string | null
           delivery_fee: number
+          delivery_note: string | null
           delivery_option_id: string | null
+          driver_name: string | null
           id: string
+          image_urls: string[] | null
           invoice_url: string | null
-          order_id: string
           paid_at: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           refund_status: Database["public"]["Enums"]["invoice_refund_status"]
@@ -159,10 +197,12 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_note?: string | null
           delivery_option_id?: string | null
+          driver_name?: string | null
           id?: string
+          image_urls?: string[] | null
           invoice_url?: string | null
-          order_id: string
           paid_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           refund_status?: Database["public"]["Enums"]["invoice_refund_status"]
@@ -179,10 +219,12 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_note?: string | null
           delivery_option_id?: string | null
+          driver_name?: string | null
           id?: string
+          image_urls?: string[] | null
           invoice_url?: string | null
-          order_id?: string
           paid_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           refund_status?: Database["public"]["Enums"]["invoice_refund_status"]
@@ -201,13 +243,6 @@ export type Database = {
             columns: ["delivery_option_id"]
             isOneToOne: false
             referencedRelation: "delivery_options"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -302,7 +337,7 @@ export type Database = {
           expected_delivery_date: string | null
           id: string
           is_accepted: boolean | null
-          order_id: string
+          order_id: string | null
           part_name: string
           part_number: string | null
           photos: string[] | null
@@ -323,7 +358,7 @@ export type Database = {
           expected_delivery_date?: string | null
           id?: string
           is_accepted?: boolean | null
-          order_id: string
+          order_id?: string | null
           part_name: string
           part_number?: string | null
           photos?: string[] | null
@@ -344,7 +379,7 @@ export type Database = {
           expected_delivery_date?: string | null
           id?: string
           is_accepted?: boolean | null
-          order_id?: string
+          order_id?: string | null
           part_name?: string
           part_number?: string | null
           photos?: string[] | null
@@ -376,6 +411,7 @@ export type Database = {
           created_at: string
           id: string
           images: string[] | null
+          invoice_id: string | null
           order_id: string
           part_id: string | null
           reason: string
@@ -389,6 +425,7 @@ export type Database = {
           created_at?: string
           id?: string
           images?: string[] | null
+          invoice_id?: string | null
           order_id: string
           part_id?: string | null
           reason: string
@@ -402,6 +439,7 @@ export type Database = {
           created_at?: string
           id?: string
           images?: string[] | null
+          invoice_id?: string | null
           order_id?: string
           part_id?: string | null
           reason?: string
@@ -411,6 +449,13 @@ export type Database = {
           vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "refund_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "refund_requests_order_id_fkey"
             columns: ["order_id"]

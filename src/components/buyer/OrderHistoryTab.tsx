@@ -1,3 +1,4 @@
+// Updated OrderHistoryTab.tsx
 import { useState } from "react"
 import { OrderHistoryHeader } from "./OrderHistoryHeader"
 import { OrderHistorySummary } from "./OrderHistorySummary"
@@ -25,13 +26,12 @@ export const OrderHistoryTab = () => {
   } = useOrderHistory()
 
   const [selectedPart, setSelectedPart] = useState<any>(null)
-  const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null)
-  const [refundReceiptOrderId, setRefundReceiptOrderId] = useState<string | null>(null)
+  const [receiptInvoiceId, setReceiptInvoiceId] = useState<string | null>(null)
+  const [refundReceiptId, setRefundReceiptId] = useState<string | null>(null)
 
   const handleViewPartDetails = (partId: string) => {
-    // Find the part across all orders
     for (const order of orders) {
-      const part = order.parts.find((p) => p.id === partId)
+      const part = order.parts.find((p: any) => p.id === partId)
       if (part) {
         setSelectedPart(part)
         break
@@ -39,12 +39,12 @@ export const OrderHistoryTab = () => {
     }
   }
 
-  const handleShowReceipt = (orderId: string) => {
-    setReceiptOrderId(orderId)
+  const handleShowReceipt = (invoiceId: string) => {
+    setReceiptInvoiceId(invoiceId)
   }
 
-  const handleShowRefundReceipt = (orderId: string) => {
-    setRefundReceiptOrderId(orderId)
+  const handleShowRefundReceipt = (refundId: string) => {
+    setRefundReceiptId(refundId)
   }
 
   if (loading) {
@@ -109,11 +109,11 @@ export const OrderHistoryTab = () => {
       </div>
 
       <PartModal part={selectedPart} vehicle={selectedPart?.vehicle} onOpenChange={() => setSelectedPart(null)} />
-      <ReceiptModal isOpen={!!receiptOrderId} onOpenChange={() => setReceiptOrderId(null)} orderId={receiptOrderId} />
+      <ReceiptModal isOpen={!!receiptInvoiceId} onOpenChange={() => setReceiptInvoiceId(null)} invoiceId={receiptInvoiceId} />
       <RefundReceiptModal
-        isOpen={!!refundReceiptOrderId}
-        onOpenChange={() => setRefundReceiptOrderId(null)}
-        orderId={refundReceiptOrderId}
+        isOpen={!!refundReceiptId}
+        onOpenChange={() => setRefundReceiptId(null)}
+        refundId={refundReceiptId}
       />
     </div>
   )

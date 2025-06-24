@@ -8,43 +8,46 @@ import { useAuth } from "@/contexts/AuthContext"
 interface RefundReceiptModalProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
-  orderId: string | null
+  refundId: string | null
 }
 
-export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundReceiptModalProps) => {
+export const RefundReceiptModal = ({ isOpen, onOpenChange, refundId }: RefundReceiptModalProps) => {
   const { user } = useAuth()
-  const [orderData, setOrderData] = useState<any>(null)
+  const [refundData, setRefundData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (isOpen && orderId && user) {
-      fetchOrderData()
+    if (isOpen && refundId && user) {
+      fetchRefundData()
     }
-  }, [isOpen, orderId, user])
+  }, [isOpen, refundId, user])
 
-  const fetchOrderData = async () => {
-    if (!orderId || !user) return
+  const fetchRefundData = async () => {
+    if (!refundId || !user) return
 
     setLoading(true)
     try {
-      const { data: userProfile } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single()
-
       const { data, error } = await supabase
-        .from("orders")
+        .from("refund_requests")
         .select(`
           *,
-          refund_requests (*),
-          parts (
+          user_profiles (*),
+          parts:part_id (
             *,
-            bids!part_id (price, status)
-          )
+            vehicles (make, model, year, vin),
+            bids!part_id (
+              id, price, condition, warranty, status,
+              vendor:user_profiles!vendor_id (full_name, business_name)
+            )
+          ),
+          invoices:invoice_id (*)
         `)
-        .eq("id", orderId)
+        .eq("id", refundId)
         .single()
 
       if (error) throw error
 
-      setOrderData({ ...data, userProfile })
+      setRefundData(data)
     } catch (error) {
       console.error("Error fetching refund data:", error)
     } finally {
@@ -56,7 +59,7 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
     window.print()
   }
 
-  if (!orderData || loading) {
+  if (!refundData || loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl">
@@ -66,32 +69,28 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
     )
   }
 
-  const approvedRefunds = orderData.refund_requests?.filter((r: any) => r.status === "approved") || []
-
-  if (approvedRefunds.length === 0) {
+  if (refundData.status !== "approved") {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl">
-          <div className="p-8 text-center">No approved refunds found for this order.</div>
+          <div className="p-8 text-center">This refund has not been approved yet.</div>
         </DialogContent>
       </Dialog>
     )
   }
 
-  const refundDate = new Date().toLocaleDateString("en-US", {
+  const refundDate = new Date(refundData.updated_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   })
 
-  // Calculate refund total (simplified - in real app you'd track which specific parts were refunded)
-  const refundTotal =
-    orderData.parts?.reduce((sum: number, part: any) => {
-      const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
-      return sum + (winningBid?.price || 0) * part.quantity
-    }, 0) || 0
+  const formatCurrency = (amount: number) => `AED ${amount?.toFixed(2) || "0.00"}`
 
-  const formatCurrency = (amount: number) => `AED ${amount.toFixed(2)}`
+  // Calculate refund amount - either from invoice or from part bids
+  const refundAmount = refundData.invoices
+    ? refundData.invoices.total_amount
+    : refundData.parts?.bids?.find((b: any) => b.status === "accepted")?.price || 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -103,14 +102,19 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
             <div className="flex justify-between text-sm pt-2">
               <div>
                 <p className="text-muted-foreground">
-                  Original Order ID: <span className="font-medium text-foreground">{orderId?.slice(0, 8)}</span>
+                  Refund ID: <span className="font-medium text-foreground">{refundId?.slice(0, 8)}</span>
                 </p>
                 <p className="text-muted-foreground">
                   Refund Date: <span className="font-medium text-foreground">{refundDate}</span>
                 </p>
+                {refundData.invoices && (
+                  <p className="text-muted-foreground">
+                    Original Invoice: <span className="font-medium text-foreground">{refundData.invoices.id.slice(0, 8)}</span>
+                  </p>
+                )}
               </div>
               <div className="text-right">
-                <p className="font-semibold text-orange-600">Status: Refund Processed</p>
+                <p className="font-semibold text-orange-600">Status: {refundData.status}</p>
               </div>
             </div>
           </DialogHeader>
@@ -120,8 +124,9 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-3">Refund Issued To</h3>
               <div className="text-foreground">
-                <p>{orderData.userProfile?.full_name || "N/A"}</p>
+                <p>{refundData.user_profiles?.full_name || "N/A"}</p>
                 <p>{user?.email}</p>
+                <p>{refundData.user_profiles?.whatsapp_number || "N/A"}</p>
               </div>
             </div>
             <div>
@@ -132,22 +137,47 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
             </div>
           </div>
 
-          {/* Refund Reasons */}
+          {/* Refund Details */}
           <div className="space-y-4 mb-8">
             <h3 className="text-lg font-semibold text-foreground mb-3">Refund Details</h3>
-            {approvedRefunds.map((refund: any) => (
-              <div key={refund.id} className="border rounded-lg p-4">
-                <p className="font-medium mb-2">Refund Reason:</p>
-                <p className="text-sm text-gray-700 mb-2">{refund.reason}</p>
-                {refund.admin_notes && (
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm">
-                      <strong>Admin Notes:</strong> {refund.admin_notes}
-                    </p>
-                  </div>
-                )}
+            
+            <div className="border rounded-lg p-4">
+              <p className="font-medium mb-2">Refund Reason:</p>
+              <p className="text-sm text-gray-700 mb-2">{refundData.reason}</p>
+              
+              {refundData.admin_notes && (
+                <div className="bg-gray-50 p-3 rounded mt-2">
+                  <p className="text-sm">
+                    <strong>Admin Notes:</strong> {refundData.admin_notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Refunded Items */}
+            {refundData.parts && (
+              <div className="mt-6">
+                <h4 className="font-semibold mb-2">Refunded Items</h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="text-left p-3 font-semibold text-foreground">Part Name</th>
+                        <th className="text-left p-3 font-semibold text-foreground">Part Number</th>
+                        <th className="text-right p-3 font-semibold text-foreground">Refund Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-2">{refundData.parts.part_name}</td>
+                        <td className="p-2">{refundData.parts.part_number || "N/A"}</td>
+                        <td className="text-right p-2">{formatCurrency(refundAmount)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Total */}
@@ -155,7 +185,7 @@ export const RefundReceiptModal = ({ isOpen, onOpenChange, orderId }: RefundRece
             <div className="w-full max-w-sm space-y-2 text-sm">
               <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
                 <span>Total Refunded</span>
-                <span>{formatCurrency(refundTotal)}</span>
+                <span>{formatCurrency(refundAmount)}</span>
               </div>
             </div>
           </div>
