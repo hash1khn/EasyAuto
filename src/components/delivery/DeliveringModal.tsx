@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { EnrichedPart, GroupedDeliveryData } from "@/types/delivery"
+import { handleDeliveryConfirmation } from '@/lib/delivery-service';
+import { toast } from '@/components/ui/use-toast';
 
 interface InvoiceData {
   parts: EnrichedPart[]
@@ -70,25 +72,59 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
     }
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!driverName.trim()) {
-      alert("Driver name is required.")
-      return
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Driver name is required"
+      });
+      return;
     }
-    onConfirm({
-      parts,
-      address,
-      deliveryFee: deliveryFeeNum,
-      paymentMethod,
-      paymentReference: paymentReference.trim() || undefined,
-      deliveryPhotos,
-      deliveryNotes,
-      driverName,
-      subtotal,
-      grandTotal,
-      buyerData,
-    })
-  }
+
+    try {
+      const invoice = await handleDeliveryConfirmation({
+        parts,
+        buyerData,
+        deliveryFee: Number(deliveryFee) || 0,
+        paymentMethod,
+        paymentReference: paymentReference.trim() || undefined,
+        deliveryPhotos,
+        deliveryNotes,
+        driverName: driverName.trim(),
+        subtotal,
+        grandTotal
+      });
+
+      toast({
+        title: "Success",
+        description: "Delivery confirmed and invoice generated successfully"
+      });
+
+      onConfirm({
+        parts,
+        address,
+        deliveryFee: Number(deliveryFee) || 0,
+        paymentMethod,
+        paymentReference: paymentReference.trim() || undefined,
+        deliveryPhotos,
+        deliveryNotes,
+        driverName: driverName.trim(),
+        subtotal,
+        grandTotal,
+        buyerData
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to confirm delivery. Please try again."
+      });
+    }
+  };
 
   if (!isOpen) return null
 
