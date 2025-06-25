@@ -28,6 +28,8 @@ import Delivering from "@/components/driver/Delivering";
 import DriverHistory from "@/components/driver/DriverHistory";
 import { DeliverySettings } from "@/components/driver/DeliverySettings";
 import { DriverDashboard } from "@/components/driver/DriverDashboard";
+import PickupMapPage from './pages/delivery/PickupMapPage';
+import DeliveringMapPage from './pages/delivery/DeliveringMapPage';
 
 const queryClient = new QueryClient();
 
@@ -163,6 +165,8 @@ function App() {
                                     element={<DeliverySettings />}
                                 />
                             </Route>
+                            <Route path="/delivery/map" element={<PickupMapPage />} />
+                            <Route path="/delivery/map-delivering" element={<DeliveringMapPage />} />
                             <Route
                                 path="/sourcer"
                                 element={

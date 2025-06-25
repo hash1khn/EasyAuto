@@ -359,6 +359,21 @@ export const DriverDashboard: React.FC = () => {
       return defaultCoords
     }
   }
+  const getGroupedByVendor = () => {
+  return partsByVendor.map((group) => ({
+    vendor: {
+      id: group.vendor.id,
+      name: group.vendor.name,
+      address: group.vendor.address,
+      phone: group.vendor.phone,
+      lat: group.vendor.lat,
+      lng: group.vendor.lng,
+      google_maps_url: group.vendor.google_maps_url,
+      delivery_instructions: group.vendor.delivery_instructions,
+    },
+    parts: group.parts,
+  }))
+}
 
   const partsByVendor = useMemo(() => {
     const grouped = parts.reduce(
@@ -564,19 +579,22 @@ export const DriverDashboard: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Ready for Pickup</h1>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/delivery/map">
-              <Map className="mr-2 h-4 w-4" />
-              Map View
-            </Link>
-          </Button>
-          <Button onClick={fetchPartsForPickup} variant="outline" size="sm">
-            Refresh
-          </Button>
-        </div>
-      </div>
+  <h1 className="text-2xl font-bold">Ready for Pickup</h1>
+  <div className="flex gap-2">
+    <Button asChild variant="outline">
+      <Link 
+        to="/delivery/map" 
+        state={{ data: getGroupedByVendor() }}
+      >
+        <Map className="mr-2 h-4 w-4" />
+        Map View
+      </Link>
+    </Button>
+    <Button onClick={fetchPartsForPickup} variant="outline" size="sm">
+      Refresh
+    </Button>
+  </div>
+</div>
 
       {partsByVendor.length === 0 ? (
         <div className="text-center py-12">

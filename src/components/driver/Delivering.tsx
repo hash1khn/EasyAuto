@@ -13,6 +13,9 @@ import PartDetailsModal from "@/components/delivery/PartDetailsModal"
 import { useDeliveryData } from "@/hooks/useDeliveryData"
 import type { GroupedDeliveryData, EnrichedPart } from "@/types/delivery"
 
+
+
+
 const Delivering: React.FC = () => {
   const { deliveryData, loading, error, refetch, updatePartStatus, convertToEnrichedPart } = useDeliveryData()
   const [selectedParts, setSelectedParts] = useState<Record<string, Set<string>>>({})
@@ -27,6 +30,32 @@ const Delivering: React.FC = () => {
 
   const location = useLocation()
   const navigate = useNavigate()
+  const getCoordinatesFromUrl = (url?: string) => {
+  const defaultCoords = { lat: 25.2048, lng: 55.2708 } // Dubai coordinates
+  if (!url) return defaultCoords
+
+  try {
+    const match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+    return match ? { lat: Number.parseFloat(match[1]), lng: Number.parseFloat(match[2]) } : defaultCoords
+  } catch {
+    return defaultCoords
+  }
+}
+  // Add this function to transform delivery data for the map
+const getGroupedByAddress = (deliveryData: GroupedDeliveryData[]) => {
+  return deliveryData.map((buyerData) => {
+    const coords = getCoordinatesFromUrl(buyerData.google_maps_url)
+    return {
+      address: buyerData.delivery_address,
+      buyerName: buyerData.buyer_name,
+      phone: buyerData.delivery_phone,
+      lat: coords.lat,
+      lng: coords.lng,
+      google_maps_url: buyerData.google_maps_url,
+      parts: buyerData.parts.map(convertToEnrichedPart),
+    }
+  })
+}
 
   const handleSelectPart = (buyerId: string, partId: string) => {
     setSelectedParts((prev) => {
@@ -143,14 +172,17 @@ const Delivering: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Delivering</h1>
-        <Button asChild variant="outline">
-          <Link to="/delivery/map-delivering">
-            <Map className="mr-2 h-4 w-4" />
-            Map View
-          </Link>
-        </Button>
-      </div>
+  <h1 className="text-2xl font-bold">Delivering</h1>
+  <Button asChild variant="outline">
+    <Link 
+      to="/delivery/map-delivering" 
+      state={{ data: getGroupedByAddress(deliveryData) }}
+    >
+      <Map className="mr-2 h-4 w-4" />
+      Map View
+    </Link>
+  </Button>
+</div>
 
       {deliveryData.length === 0 ? (
         <div className="text-center py-12">
