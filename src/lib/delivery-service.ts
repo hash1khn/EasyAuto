@@ -17,18 +17,27 @@ export async function handleDeliveryConfirmation(data: {
 
   try {
     // 1. Upload delivery photos
-    const photoUploads = await Promise.all(
-      deliveryPhotos.map(async (photo) => {
-        const fileExt = photo.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { data: fileData, error: uploadError } = await supabase.storage
-          .from('mybucket')
-          .upload(`delivery-confirmations/${fileName}`, photo);
+    // 1. Upload delivery photos and get public URLs
+const photoUploads = await Promise.all(
+  deliveryPhotos.map(async (photo) => {
+    const fileExt = photo.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `delivery-confirmations/${fileName}`;
 
-        if (uploadError) throw uploadError;
-        return fileData.path;
-      })
-    );
+    const { error: uploadError } = await supabase.storage
+      .from('mybucket')
+      .upload(filePath, photo);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('mybucket')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  })
+);
+
 
     // 2. Create invoice
     const { data: invoice, error: invoiceError } = await supabase
