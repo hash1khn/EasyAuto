@@ -1,46 +1,47 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Archive, Clock, RefreshCw, CheckCircle } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card";
+import { Archive, Clock, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
 interface OrderHistorySummaryProps {
-  stats: {
-    totalOrders: number
-    awaitingAction: number
-    inProgress: number
-    completed: number
-  }
+  parts: any[];
 }
 
-export const OrderHistorySummary = ({ stats }: OrderHistorySummaryProps) => {
+export const OrderHistorySummary = ({ parts }: OrderHistorySummaryProps) => {
+  // Calculate counts based on shipping status
+  const totalOrders = new Set(parts.map(part => part.invoice_id)).size;
+  const deliveredCount = parts.filter(part => part.parts?.shipping_status === 'delivered').length;
+  const refundedCount = parts.filter(part => part.parts?.shipping_status === 'refunded').length;
+  const cancelledCount = parts.filter(part => part.parts?.shipping_status === 'cancelled').length;
+
   const summaryData = [
-    {
-      title: "Total Orders",
-      value: stats.totalOrders.toString(),
-      icon: Archive,
-      color: "text-blue-500",
-      bgColor: "bg-blue-50",
+    { 
+      title: "Total Orders", 
+      value: totalOrders.toString(), 
+      icon: Archive, 
+      color: "text-blue-500", 
+      bgColor: "bg-blue-50" 
     },
-    {
-      title: "Awaiting Action",
-      value: stats.awaitingAction.toString(),
-      icon: Clock,
-      color: "text-orange-500",
-      bgColor: "bg-orange-50",
+    { 
+      title: "Delivered", 
+      value: deliveredCount.toString(), 
+      icon: CheckCircle, 
+      color: "text-green-500", 
+      bgColor: "bg-green-50" 
     },
-    {
-      title: "In Progress",
-      value: stats.inProgress.toString(),
-      icon: RefreshCw,
-      color: "text-purple-500",
-      bgColor: "bg-purple-50",
+    { 
+      title: "Refunded", 
+      value: refundedCount.toString(), 
+      icon: RefreshCw, 
+      color: "text-orange-500", 
+      bgColor: "bg-orange-50" 
     },
-    {
-      title: "Completed",
-      value: stats.completed.toString(),
-      icon: CheckCircle,
-      color: "text-green-500",
-      bgColor: "bg-green-50",
-    },
-  ]
+    { 
+      title: "Cancelled", 
+      value: cancelledCount.toString(), 
+      icon: XCircle, 
+      color: "text-red-500", 
+      bgColor: "bg-red-50" 
+    }
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -58,5 +59,5 @@ export const OrderHistorySummary = ({ stats }: OrderHistorySummaryProps) => {
         </Card>
       ))}
     </div>
-  )
-}
+  );
+};

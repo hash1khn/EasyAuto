@@ -251,63 +251,65 @@ export const SupportTab = () => {
         title: "Missing information",
         description: "Please fill in all fields",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setSubmittingRefund(true)
+    setSubmittingRefund(true);
 
     try {
       // Create refund request in database
       const { error } = await supabase.from("refund_requests").insert({
-        order_id: selectedInvoice,
+        invoice_id: selectedInvoice,  // Reference invoice directly
         part_id: selectedPart,
         user_id: user?.id,
         reason: refundNotes,
         status: "pending",
         created_at: new Date().toISOString(),
-      })
+      });
 
-      if (error) throw error
+      if (error) throw error;
 
-      const selectedPartData = availableParts.find((p) => p.id === selectedPart)
-      const orderData = completedOrders.find((o) => o.id === selectedInvoice)
+      const selectedPartData = availableParts.find((p) => p.id === selectedPart);
+      const orderData = completedOrders.find((o) => o.id === selectedInvoice);
 
-      if (!selectedPartData || !orderData) return
+      if (!selectedPartData || !orderData) {
+        throw new Error("Could not find selected part or order");
+      }
 
       // Create WhatsApp message
-      const customerName = userProfile?.full_name || user?.email || "Customer"
+      const customerName = userProfile?.full_name || user?.email || "Customer";
       const message = `Refund Request from Buyer: ${customerName}
 
 Invoice ID: ${selectedInvoice}
 Part: ${selectedPartData.name} – ${selectedPartData.vehicle} – PN# ${selectedPartData.partNumber}
 Reason: "${refundNotes}"
 
-Please review and follow up.`
+Please review and follow up.`;
 
       // Open WhatsApp with support number
-      window.open(`${CONTACT_INFO.whatsapp.url}?text=${encodeURIComponent(message)}`, "_blank")
+      window.open(`${CONTACT_INFO.whatsapp.url}?text=${encodeURIComponent(message)}`, "_blank");
 
       toast({
         title: "Refund request submitted",
         description: "Your refund request has been submitted and our team will review it shortly.",
-      })
+      });
 
       // Reset form
-      setSelectedInvoice("")
-      setSelectedPart("")
-      setRefundNotes("")
+      setSelectedInvoice("");
+      setSelectedPart("");
+      setRefundNotes("");
     } catch (error: any) {
-      console.error("Error submitting refund request:", error)
+      console.error("Error submitting refund request:", error);
       toast({
         title: "Error submitting request",
         description: error.message || "Unable to submit refund request. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setSubmittingRefund(false)
+      setSubmittingRefund(false);
     }
-  }
+  };
 
   const handleContactClick = (method: string) => {
     const customerName = userProfile?.full_name || user?.email || "Customer"

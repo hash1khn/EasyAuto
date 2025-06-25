@@ -1,66 +1,78 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { FileText } from "lucide-react"
+import { useState } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Tag, ChevronDown, ChevronUp, FileText, RefreshCw } from "lucide-react";
+import { OrderDetailsTable } from './OrderDetailsTable';
+
+const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'Open':
+            return 'bg-green-100 text-green-800 border-green-200';
+        case 'Completed':
+        case 'Delivered':
+            return 'bg-blue-100 text-blue-800 border-blue-200';
+        case 'Cancelled':
+            return 'bg-red-100 text-red-800 border-red-200';
+        default:
+            return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+}
 
 interface OrderHistoryCardProps {
-  order: any // This is now an invoice-based "order"
-  onViewDetails: (partId: string) => void
-  onShowReceipt: (invoiceId: string) => void
-  onShowRefundReceipt: (refundId: string) => void
+    order: {
+        id: string;
+        status: string;
+        date: string;
+        partCount: number;
+        amount: string;
+        hasRefunds: boolean;
+        invoiceId: string;
+    };
+    onViewDetails: (partId: string) => void;
+    onShowReceipt: (invoiceId: string) => void;
+    onShowRefundReceipt: (invoiceId: string) => void;
 }
 
-export function OrderHistoryCard({ order, onViewDetails, onShowReceipt, onShowRefundReceipt }: OrderHistoryCardProps) {
-  const hasRefunds = order.refund_requests.length > 0
-  const orderDate = new Date(order.created_at).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+export const OrderHistoryCard = ({ order, onViewDetails, onShowReceipt, onShowRefundReceipt }: OrderHistoryCardProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-  // Since we're now grouping by invoice, the invoice is the order itself
-  const invoiceForReceipt = order.invoice_url ? order : null
-
-  return (
-    <Card className="w-[380px]">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Order #{order.id}</h3>
-            <p className="text-sm text-muted-foreground">Placed on {orderDate}</p>
-          </div>
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${order.status === "completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
-          >
-            {order.status}
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {order.line_items.map((item: any) => (
-          <div key={item.part.id} className="mb-4">
-            <p className="font-medium">{item.part.name}</p>
-            <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-          </div>
-        ))}
-        <p className="text-sm text-muted-foreground">Total: ${order.total_amount}</p>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button onClick={() => onViewDetails(order.id)}>View Details</Button>
-        {order.status === "completed" && invoiceForReceipt && (
-          <>
-            <Button variant="outline" onClick={() => onShowReceipt(order.id)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Receipt
-            </Button>
-            {hasRefunds && (
-              <Button variant="destructive" onClick={() => onShowRefundReceipt(order.refund_requests[0].id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                Refund Receipt
-              </Button>
-            )}
-          </>
-        )}
-      </CardFooter>
-    </Card>
-  )
-}
+    return (
+        <Card>
+            <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                    <div className="flex-1 space-y-2">
+                       <div className="flex items-center gap-3">
+                         <h3 className="font-bold text-lg">Invoice #{order.invoiceId}</h3>
+                         <Badge className={getStatusStyle(order.status)}>{order.status}</Badge>
+                       </div>
+                       <div className="flex items-center gap-4 text-sm text-gray-500">
+                           <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4"/><span>{order.date}</span></div>
+                           <div className="flex items-center gap-1.5"><Tag className="h-4 w-4"/><span>{order.partCount} part{order.partCount !== 1 ? 's' : ''}</span></div>
+                           <span className="font-bold text-green-600">{order.amount}</span>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                         <Button variant="outline" onClick={() => setIsExpanded(!isExpanded)}>
+                            {isExpanded ? <ChevronUp className="mr-2 h-4 w-4"/> : <ChevronDown className="mr-2 h-4 w-4"/>}
+                            More Details
+                        </Button>
+                        {order.status === 'Delivered' && (
+                           <>
+                             <Button variant="outline" onClick={() => onShowReceipt(order.invoiceId)}>
+                               <FileText className="mr-2 h-4 w-4"/>Receipt
+                             </Button>
+                             {order.hasRefunds && (
+                                <Button variant="destructive" onClick={() => onShowRefundReceipt(order.invoiceId)}>
+                                    <RefreshCw className="mr-2 h-4 w-4"/>Refund Receipt
+                                </Button>
+                             )}
+                           </>
+                        )}
+                    </div>
+                </div>
+                {isExpanded && <OrderDetailsTable invoiceId={order.invoiceId} onViewDetails={onViewDetails} />}
+            </CardContent>
+        </Card>
+    );
+};
