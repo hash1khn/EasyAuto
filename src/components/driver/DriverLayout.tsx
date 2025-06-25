@@ -10,7 +10,6 @@ const navigationItems = [
   { name: "Pick Up", route: "/driver/dashboard", icon: <Package className="h-5 w-5" /> },
   { name: "Delivering", route: "/driver/delivering", icon: <Truck className="h-5 w-5" /> },
   { name: "History", route: "/driver/history", icon: <History className="h-5 w-5" /> },
-  { name: "Settings", route: "/driver/settings", icon: <Settings className="h-5 w-5" /> }
 ];
 
 export const DriverLayout: React.FC = () => {
