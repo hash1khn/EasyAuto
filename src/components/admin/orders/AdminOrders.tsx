@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -271,7 +271,7 @@ export const AdminOrders = () => {
     try {
       setLoading(true)
 
-      // Fetch orders with user profiles
+      // 1. Fetch orders with user profiles (unchanged)
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(`
@@ -293,7 +293,7 @@ export const AdminOrders = () => {
 
       if (ordersError) throw ordersError
 
-      // Fetch parts for all orders with vehicles and bids
+      // 2. Fetch parts for all orders with vehicles and bids (unchanged)
       const orderIds = ordersData?.map((order) => order.id) || []
       const { data: partsData, error: partsError } = await supabase
         .from("parts")
@@ -318,8 +318,36 @@ export const AdminOrders = () => {
 
       if (partsError) throw partsError
 
+      // 3. Get all part IDs to fetch related invoices
+      const partIds = partsData?.map(part => part.id) || []
+
+      // 4. Fetch invoice_parts and their related invoices for these parts
+      const { data: invoicePartsData, error: invoicePartsError } = await supabase
+        .from('invoice_parts')
+        .select(`
+          invoice_id,
+          part_id,
+          quantity,
+          unit_price,
+          invoices (
+            id,
+            total_amount,
+            payment_status,
+            subtotal,
+            delivery_fee,
+            vat_amount,
+            service_fee,
+            driver_name,
+            delivery_note,
+            created_at,
+            user_id
+          )
+        `)
+        .in('part_id', partIds)
+
+      if (invoicePartsError) throw invoicePartsError
+
       // Fetch pending refund requests for parts
-      const partIds = partsData?.map((part) => part.id) || []
       const { data: pendingRefunds, error: pendingRefundsError } = await supabase
         .from("refund_requests")
         .select("part_id")
@@ -370,20 +398,6 @@ export const AdminOrders = () => {
         .eq("payment_status", "paid")
 
       if (invoicesError) throw invoicesError
-
-      // Fetch invoice parts for breakdown
-      const invoiceIds = invoicesData?.map((inv) => inv.id) || []
-      const { data: invoicePartsData, error: invoicePartsError } = await supabase
-        .from("invoice_parts")
-        .select(`
-          invoice_id,
-          part_id,
-          quantity,
-          unit_price
-        `)
-        .in("invoice_id", invoiceIds)
-
-      if (invoicePartsError) throw invoicePartsError
 
       // Transform data into the required structure
       const transformedOrders: AdminOrder[] =
@@ -446,16 +460,15 @@ export const AdminOrders = () => {
           const deliveries = userInvoices.map((invoice) => {
             const invoiceParts = invoicePartsData?.filter((ip) => ip.invoice_id === invoice.id) || []
             const partsBreakdown = invoiceParts.map((ip) => {
-              const part = orderParts.find((p) => p.id === ip.part_id)
+              const part = partsData?.find((p) => p.id === ip.part_id)
               const bid = bidsData?.find((b) => b.part_id === ip.part_id)
               const bidVendorProfile = Array.isArray(bid?.user_profiles) ? bid?.user_profiles[0] : bid?.user_profiles
               return {
                 part_id: ip.part_id,
-                part_name: part?.part_name || "",
-                part_number: part?.part_number,
+                part_name: part?.part_name || "Unknown Part",  // Ensure part name is set
                 unit_price: ip.unit_price,
                 quantity: ip.quantity,
-                vendor_name: bidVendorProfile?.business_name || bidVendorProfile?.full_name || "",
+                vendor_name: bidVendorProfile?.business_name || bidVendorProfile?.full_name || "N/A",
               }
             })
 
@@ -1106,71 +1119,68 @@ export const AdminOrders = () => {
       {/* Invoice Details Modal */}
       {selectedInvoice && (
         <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
-          <DialogContent className="max-w-2xl p-0 bg-transparent shadow-none">
-            <Card className="w-full max-h-[90vh] overflow-y-auto">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">Invoice Details</CardTitle>
-                <CardDescription>All invoice, delivery, and vendor info for this delivery.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                  <div className="font-medium text-gray-600">
-                    Invoice ID: <span className="font-normal text-gray-900">{selectedInvoice.id.slice(0, 8)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Status: <span className="font-normal text-gray-900">{selectedInvoice.payment_status}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Subtotal:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Delivery Fee:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.delivery_fee.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    VAT: <span className="font-normal text-gray-900">AED {selectedInvoice.vat_amount.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Total:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.total_amount.toFixed(2)}</span>
-                  </div>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Invoice Details</DialogTitle>
+              <DialogDescription>Delivery and payment breakdown</DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div className="font-medium text-gray-600">
+                  Invoice ID: <span className="font-normal text-gray-900">{selectedInvoice.id.slice(0, 8)}</span>
                 </div>
+                <div className="font-medium text-gray-600">
+                  Status: <span className="font-normal text-gray-900">{selectedInvoice.payment_status}</span>
+                </div>
+                <div className="font-medium text-gray-600">
+                  Subtotal: <span className="font-normal text-gray-900">AED {selectedInvoice.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="font-medium text-gray-600">
+                  Delivery Fee: <span className="font-normal text-gray-900">AED {selectedInvoice.delivery_fee.toFixed(2)}</span>
+                </div>
+                <div className="font-medium text-gray-600">
+                  VAT: <span className="font-normal text-gray-900">AED {selectedInvoice.vat_amount.toFixed(2)}</span>
+                </div>
+                <div className="font-medium text-gray-600">
+                  Total: <span className="font-normal text-gray-900">AED {selectedInvoice.total_amount.toFixed(2)}</span>
+                </div>
+              </div>
 
-                <div className="mt-4">
-                  <Label>Parts Breakdown</Label>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Part Name</TableHead>
-                        <TableHead>Part Number</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Unit Price</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Vendor</TableHead>
+              <div className="mt-4">
+                <Label>Parts Breakdown</Label>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-1/3">Part Name</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Vendor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedInvoice.parts_breakdown.map((part, index) => (
+                      <TableRow key={`${part.part_id}-${index}`}>
+                        <TableCell className="font-medium break-words">
+                          {part.part_name || 'Unknown Part'}
+                        </TableCell>
+                        <TableCell>{part.quantity}</TableCell>
+                        <TableCell>AED {Number(part.unit_price).toFixed(2)}</TableCell>
+                        <TableCell>AED {(Number(part.unit_price) * part.quantity).toFixed(2)}</TableCell>
+                        <TableCell>{part.vendor_name || "N/A"}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedInvoice.parts_breakdown.map((part: any) => (
-                        <TableRow key={part.part_id}>
-                          <TableCell>{part.part_name}</TableCell>
-                          <TableCell>{part.part_number || "-"}</TableCell>
-                          <TableCell>{part.quantity}</TableCell>
-                          <TableCell>AED {part.unit_price.toFixed(2)}</TableCell>
-                          <TableCell>AED {(part.unit_price * part.quantity).toFixed(2)}</TableCell>
-                          <TableCell>{part.vendor_name || "N/A"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-t pt-6">
-                <Button type="button" variant="outline" onClick={() => setSelectedInvoice(null)}>
-                  Close
-                </Button>
-              </CardFooter>
-            </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setSelectedInvoice(null)}>
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
