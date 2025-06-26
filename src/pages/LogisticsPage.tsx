@@ -126,7 +126,17 @@ const LogisticsPage = () => {
         .is("collected_at", null)
 
       if (error) throw error
-      setReadyParts((data as Part[]) || [])
+      setReadyParts(data?.map(item => ({
+        ...item,
+        vehicle: Array.isArray(item.vehicle) ? {
+          ...item.vehicle[0],
+          user_profile: Array.isArray(item.vehicle[0]?.user_profile) ? item.vehicle[0].user_profile[0] : item.vehicle[0]?.user_profile
+        } : item.vehicle,
+        bids: item.bids?.map(bid => ({
+          ...bid,
+          vendor: Array.isArray(bid.vendor) ? bid.vendor[0] : bid.vendor
+        })) || []
+      })) || [])
     } catch (error) {
       console.error("Error fetching ready parts:", error)
     }
@@ -174,7 +184,17 @@ const LogisticsPage = () => {
         .eq("bids.status", "accepted")
 
       if (error) throw error
-      setActiveParts((data as Part[]) || [])
+      setActiveParts(data?.map(item => ({
+        ...item,
+        vehicle: Array.isArray(item.vehicle) ? {
+          ...item.vehicle[0],
+          user_profile: Array.isArray(item.vehicle[0]?.user_profile) ? item.vehicle[0].user_profile[0] : item.vehicle[0]?.user_profile
+        } : item.vehicle,
+        bids: item.bids?.map(bid => ({
+          ...bid,
+          vendor: Array.isArray(bid.vendor) ? bid.vendor[0] : bid.vendor
+        })) || []
+      })) || [])
     } catch (error) {
       console.error("Error fetching active parts:", error)
     }
@@ -212,7 +232,14 @@ const LogisticsPage = () => {
         .limit(50)
 
       if (error) throw error
-      setCompletedInvoices((data as Invoice[]) || [])
+      setCompletedInvoices(data?.map(item => ({
+        ...item,
+        user_profile: Array.isArray(item.user_profile) ? item.user_profile[0] : item.user_profile,
+        invoice_parts: item.invoice_parts?.map(invoicePart => ({
+          ...invoicePart,
+          part: Array.isArray(invoicePart.part) ? invoicePart.part[0] : invoicePart.part
+        })) || []
+      })) || [])
     } catch (error) {
       console.error("Error fetching completed invoices:", error)
     }
@@ -396,11 +423,6 @@ const LogisticsPage = () => {
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             {parts.length} Parts
                           </button>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">
-                            More Details
-                          </Button>
                         </TableCell>
                       </TableRow>,
                       isExpanded && (

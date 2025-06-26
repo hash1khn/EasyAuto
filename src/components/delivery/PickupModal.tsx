@@ -8,14 +8,25 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
-import type { EnrichedPart } from "@/components/driver/DriverDashboard"
+
+// Use a more flexible interface that can work with both types
+interface PickupPart {
+  id: string
+  partName: string
+  partNumber?: string
+  quantity: number
+  orderId: string
+  winning_bid?: {
+    price: number
+  }
+}
 
 interface PickupModalProps {
   isOpen: boolean
   onClose: () => void
-  parts: EnrichedPart[]
+  parts: PickupPart[]
   vendorName: string
-  onConfirm: (pickupNotes: string, photo?: File) => Promise<void>
+  onConfirm: (pickupNotes: string, photo?: File) => Promise<void> | void
 }
 
 const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendorName, onConfirm }) => {
@@ -26,8 +37,11 @@ const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendo
   const handleConfirm = async () => {
     setIsSubmitting(true)
     try {
-      // Just pass the data to parent - let parent handle the Supabase update
-      await onConfirm(pickupNotes, photo)
+      // Handle both sync and async onConfirm functions
+      const result = onConfirm(pickupNotes, photo)
+      if (result instanceof Promise) {
+        await result
+      }
 
       // Reset form
       setPickupNotes("")
@@ -120,7 +134,12 @@ const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendo
               {new Intl.NumberFormat("en-AE", {
                 style: "currency",
                 currency: "AED",
-              }).format(parts.reduce((sum, part) => sum + part.winning_bid.price * part.quantity, 0))}
+              }).format(
+                parts.reduce((sum, part) => {
+                  const price = part.winning_bid?.price || 0
+                  return sum + price * part.quantity
+                }, 0),
+              )}
             </div>
           </div>
         </div>

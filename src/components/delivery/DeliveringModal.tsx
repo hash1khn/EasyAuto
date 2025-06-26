@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import type { EnrichedPart, GroupedDeliveryData } from "@/types/delivery"
-import { handleDeliveryConfirmation } from '@/lib/delivery-service';
-import { toast } from '@/components/ui/use-toast';
+import { handleDeliveryConfirmation } from "@/lib/delivery-service"
+import { toast } from "@/components/ui/use-toast"
 
 interface InvoiceData {
   parts: EnrichedPart[]
@@ -67,19 +66,20 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setDeliveryPhotos(Array.from(e.target.files))
-    }
+  if (e.target.files && e.target.files.length > 0) {
+    // Combine existing photos with new ones
+    setDeliveryPhotos(prevPhotos => [...prevPhotos, ...Array.from(e.target.files!)]);
   }
+};
 
   const handleConfirm = async () => {
     if (!driverName.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Driver name is required"
-      });
-      return;
+        description: "Driver name is required",
+      })
+      return
     }
 
     try {
@@ -93,13 +93,13 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
         deliveryNotes,
         driverName: driverName.trim(),
         subtotal,
-        grandTotal
-      });
+        grandTotal,
+      })
 
       toast({
         title: "Success",
-        description: "Delivery confirmed and invoice generated successfully"
-      });
+        description: "Delivery confirmed and invoice generated successfully",
+      })
 
       onConfirm({
         parts,
@@ -112,19 +112,19 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
         driverName: driverName.trim(),
         subtotal,
         grandTotal,
-        buyerData
-      });
-      
-      onClose();
+        buyerData,
+      })
+
+      onClose()
     } catch (error) {
-      console.error('Error confirming delivery:', error);
+      console.error("Error confirming delivery:", error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to confirm delivery. Please try again."
-      });
+        description: "Failed to confirm delivery. Please try again.",
+      })
     }
-  };
+  }
 
   if (!isOpen) return null
 
@@ -143,7 +143,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="grid gap-6 py-4 overflow-y-auto" style={{ maxHeight: "60vh" }}>
           <div className="grid gap-6 py-4">
             {/* Section 1: Parts Summary Table */}
             <div>
@@ -233,18 +233,39 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
             {/* Section 3: Delivery Evidence */}
             <div className="grid gap-2">
               <div className="font-semibold mb-1">Delivery Evidence</div>
-              <Label htmlFor="deliveryPhotos">Delivery Photo(s)</Label>
-              <Input id="deliveryPhotos" type="file" multiple accept="image/*" onChange={handlePhotoChange} />
+              <Label htmlFor="deliveryPhotos">Delivery Photo(s) - Multiple photos allowed</Label>
+              <Input
+                id="deliveryPhotos"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="cursor-pointer"
+              />
               {deliveryPhotos.length > 0 && (
-                <div className="flex gap-2 mt-2">
-                  {deliveryPhotos.map((file, index) => (
-                    <img
-                      key={index}
-                      src={URL.createObjectURL(file) || "/placeholder.svg"}
-                      alt={`Delivery photo ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded border"
-                    />
-                  ))}
+                <div className="mt-2">
+                  <div className="text-sm text-gray-600 mb-2">{deliveryPhotos.length} photo(s) selected</div>
+                  <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                    {deliveryPhotos.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(file) || "/placeholder.svg"}
+                          alt={`Delivery photo ${index + 1}`}
+                          className="w-full h-20 object-cover rounded border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPhotos = deliveryPhotos.filter((_, i) => i !== index)
+                            setDeliveryPhotos(newPhotos)
+                          }}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               <Label htmlFor="deliveryNotes">Delivery Notes</Label>
@@ -271,7 +292,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
               />
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
