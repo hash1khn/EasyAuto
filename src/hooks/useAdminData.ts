@@ -38,6 +38,14 @@ export interface PlatformStats {
   pending_quotes: number;  // Add this new field
   total_revenue: number;
   outstanding_payments: number; // Add outstanding payments
+  flagged_issues: {
+    pending_refunds: number;
+    pending_applications: number;
+    unprocessed_payouts: number;
+    problem_shipments: number;
+    failed_payments: number;
+    total: number;
+  };
 }
 
 // Add this interface to type the RPC response
@@ -68,6 +76,14 @@ const initialStats: PlatformStats = {
   pending_quotes: 0,  // Add initial value
   total_revenue: 0,
   outstanding_payments: 0, // Initialize outstanding payments
+  flagged_issues: {
+    pending_refunds: 0,
+    pending_applications: 0,
+    unprocessed_payouts: 0,
+    problem_shipments: 0,
+    failed_payments: 0,
+    total: 0
+  }
 };
 
 export const useAdminData = (): AdminData => {
@@ -137,14 +153,67 @@ export const useAdminData = (): AdminData => {
       const totalRevenue = invoiceData?.reduce((acc, invoice) => 
         acc + (invoice.service_fee || 0), 0) || 0;
 
-      // Combine the stats
-      const combinedStats: PlatformStats = {
+      // Get flagged issues counts
+      const [
+        { count: pendingRefunds },
+        { count: pendingApplications },
+        { count: unprocessedPayouts },
+        { count: problemShipments },
+        { count: failedPayments }
+      ] = await Promise.all([
+        // Pending refunds
+        supabase
+          .from('refund_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+
+        // Pending vendor applications
+        supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('application_status', 'pending'),
+
+        // Unprocessed payouts
+        supabase
+          .from('vendor_payouts')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+
+        // Problem shipments
+        supabase
+          .from('parts')
+          .select('*', { count: 'exact', head: true })
+          .in('shipping_status', ['cancelled', 'refunded']),
+
+        // Failed payments
+        supabase
+          .from('invoices')
+          .select('*', { count: 'exact', head: true })
+          .eq('payment_status', 'failed')
+      ]);
+
+      // Update combined stats with flagged issues
+      const flaggedIssues = {
+        pending_refunds: pendingRefunds || 0,
+        pending_applications: pendingApplications || 0,
+        unprocessed_payouts: unprocessedPayouts || 0,
+        problem_shipments: problemShipments || 0,
+        failed_payments: failedPayments || 0,
+        total: (pendingRefunds || 0) + 
+               (pendingApplications || 0) + 
+               (unprocessedPayouts || 0) + 
+               (problemShipments || 0) + 
+               (failedPayments || 0)
+      };
+
+      const combinedStats = {
         ...(adminData?.[0]?.platform_stats || initialStats),
         total_parts: totalParts,
         active_parts: activeParts,
         delivered_parts: deliveredParts,
         pending_quotes: pendingQuotes || 0,
-        total_revenue: totalRevenue
+        total_revenue: totalRevenue,
+        flagged_issues: flaggedIssues
       };
 
       setStats(combinedStats);

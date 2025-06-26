@@ -54,7 +54,25 @@ export const AdminOverview: React.FC = () => {
     },
     { 
       label: 'Flagged Issues', 
-      value: 'Coming Soon',
+      value: stats?.flagged_issues ? (
+        <div className="flex flex-col items-center text-sm">
+          <span className="text-2xl font-bold text-red-600">
+            {stats.flagged_issues.total}
+          </span>
+          <div className="mt-1 text-gray-600 text-xs space-y-1">
+            {stats.flagged_issues.pending_refunds > 0 && 
+              <div>Pending Refunds: {stats.flagged_issues.pending_refunds}</div>}
+            {stats.flagged_issues.pending_applications > 0 && 
+              <div>Pending Applications: {stats.flagged_issues.pending_applications}</div>}
+            {stats.flagged_issues.unprocessed_payouts > 0 && 
+              <div>Unprocessed Payouts: {stats.flagged_issues.unprocessed_payouts}</div>}
+            {stats.flagged_issues.problem_shipments > 0 && 
+              <div>Problem Shipments: {stats.flagged_issues.problem_shipments}</div>}
+            {stats.flagged_issues.failed_payments > 0 && 
+              <div>Failed Payments: {stats.flagged_issues.failed_payments}</div>}
+          </div>
+        </div>
+      ) : '-'
     },
   ];
 
