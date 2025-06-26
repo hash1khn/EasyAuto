@@ -1,39 +1,94 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, ShoppingCart, Briefcase, UserCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAdminData } from '@/hooks/useAdminData';
 import { LiveOrdersTable } from './LiveOrdersTable';
 
 export const AdminOverview: React.FC = () => {
-  const { stats } = useAdminData();
+  const { stats, recentOrders } = useAdminData();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const statCards = [
-    { title: 'Total Orders', value: stats?.total_orders, Icon: ShoppingCart },
-    { title: 'Total Users', value: stats?.total_users, Icon: Users },
-    { title: 'Total Buyers', value: stats?.total_buyers, Icon: UserCheck },
-    { title: 'Total Vendors', value: stats?.total_vendors, Icon: Briefcase },
+  // Calculate active and delivered orders
+  const activeOrders = recentOrders?.filter(order => 
+    ['open', 'partial', 'ready_for_checkout'].includes(order.status)
+  ).length || 0;
+  
+  const deliveredOrders = recentOrders?.filter(order => 
+    order.status === 'completed'
+  ).length || 0;
+
+  const metrics = [
+    { 
+      label: 'Total Orders', 
+      value: stats?.total_orders?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Active Orders', 
+      value: activeOrders.toLocaleString(),
+    },
+    { 
+      label: 'Delivered Orders', 
+      value: deliveredOrders.toLocaleString(),
+    },
+    { 
+      label: 'Total Revenue', 
+      value: 'Coming Soon',
+    },
+    { 
+      label: 'Vendors', 
+      value: stats?.total_vendors?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Buyers', 
+      value: stats?.total_buyers?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Outstanding Payments', 
+      value: 'Coming Soon',
+    },
+    { 
+      label: 'Pending Vendor Quotes', 
+      value: 'Coming Soon',
+    },
+    { 
+      label: 'Flagged Issues', 
+      value: 'Coming Soon',
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Platform Overview</h1>
-        <p className="text-gray-500">A high-level look at platform activity.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Admin Overview</h2>
+          <p className="text-gray-500">Platform metrics and activity</p>
+        </div>
+        <Button 
+          size="lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          + Create Order
+        </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map(stat => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value ?? '-'}</div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="hover:shadow-lg transition-shadow duration-200">
+            <CardContent className="flex flex-col items-center justify-center p-6 min-h-[120px]">
+              <span className="text-lg font-semibold text-gray-800">{metric.label}</span>
+              <span className="text-2xl text-blue-600 mt-2 font-bold">{metric.value}</span>
             </CardContent>
           </Card>
         ))}
       </div>
-      <LiveOrdersTable />
+
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
+        <LiveOrdersTable />
+      </div>
+
+      {/* Modal will be added here later */}
     </div>
   );
-}; 
+};
