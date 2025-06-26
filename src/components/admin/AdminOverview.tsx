@@ -83,11 +83,6 @@ export const AdminOverview: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
-        <LiveOrdersTable />
-      </div>
-
       {/* Modal will be added here later */}
     </div>
   );
