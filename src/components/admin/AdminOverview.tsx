@@ -5,34 +5,30 @@ import { useAdminData } from '@/hooks/useAdminData';
 import { LiveOrdersTable } from './LiveOrdersTable';
 
 export const AdminOverview: React.FC = () => {
-  const { stats, recentOrders } = useAdminData();
+  const { stats } = useAdminData();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // Calculate active and delivered orders
-  const activeOrders = recentOrders?.filter(order => 
-    ['open', 'partial', 'ready_for_checkout'].includes(order.status)
-  ).length || 0;
-  
-  const deliveredOrders = recentOrders?.filter(order => 
-    order.status === 'completed'
-  ).length || 0;
 
   const metrics = [
     { 
-      label: 'Total Orders', 
-      value: stats?.total_orders?.toLocaleString() ?? '-',
+      label: 'Total Part Orders', 
+      value: stats?.total_parts?.toLocaleString() ?? '-',
     },
     { 
-      label: 'Active Orders', 
-      value: activeOrders.toLocaleString(),
+      label: 'Active Parts', 
+      value: stats?.active_parts?.toLocaleString() ?? '-',
     },
     { 
-      label: 'Delivered Orders', 
-      value: deliveredOrders.toLocaleString(),
+      label: 'Delivered Parts', 
+      value: stats?.delivered_parts?.toLocaleString() ?? '-',
     },
     { 
       label: 'Total Revenue', 
-      value: 'Coming Soon',
+      value: stats?.total_revenue 
+        ? `AED ${stats.total_revenue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}` 
+        : '-',
     },
     { 
       label: 'Vendors', 
@@ -44,11 +40,16 @@ export const AdminOverview: React.FC = () => {
     },
     { 
       label: 'Outstanding Payments', 
-      value: 'Coming Soon',
+      value: stats?.outstanding_payments 
+        ? `AED ${stats.outstanding_payments.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}` 
+        : '-',
     },
     { 
       label: 'Pending Vendor Quotes', 
-      value: 'Coming Soon',
+      value: stats?.pending_quotes?.toLocaleString() ?? '-',
     },
     { 
       label: 'Flagged Issues', 
