@@ -13,6 +13,7 @@ interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOrderCreated?: () => void;
+  selectedBuyerId?: string | null;
 }
 
 interface Vehicle {
@@ -30,7 +31,12 @@ interface Part {
   quantity: number;
 }
 
-export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrderCreated }) => {
+export const OrderModal: React.FC<OrderModalProps> = ({
+  isOpen,
+  onClose,
+  onOrderCreated,
+  selectedBuyerId
+}) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -115,10 +121,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
   };
 
   const handleSubmitOrder = async () => {
-    if (!user || vehicles.length === 0 || parts.length === 0) {
+    // Use selectedBuyerId if provided (admin case), otherwise use current user's id
+    const orderUserId = selectedBuyerId || user?.id;
+
+    if (!orderUserId || vehicles.length === 0 || parts.length === 0) {
       toast({
         title: "Cannot submit order",
-        description: "Please add at least one vehicle and one part.",
+        description: "Please complete all required information.",
         variant: "destructive"
       });
       return;
@@ -145,7 +154,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
           .insert({
-            user_id: user.id,
+            user_id: orderUserId,
             status: 'open'
           })
           .select()
@@ -157,7 +166,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .insert({
-            user_id: user.id,
+            user_id: orderUserId,
             make: vehicle.make,
             model: vehicle.model,
             year: vehicle.year,

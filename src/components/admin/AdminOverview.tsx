@@ -3,9 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAdminData } from '@/hooks/useAdminData';
 import { LiveOrdersTable } from './LiveOrdersTable';
+import { AdminOrderModal } from './AdminOrderModal';
 
 export const AdminOverview: React.FC = () => {
-  const { stats } = useAdminData();
+  const { stats, refresh } = useAdminData();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const metrics = [
@@ -84,7 +85,11 @@ export const AdminOverview: React.FC = () => {
         ))}
       </div>
 
-      {/* Modal will be added here later */}
+      <AdminOrderModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onOrderCreated={refresh}
+      />
     </div>
   );
 };
