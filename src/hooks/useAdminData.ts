@@ -16,7 +16,10 @@ export type User = {
   business_name: string | null;
   whatsapp_number: string | null;
   location: string | null;
-  roles: string[] | null;
+  google_maps_url: string | null;
+  roles: string[];
+  status: 'active' | 'disabled';
+  user_id: string;
 };
 
 export interface PlatformStats {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAdminData } from '@/hooks/useAdminData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -11,169 +12,96 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useToast } from "@/hooks/use-toast";
-import { RejectionDialog } from './RejectionDialog';
 
 export const VendorApplications: React.FC = () => {
   const { vendorApplications, refresh: refetchVendorApplications } = useAdminData();
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
   const { toast } = useToast();
-  const [rejectionDialog, setRejectionDialog] = useState({
-    isOpen: false,
-    userId: null as string | null
-  });
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [appDraft, setAppDraft] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const getStatusVariant = (status: string) => {
-    switch (status.toLowerCase()) {  // Case-insensitive check
-      case 'approved':
-        return 'default';
-      case 'rejected':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
+  const handleOpenModal = (app) => {
+    setSelectedApp(app);
+    setAppDraft({ ...app });
+    setModalOpen(true);
   };
 
-  const handleApprove = async (user_id: string) => {
-  if (!user_id) {
-    console.error('Invalid user_id:', user_id);
-    toast({
-      title: "Error",
-      description: "Invalid user ID. Please try again.",
-      variant: "destructive",
-    });
-    return;
-  }
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedApp(null);
+    setAppDraft(null);
+  };
 
-  setLoadingStates(prev => ({ ...prev, [user_id]: true }));
-  
-  try {
-    // Update application status in user_profiles
-    const { data: profileData, error: updateError } = await supabase
-      .from('user_profiles')
-      .update({ application_status: 'approved' })
-      .eq('user_id', user_id)
-      .select()
-      .single();
+  const handleDraftChange = (field: string, value: string) => {
+    setAppDraft((prev) => ({ ...prev, [field]: value }));
+  };
 
-    if (updateError) throw updateError;
-
-    // Update user role to vendor and set is_approved to true
-    const { data: roleData, error: roleUpdateError } = await supabase
-      .from('user_roles')
-      .update({ 
-        role: 'vendor',
-        is_approved: true 
-      })
-      .eq('user_id', user_id)
-      .select()
-      .single();
-
-    if (roleUpdateError) throw roleUpdateError;
-
-    await refetchVendorApplications();
+  const handleAccept = async () => {
+    if (!appDraft?.user_id) return;
     
-    toast({
-      title: "Application approved",
-      description: "Vendor application has been approved successfully.",
-      variant: "default",
-    });
-  } catch (error) {
-    console.error('Approval failed:', error);
-    toast({
-      title: "Error",
-      description: `Failed to approve the application: ${error.message}`,
-      variant: "destructive",
-    });
-  } finally {
-    setLoadingStates(prev => ({ ...prev, [user_id]: false }));
-  }
-};
-
-  const handleReject = async (user_id: string) => {
-    // Open rejection dialog instead of immediate rejection
-    setRejectionDialog({
-      isOpen: true,
-      userId: user_id
-    });
-  };
-
-  const handleConfirmReject = async (reason: string) => {
-    const user_id = rejectionDialog.userId;
-    if (!user_id) return;
-
-    setLoadingStates(prev => ({ ...prev, [user_id]: true }));
+    setLoadingStates(prev => ({ ...prev, [appDraft.user_id]: true }));
     
     try {
-      const { error } = await supabase
+      // Update application status in user_profiles
+      const { error: updateError } = await supabase
         .from('user_profiles')
-        .update({ 
-          application_status: 'rejected',
-          rejection_reason: reason 
+        .update({
+          application_status: 'approved',
+          business_name: appDraft.business_name,
+          full_name: appDraft.full_name,
+          whatsapp_number: appDraft.whatsapp_number,
+          location: appDraft.location,
+          google_maps_url: appDraft.google_maps_url,
         })
-        .eq('user_id', user_id);
+        .eq('user_id', appDraft.user_id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Update user role
+      const { error: roleUpdateError } = await supabase
+        .from('user_roles')
+        .update({ 
+          role: 'vendor',
+          is_approved: true 
+        })
+        .eq('user_id', appDraft.user_id);
+
+      if (roleUpdateError) throw roleUpdateError;
 
       await refetchVendorApplications();
+      handleCloseModal();
       
       toast({
-        title: "Application rejected",
-        description: "Vendor application has been rejected.",
-        variant: "default",
+        title: "Application approved",
+        description: "Vendor application has been approved successfully.",
       });
     } catch (error) {
-      console.error('Rejection failed:', error);
+      console.error('Approval failed:', error);
       toast({
         title: "Error",
-        description: `Failed to reject the application: ${error.message}`,
+        description: `Failed to approve the application: ${error.message}`,
         variant: "destructive",
       });
     } finally {
-      setLoadingStates(prev => ({ ...prev, [user_id]: false }));
-      setRejectionDialog({ isOpen: false, userId: null });
+      setLoadingStates(prev => ({ ...prev, [appDraft.user_id]: false }));
     }
-  };
-
-  const renderActionButtons = (application: any) => {
-    const status = application.application_status?.toLowerCase();
-    const isLoading = loadingStates[application.user_id] || false;
-
-    // Only show actions for pending applications
-    if (status === 'pending') {
-      return (
-        <div className="flex space-x-2">
-          <Button
-            onClick={() => application.user_id && handleApprove(application.user_id)}
-            disabled={isLoading || !application.user_id}
-            variant="outline"
-            size="sm"
-            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-          >
-            {isLoading ? 'Processing...' : 'Approve'}
-          </Button>
-          <Button
-            onClick={() => application.user_id && handleReject(application.user_id)}
-            disabled={isLoading || !application.user_id}
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            {isLoading ? 'Processing...' : 'Reject'}
-          </Button>
-        </div>
-      );
-    }
-
-    return null;
   };
 
   const filteredApplications = vendorApplications.filter(
@@ -184,9 +112,9 @@ export const VendorApplications: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Vendor Applications</h1>
-        <p className="text-gray-500">Review and manage pending vendor applications.</p>
+        <p className="text-gray-500">Review and accept new applications.</p>
       </div>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -194,38 +122,103 @@ export const VendorApplications: React.FC = () => {
               <TableHead>Applicant Name</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Submitted At</TableHead>
+              <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredApplications.map((app) => (
               <TableRow key={app.id}>
-                <TableCell className="font-medium">{app.business_name || 'N/A'}</TableCell>
+                <TableCell>{app.business_name || 'N/A'}</TableCell>
                 <TableCell>{app.full_name}</TableCell>
                 <TableCell>{app.whatsapp_number}</TableCell>
                 <TableCell>{app.location}</TableCell>
                 <TableCell>{format(new Date(app.application_submitted_at), 'PPP')}</TableCell>
                 <TableCell>
-                  <Badge variant={getStatusVariant(app.application_status)}>
+                  <Badge variant={app.application_status === 'approved' ? 'default' : 'secondary'}>
                     {app.application_status}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {renderActionButtons(app)}
+                  <Button size="sm" onClick={() => handleOpenModal(app)}>View</Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <RejectionDialog
-        isOpen={rejectionDialog.isOpen}
-        onClose={() => setRejectionDialog({ isOpen: false, userId: null })}
-        onConfirm={handleConfirmReject}
-        loading={rejectionDialog.userId ? loadingStates[rejectionDialog.userId] : false}
-      />
+
+      <Dialog open={modalOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="max-w-lg p-0 bg-transparent shadow-none">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                Application Details
+              </CardTitle>
+              <CardDescription>Review and edit application details before accepting.</CardDescription>
+            </CardHeader>
+            {appDraft && (
+              <form onSubmit={(e) => e.preventDefault()}>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input value={appDraft.email} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input 
+                      value={appDraft.full_name || ''} 
+                      onChange={e => handleDraftChange('full_name', e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp Number</Label>
+                    <Input 
+                      value={appDraft.whatsapp_number || ''} 
+                      onChange={e => handleDraftChange('whatsapp_number', e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Input 
+                      value={appDraft.location || ''} 
+                      onChange={e => handleDraftChange('location', e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Business Name</Label>
+                    <Input 
+                      value={appDraft.business_name || ''} 
+                      onChange={e => handleDraftChange('business_name', e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Google Maps URL</Label>
+                    <Input 
+                      value={appDraft.google_maps_url || ''} 
+                      onChange={e => handleDraftChange('google_maps_url', e.target.value)} 
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-t pt-6">
+                  <Button 
+                    type="button" 
+                    onClick={handleAccept} 
+                    className="w-full md:w-auto"
+                    disabled={loadingStates[appDraft.user_id]}
+                  >
+                    {loadingStates[appDraft.user_id] ? 'Processing...' : 'Accept'}
+                  </Button>
+                  <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                  </DialogClose>
+                </CardFooter>
+              </form>
+            )}
+          </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
