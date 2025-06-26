@@ -141,7 +141,11 @@ export const VendorApplications: React.FC = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" onClick={() => handleOpenModal(app)}>View</Button>
+                  {app.application_status !== 'approved' && (
+                    <Button size="sm" onClick={() => handleOpenModal(app)}>
+                      View
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
