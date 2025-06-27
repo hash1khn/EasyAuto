@@ -47,13 +47,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>User Details</DialogTitle>
         </DialogHeader>
         
         {editedUser && (
-          <>
+          <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Email</Label>
@@ -100,10 +100,10 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                 <RecentOrders userId={editedUser.id} />
               </div>
             )}
-          </>
+          </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="mt-4 border-t pt-4">
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>
