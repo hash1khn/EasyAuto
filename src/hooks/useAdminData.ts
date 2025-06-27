@@ -13,7 +13,9 @@ export type Order = Tables<'orders'> & {
     delivered_at: string | null;
   }[];
 };
-export type UserProfile = Tables<'user_profiles'>;
+export type UserProfile = Tables<'user_profiles'> & {
+  email?: string;  // Add this line
+};
 export type User = {
   id: string;
   email: string;
@@ -53,7 +55,7 @@ interface AdminDataResponse {
   platform_stats: PlatformStats;
   all_orders: Order[];
   all_users: User[];
-  vendor_applications: UserProfile[];
+  vendor_applications: Array<UserProfile & { email: string }>; // Updated this line
 }
 
 export interface AdminData {
@@ -133,6 +135,8 @@ export const useAdminData = (): AdminData => {
         .rpc('get_admin_data');
 
       if (adminError) throw adminError;
+
+      console.log(adminData)
 
       // Get pending quotes count
       const { count: pendingQuotes, error: bidsError } = await supabase

@@ -201,7 +201,7 @@ export const VendorApplications: React.FC = () => {
                                         Email
                                     </Label>
                                     <div className="px-3 py-2 rounded-md bg-muted">
-                                        {appDraft.users?.email || "N/A"}
+                                        {appDraft.email || "N/A"}
                                     </div>
                                 </div>
 
