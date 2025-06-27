@@ -53,8 +53,11 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   const [deliveryNotes, setDeliveryNotes] = useState("")
   const [driverName, setDriverName] = useState("")
 
-  // Pricing calculations - using mock pricing for now
-  const subtotal = parts.reduce((sum, part, idx) => sum + (500 + idx * 100) * (part.quantity || 1), 0)
+  console.log('this s parts',parts)
+  const subtotal = parts.reduce(
+    (sum, part) => sum + (part.winning_bid?.price || 0) * (part.quantity || 1),
+    0
+  ); 
   const deliveryFeeNum = Number.parseFloat(deliveryFee) || 0
   const grandTotal = subtotal + deliveryFeeNum
 
@@ -66,11 +69,11 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files && e.target.files.length > 0) {
-    // Combine existing photos with new ones
-    setDeliveryPhotos(prevPhotos => [...prevPhotos, ...Array.from(e.target.files!)]);
-  }
-};
+    if (e.target.files && e.target.files.length > 0) {
+      // Combine existing photos with new ones
+      setDeliveryPhotos(prevPhotos => [...prevPhotos, ...Array.from(e.target.files!)]);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!driverName.trim()) {
@@ -159,17 +162,19 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {parts.map((part, idx) => {
-                      const unitPrice = 500 + idx * 100
-                      return (
-                        <tr key={part.id}>
-                          <td className="px-3 py-2">{part.partName}</td>
-                          <td className="px-3 py-2 text-center">{part.quantity}</td>
-                          <td className="px-3 py-2 text-right">{formatCurrency(unitPrice)}</td>
-                          <td className="px-3 py-2 text-right">{formatCurrency(unitPrice * (part.quantity || 1))}</td>
-                        </tr>
-                      )
-                    })}
+                    {parts.map((part) => {
+  const unitPrice = part.winning_bid?.price || 0; // ✅ Use actual bid price
+  return (
+    <tr key={part.id}>
+      <td className="px-3 py-2">{part.partName}</td>
+      <td className="px-3 py-2 text-center">{part.quantity}</td>
+      <td className="px-3 py-2 text-right">{formatCurrency(unitPrice)}</td>
+      <td className="px-3 py-2 text-right">
+        {formatCurrency(unitPrice * (part.quantity || 1))}
+      </td>
+    </tr>
+  );
+})}
                   </tbody>
                   <tfoot>
                     <tr>
