@@ -13,7 +13,7 @@ export async function handleDeliveryConfirmation(data: {
   subtotal: number;
   grandTotal: number;
 }) {
-  const { parts, buyerData, deliveryFee, paymentMethod, deliveryPhotos, deliveryNotes, driverName } = data;
+  const { parts, buyerData, deliveryFee, paymentMethod, paymentReference,deliveryPhotos, deliveryNotes, driverName } = data;
 
   try {
     // 1. Upload delivery photos
@@ -51,6 +51,8 @@ const photoUploads = await Promise.all(
         delivery_fee: deliveryFee,
         service_fee: 0, // Set if you have service fees
         vat_amount: 0, // Set if you have VAT
+        payment_method: paymentMethod, // Store payment method
+        payment_reference: paymentReference,
         payment_status: paymentMethod === 'Not Collected' ? 'unpaid' : 'paid',
         paid_at: paymentMethod !== 'Not Collected' ? new Date().toISOString() : null,
         driver_name: driverName,

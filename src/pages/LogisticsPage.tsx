@@ -44,6 +44,8 @@ interface Invoice {
   total_amount: number
   status: string
   payment_status: string
+  payment_method?: string // Add this
+  payment_reference?: string
   created_at: string
   paid_at: string | null
   driver_name: string | null
@@ -210,6 +212,8 @@ const LogisticsPage = () => {
           total_amount,
           status,
           payment_status,
+          payment_method,
+          payment_reference,
           created_at,
           paid_at,
           driver_name,
@@ -476,7 +480,8 @@ const LogisticsPage = () => {
                     <TableHead>Driver</TableHead>
                     <TableHead>Delivered At</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Payment</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Reference</TableHead> {/* New column */}
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -492,7 +497,12 @@ const LogisticsPage = () => {
                           : new Date(invoice.created_at).toLocaleString()}
                       </TableCell>
                       <TableCell>AED {invoice.total_amount}</TableCell>
-                      <TableCell>Card</TableCell>
+                      <TableCell>{invoice.payment_method || "Cash"}</TableCell> {/* Updated */}
+                      <TableCell>
+                        {invoice.payment_method === "Card" && invoice.payment_reference
+                          ? invoice.payment_reference
+                          : "-"}
+                      </TableCell>
                       <TableCell>
                         <Button size="sm" variant="outline" onClick={() => setSelectedInvoice(invoice)}>
                           View Receipt
