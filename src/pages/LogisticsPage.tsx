@@ -519,7 +519,7 @@ const LogisticsPage = () => {
 
       {/* Go to Delivery Portal */}
       <div className="flex justify-end">
-        <a href="/delivery" target="_blank" rel="noopener noreferrer">
+        <a href="/driver/dashboard" target="_blank" rel="noopener noreferrer">
           <Button variant="default">Go to Delivery Portal</Button>
         </a>
       </div>

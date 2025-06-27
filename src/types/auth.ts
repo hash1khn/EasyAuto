@@ -35,6 +35,7 @@ export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  initialized: boolean;
   signUp: (data: SignUpData) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<SignInResponse>;
   signOut: () => Promise<void>;
