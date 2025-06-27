@@ -26,26 +26,36 @@ interface PickupModalProps {
   onClose: () => void
   parts: PickupPart[]
   vendorName: string
-  onConfirm: (pickupNotes: string, photo?: File) => Promise<void> | void
+  onConfirm: (pickupNotes: string, photos: File[]) => Promise<void> | void
 }
 
 const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendorName, onConfirm }) => {
   const [pickupNotes, setPickupNotes] = useState("")
-  const [photo, setPhoto] = useState<File>()
+  const [pickupPhotos, setPickupPhotos] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      // Combine existing photos with new ones
+      setPickupPhotos((prevPhotos) => [...prevPhotos, ...Array.from(e.target.files!)])
+    }
+  }
+
+  const removePhoto = (index: number) => {
+    setPickupPhotos((prevPhotos) => prevPhotos.filter((_, i) => i !== index))
+  }
 
   const handleConfirm = async () => {
     setIsSubmitting(true)
     try {
-      // Handle both sync and async onConfirm functions
-      const result = onConfirm(pickupNotes, photo)
+      const result = onConfirm(pickupNotes, pickupPhotos)
       if (result instanceof Promise) {
         await result
       }
 
       // Reset form
       setPickupNotes("")
-      setPhoto(undefined)
+      setPickupPhotos([])
       onClose()
     } catch (error) {
       console.error("Error confirming pickup:", error)
@@ -53,16 +63,6 @@ const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendo
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setPhoto(e.target.files[0])
-    }
-  }
-
-  const removePhoto = () => {
-    setPhoto(undefined)
   }
 
   if (!isOpen) return null
@@ -93,22 +93,38 @@ const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendo
           </ScrollArea>
 
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="picture">Pickup Photo (Optional)</Label>
-            <Input id="picture" type="file" accept="image/*" onChange={handlePhotoChange} />
-            {photo && (
-              <div className="mt-2 relative inline-block">
-                <img
-                  src={URL.createObjectURL(photo) || "/placeholder.svg"}
-                  alt="Pickup preview"
-                  className="w-20 h-20 object-cover rounded border"
-                />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
-                >
-                  ×
-                </button>
+            <Label htmlFor="picture">Pickup Photos - Multiple photos allowed</Label>
+            <Input
+              id="picture"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoChange}
+              className="cursor-pointer"
+            />
+            {pickupPhotos.length > 0 && (
+              <div className="mt-2">
+                <div className="text-sm text-gray-600 mb-2">
+                  {pickupPhotos.length} photo(s) selected
+                </div>
+                <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                  {pickupPhotos.map((file, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Pickup photo ${index + 1}`}
+                        className="w-full h-20 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
