@@ -32,16 +32,16 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { UserProfile } from "@/hooks/useAdminData";
 
 export const VendorApplications: React.FC = () => {
-    const { vendorApplications, refresh: refetchVendorApplications } =
-        useAdminData();
+    const { applications, refresh: refetchVendorApplications } = useAdminData();
     const [loadingStates, setLoadingStates] = useState<{
         [key: string]: boolean;
     }>({});
     const { toast } = useToast();
-    const [selectedApp, setSelectedApp] = useState(null);
-    const [appDraft, setAppDraft] = useState(null);
+    const [selectedApp, setSelectedApp] = useState<UserProfile | null>(null);
+    const [appDraft, setAppDraft] = useState<UserProfile | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleOpenModal = (app) => {
@@ -115,7 +115,7 @@ export const VendorApplications: React.FC = () => {
         }
     };
 
-    const filteredApplications = vendorApplications.filter(
+    const filteredApplications = applications.filter(
         (app) => app.application_status !== "not_applied"
     );
 
@@ -131,6 +131,7 @@ export const VendorApplications: React.FC = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>Business Name</TableHead>
                             <TableHead>Business Name</TableHead>
                             <TableHead>Applicant Name</TableHead>
                             <TableHead>Contact</TableHead>

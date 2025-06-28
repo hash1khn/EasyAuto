@@ -15,6 +15,11 @@ export type Order = Tables<'orders'> & {
 };
 export type UserProfile = Tables<'user_profiles'> & {
   email?: string;  // Add this line
+  role?: string;
+  user_roles?: Array<{
+    role: string;
+    is_approved: boolean;
+  }>;
 };
 export type User = {
   id: string;
@@ -62,7 +67,7 @@ export interface AdminData {
   stats: PlatformStats;
   orders: Order[];
   users: User[];
-  vendorApplications: UserProfile[];
+  applications: UserProfile[]; // Changed from vendorApplications
   loading: boolean;
   error: Error | null;
   refresh: () => void;
@@ -92,7 +97,7 @@ export const useAdminData = (): AdminData => {
   const [stats, setStats] = useState<PlatformStats>(initialStats);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [vendorApplications, setVendorApplications] = useState<UserProfile[]>([]);
+  const [applications, setApplications] = useState<UserProfile[]>([]); // Changed from vendorApplications
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -227,7 +232,7 @@ export const useAdminData = (): AdminData => {
         const result = adminData[0] as AdminDataResponse;
         setOrders(Array.isArray(result.all_orders) ? result.all_orders : []);
         setUsers(Array.isArray(result.all_users) ? result.all_users : []);
-        setVendorApplications(Array.isArray(result.vendor_applications) ? result.vendor_applications : []);
+        setApplications(Array.isArray(result.vendor_applications) ? result.vendor_applications : []); // Changed from vendorApplications
       }
 
     } catch (err: any) {
@@ -239,23 +244,31 @@ export const useAdminData = (): AdminData => {
   }, []);
 
   const fetchVendorApplications = async () => {
-    const { data, error } = await supabase
+    const { data: applications, error } = await supabase
       .from('user_profiles')
       .select(`
-        id,
-        user_id,
-        full_name,
-        business_name,
-        whatsapp_number,
-        location,
-        application_status,
-        application_submitted_at
+        *,
+        users (
+          email
+        ),
+        user_roles (
+          role,
+          is_approved
+        )
       `)
       .neq('application_status', 'not_applied')
       .order('application_submitted_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    // Process the applications to include the role
+    const processedApplications = applications.map(app => ({
+      ...app,
+      email: app.users?.email,
+      role: app.user_roles?.[0]?.role || 'buyer'
+    }));
+
+    return processedApplications;
   };
 
   useEffect(() => {
@@ -266,7 +279,7 @@ export const useAdminData = (): AdminData => {
     stats,
     orders,
     users,
-    vendorApplications,
+    applications, // Changed from vendorApplications
     loading,
     error,
     refresh: fetchData,
