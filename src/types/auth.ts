@@ -29,6 +29,7 @@ export interface AuthResult {
 
 export interface SignInResponse extends AuthResult {
   role?: UserRole;
+  isApproved?: boolean;
 }
 
 export interface AuthContextType {

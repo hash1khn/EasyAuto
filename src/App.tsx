@@ -57,7 +57,8 @@ function App() {
                                 path="/dashboard"
                                 element={
                                     <ProtectedRoute
-                                        allowedRoles={["buyer", "admin"]}>
+                                        allowedRoles={["buyer"]}
+                                        requireApproval={true}>
                                         <Dashboard />
                                     </ProtectedRoute>
                                 }
