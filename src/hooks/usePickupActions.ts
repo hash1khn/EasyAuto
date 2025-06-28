@@ -46,7 +46,7 @@ export const usePickupActions = () => {
         .update({
           shipping_status: "out_for_delivery",
           pickup_notes: pickupNotes,
-          pickup_photo_url: photoUrl,
+          pickup_photo_urls: photoUrl,
           pickup_at: new Date().toISOString(),
           pickup_confirmation: true,
           updated_at: new Date().toISOString(),

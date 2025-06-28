@@ -104,14 +104,23 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
 
   const vehicleIds = Object.keys(groupedParts);
 
-  const subtotal = parts.reduce((sum, part) => {
-    if (part.parts?.shipping_status !== 'refunded') {
-      return sum + (part.unit_price || 0) * part.quantity;
-    }
-    return sum;
-  }, 0);
-  
-  const deliveryFee = invoice.delivery_fee || 0;
+  // Update the calculations
+  const calculations = {
+    // Only sum non-refunded items
+    subtotal: parts.reduce((sum, part) => {
+      if (part.parts?.shipping_status !== 'refunded') {
+        return sum + (part.unit_price || 0) * (part.quantity || 0);
+      }
+      return sum;
+    }, 0),
+    
+    // Get values directly from invoice
+    deliveryFee: invoice.delivery_fee || 0,
+    vatAmount: invoice.vat_amount || 0,
+    serviceFee: invoice.service_fee || 0
+  };
+
+  // Use invoice.total_amount instead of calculating our own total
   const grandTotal = invoice.total_amount;
 
   const formatCurrency = (amount: number) => `AED ${amount.toFixed(2)}`;
@@ -214,20 +223,28 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
 
             {/* Totals */}
             <div className="flex justify-end mt-8">
-                <div className="w-full max-w-sm space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span className="font-medium">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Delivery Fee</span>
-                        <span className="font-medium">{formatCurrency(deliveryFee)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
-                        <span>Grand Total</span>
-                        <span>{formatCurrency(grandTotal)}</span>
-                    </div>
+              <div className="w-full max-w-sm space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="font-medium">{formatCurrency(calculations.subtotal)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee</span>
+                  <span className="font-medium">{formatCurrency(calculations.deliveryFee)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>VAT</span>
+                  <span className="font-medium">{formatCurrency(calculations.vatAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Service Fee</span>
+                  <span className="font-medium">{formatCurrency(calculations.serviceFee)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
+                  <span>Grand Total</span>
+                  <span>{formatCurrency(grandTotal)}</span>
+                </div>
+              </div>
             </div>
              <p className="text-xs text-muted-foreground text-center mt-8">All prices include VAT and Service Charge</p>
         </div>
