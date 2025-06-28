@@ -30,6 +30,7 @@ import { DeliverySettings } from "@/components/driver/DeliverySettings";
 import { DriverDashboard } from "@/components/driver/DriverDashboard";
 import PickupMapPage from './pages/delivery/PickupMapPage';
 import DeliveringMapPage from './pages/delivery/DeliveringMapPage';
+import { SignupPage } from './pages/SignupPage';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function App() {
                     <BrowserRouter>
                         <Routes>
                             <Route path="/" element={<HomeDesign />} />
+                            <Route path="/signup" element={<SignupPage />} />
                             <Route
                                 path="/buyerdesign1"
                                 element={<BuyerDesign1 />}

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Wrench, Store, Search, DollarSign, ShieldCheck, CheckCircle, XCircle, ArrowRight, Star, Facebook, Instagram, Linkedin, Mail, Phone, MapPin, CreditCard, Lock, BadgeCheck } from 'lucide-react';
 import { FaMapMarkerAlt, FaShieldAlt, FaUsers, FaBoxOpen } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthModal } from '@/components/AuthModal';
 
 const carLogos = [
@@ -60,6 +60,7 @@ const Header = ({ onLoginClick }: { onLoginClick: () => void }) => (
 );
 
 const HeroSection = () => {
+    const navigate = useNavigate();
     const [showAuthModal, setShowAuthModal] = useState(false);
 
     return (
@@ -86,7 +87,9 @@ const HeroSection = () => {
                     <Button 
                         size="lg" 
                         className="bg-blue-600 hover:bg-blue-700 text-lg font-semibold shadow-xl hover:shadow-2xl transition-transform duration-200 ease-in-out transform hover:scale-105 w-full sm:w-auto [text-shadow:0_2px_4px_rgba(0,0,0,0.6)]"
-                        onClick={() => setShowAuthModal(true)}
+                        onClick={() => {
+                            navigate('/signup');
+                        }}
                     >
                         <Search className="mr-3 h-5 w-5" />Find My Car Parts
                     </Button>
@@ -355,23 +358,14 @@ const DualCTASection = () => {
         showSignup: boolean;
         signupType?: 'buyer' | 'vendor';
     }>({ showSignup: true }); // Set default to true
+    const navigate = useNavigate();
 
     const handleBuyerClick = () => {
-        // Always show signup form with buyer type
-        setAuthModalConfig({ 
-            showSignup: true, // Force signup to be true
-            signupType: 'buyer' 
-        });
-        setShowAuthModal(true);
+        navigate('/signup');
     };
 
     const handleVendorClick = () => {
-        // Always show signup form with vendor type
-        setAuthModalConfig({ 
-            showSignup: true, // Force signup to be true
-            signupType: 'vendor' 
-        });
-        setShowAuthModal(true);
+        navigate('/signup');
     };
 
     return (
@@ -523,6 +517,7 @@ export const HomeDesign = () => {
         showSignup: boolean;
         signupType?: 'buyer' | 'vendor';
     }>({ showSignup: false });
+    const navigate = useNavigate();
     const handleLoginClick = () => {
         setAuthModalConfig({ showSignup: false });
         setShowAuthModal(true);
