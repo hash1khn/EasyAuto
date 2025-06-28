@@ -505,15 +505,15 @@ export const DriverDashboard: React.FC = () => {
     setDetailsModalState({ isOpen: false, part: null })
   }
 
-  const handleConfirmPickup = async (pickupNotes: string, photo?: File) => {
+  const handleConfirmPickup = async (pickupNotes: string, photos: File[] = []) => {
     const { vendorId } = pickupModalState
     if (!vendorId) return
 
     try {
       const partIdsToUpdate = Array.from(selectedParts[vendorId] || [])
 
-      // Use the centralized pickup action
-      const result = await confirmPickup(partIdsToUpdate, pickupNotes, photo)
+      // Use the centralized pickup action (now accepts File[])
+      const result = await confirmPickup(partIdsToUpdate, pickupNotes, photos)
 
       if (result.success) {
         // Clear selections
