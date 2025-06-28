@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 
 // Use a more flexible interface that can work with both types
-interface PickupPart {
+export interface PickupPart {
   id: string
   partName: string
   partNumber?: string
