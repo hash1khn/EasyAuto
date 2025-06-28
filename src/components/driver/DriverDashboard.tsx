@@ -505,49 +505,35 @@ export const DriverDashboard: React.FC = () => {
     setDetailsModalState({ isOpen: false, part: null })
   }
 
-  const handleConfirmPickup = async (pickupNotes: string, pickupPhotos: File[]) => {
-    const { vendorId } = pickupModalState;
-    if (!vendorId) return;
+  const handleConfirmPickup = async (pickupNotes: string, photo?: File) => {
+    const { vendorId } = pickupModalState
+    if (!vendorId) return
 
     try {
-      const selectedPartsData = pickupModalParts;
-      const vendorName = partsByVendor.find(v => v.vendor.id === vendorId)?.vendor.name || '';
+      const partIdsToUpdate = Array.from(selectedParts[vendorId] || [])
 
       // Use the centralized pickup action
-      const result = await confirmPickup(
-        selectedPartsData,
-        pickupNotes,
-        pickupPhotos,
-        vendorName
-      );
+      const result = await confirmPickup(partIdsToUpdate, pickupNotes, photo)
 
       if (result.success) {
         // Clear selections
         setSelectedParts((prev) => {
-          const newSelection = { ...prev };
-          delete newSelection[vendorId];
-          return newSelection;
-        });
+          const newSelection = { ...prev }
+          delete newSelection[vendorId]
+          return newSelection
+        })
 
         // Refresh data
-        await fetchPartsForPickup();
-
-        // Close modal
-        handleClosePickupModal();
+        await fetchPartsForPickup()
 
         // Show success message
-        toast({
-          title: "Success",
-          description: result.message
-        });
+        alert(result.message)
+      } else {
+        alert(`Error: ${result.error}`)
       }
     } catch (error) {
-      console.error("Error in handleConfirmPickup:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to confirm pickup. Please try again."
-      });
+      console.error("Error in handleConfirmPickup:", error)
+      alert("Failed to confirm pickup. Please try again.")
     }
   }
 

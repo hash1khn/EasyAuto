@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { EnrichedPart, GroupedDeliveryData } from '@/types/delivery';
-import {PickupPart} from '@/components/delivery/PickupModal';
 
 export async function handleDeliveryConfirmation(data: {
   parts: EnrichedPart[];
@@ -110,77 +109,6 @@ const photoUploads = await Promise.all(
     return invoice;
   } catch (error) {
     console.error('Error in handleDeliveryConfirmation:', error);
-    throw error;
-  }
-}
-
-// Add this new function next to handleDeliveryConfirmation
-export async function handlePickupConfirmation(data: {
-  parts: PickupPart[];
-  pickupPhotos: File[];
-  pickupNotes: string;
-  vendorName: string;
-}) {
-  const { parts, pickupPhotos, pickupNotes, vendorName } = data;
-
-  try {
-    // 1. Upload pickup photos and get public URLs
-    const photoUploads = await Promise.all(
-      pickupPhotos.map(async (photo) => {
-        const fileExt = photo.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `pickup-confirmations/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('mybucket')
-          .upload(filePath, photo);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('mybucket')
-          .getPublicUrl(filePath);
-
-        return publicUrl;
-      })
-    );
-
-    // 2. Update parts status
-    const { error: updateError } = await supabase
-      .from('parts')
-      .update({
-        shipping_status: 'out_for_delivery',
-        pickup_notes: pickupNotes,
-        pickup_photo_urls: photoUploads,
-        pickup_at: new Date().toISOString(),
-        pickup_confirmation: true,
-        updated_at: new Date().toISOString()
-      })
-      .in('id', parts.map(p => p.id));
-
-    if (updateError) throw updateError;
-
-    // 3. Create activity logs for each part
-    const { error: logsError } = await supabase
-      .from('part_activity_logs')
-      .insert(
-        parts.map(part => ({
-          part_id: part.id,
-          status: 'out_for_delivery',
-          note: pickupNotes,
-          updated_by: 'driver' // Replace with actual driver ID when available
-        }))
-      );
-
-    if (logsError) throw logsError;
-
-    return {
-      success: true,
-      message: `${parts.length} part(s) marked as 'Out for Delivery'`,
-      photoUrls: photoUploads
-    };
-  } catch (error) {
-    console.error('Error in handlePickupConfirmation:', error);
     throw error;
   }
 }
