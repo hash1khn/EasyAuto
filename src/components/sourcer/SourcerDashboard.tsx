@@ -5,7 +5,7 @@ import { MapPin } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { X } from 'lucide-react'
+import { X } from "lucide-react";
 
 interface VendorQuote {
     id: string;
@@ -92,8 +92,8 @@ const SourcerDashboard: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
 
     const [reviewForm, setReviewForm] = useState({
-      inspectionImages: [] as File[],
-      reviewNotes: "",
+        inspectionImages: [] as File[],
+        reviewNotes: "",
     });
 
     const [addQuoteForm, setAddQuoteForm] = useState({
@@ -104,25 +104,48 @@ const SourcerDashboard: React.FC = () => {
         price: "",
         condition: "",
         warranty: "",
-        imageFiles: null as FileList | null,
+        imageFiles: [] as File[],
         vendorNotes: "",
     });
 
+    const handleAddQuoteImageUpload = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const newFiles = Array.from(e.target.files || []);
+        setAddQuoteForm((prev) => ({
+            ...prev,
+            imageFiles: [...prev.imageFiles, ...newFiles],
+        }));
+        // Reset input value to allow selecting the same file again
+        e.target.value = "";
+    };
+
+    const removeQuoteImage = (indexToRemove: number) => {
+        setAddQuoteForm((prev) => ({
+            ...prev,
+            imageFiles: prev.imageFiles.filter(
+                (_, index) => index !== indexToRemove
+            ),
+        }));
+    };
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newFiles = Array.from(e.target.files || []);
-      setReviewForm(prev => ({
-        ...prev,
-        inspectionImages: [...prev.inspectionImages, ...newFiles]
-      }));
-      // Reset the input value to allow selecting the same file again
-      e.target.value = '';
+        const newFiles = Array.from(e.target.files || []);
+        setReviewForm((prev) => ({
+            ...prev,
+            inspectionImages: [...prev.inspectionImages, ...newFiles],
+        }));
+        // Reset the input value to allow selecting the same file again
+        e.target.value = "";
     };
 
     const removeImage = (indexToRemove: number) => {
-      setReviewForm(prev => ({
-        ...prev,
-        inspectionImages: prev.inspectionImages.filter((_, index) => index !== indexToRemove)
-      }));
+        setReviewForm((prev) => ({
+            ...prev,
+            inspectionImages: prev.inspectionImages.filter(
+                (_, index) => index !== indexToRemove
+            ),
+        }));
     };
 
     useEffect(() => {
@@ -340,11 +363,9 @@ const SourcerDashboard: React.FC = () => {
         try {
             // Upload part images if any
             const imageUrls: string[] = [];
-            if (addQuoteForm.imageFiles) {
-                for (const file of Array.from(addQuoteForm.imageFiles)) {
-                    const url = await uploadImage(file);
-                    if (url) imageUrls.push(url);
-                }
+            for (const file of addQuoteForm.imageFiles) {
+                const url = await uploadImage(file);
+                if (url) imageUrls.push(url);
             }
 
             // Create vendor info object
@@ -1548,19 +1569,35 @@ const SourcerDashboard: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Vendor Phone
                                         </label>
-                                        <input
-                                            type="tel"
-                                            value={addQuoteForm.vendorPhone}
-                                            onChange={(e) =>
-                                                setAddQuoteForm({
-                                                    ...addQuoteForm,
-                                                    vendorPhone: e.target.value,
-                                                })
-                                            }
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
-                                            placeholder="+971 50 123 4567"
-                                            required
-                                        />
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                                                +971
+                                            </span>
+                                            <input
+                                                type="tel"
+                                                value={addQuoteForm.vendorPhone}
+                                                onChange={(e) => {
+                                                    // Remove any non-numeric characters and the +971 prefix if entered
+                                                    const cleaned =
+                                                        e.target.value
+                                                            .replace(/\D/g, "")
+                                                            .replace(
+                                                                /^971/,
+                                                                ""
+                                                            );
+                                                    setAddQuoteForm({
+                                                        ...addQuoteForm,
+                                                        vendorPhone: cleaned,
+                                                    });
+                                                }}
+                                                className="w-full pl-14 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
+                                                placeholder="50 123 4567"
+                                                required
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Enter number without country code
+                                        </p>
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1691,20 +1728,59 @@ const SourcerDashboard: React.FC = () => {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Part Images
+                                            Part Images (
+                                            {addQuoteForm.imageFiles.length}{" "}
+                                            selected)
                                         </label>
                                         <input
                                             type="file"
-                                            multiple
                                             accept="image/*"
-                                            onChange={(e) =>
-                                                setAddQuoteForm({
-                                                    ...addQuoteForm,
-                                                    imageFiles: e.target.files,
-                                                })
-                                            }
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
+                                            onChange={handleAddQuoteImageUpload}
+                                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
+                 file:rounded-full file:border-0 file:text-sm file:font-semibold 
+                 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                         />
+
+                                        {/* Image Preview Grid */}
+                                        {addQuoteForm.imageFiles.length > 0 && (
+                                            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                                {addQuoteForm.imageFiles.map(
+                                                    (file, index) => (
+                                                        <div
+                                                            key={`${file.name}-${index}`}
+                                                            className="relative group">
+                                                            <img
+                                                                src={URL.createObjectURL(
+                                                                    file
+                                                                )}
+                                                                alt={`Upload preview ${
+                                                                    index + 1
+                                                                }`}
+                                                                className="h-24 w-24 object-cover rounded-lg border border-gray-200"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    removeQuoteImage(
+                                                                        index
+                                                                    )
+                                                                }
+                                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 
+                                 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <X className="h-4 w-4" />
+                                                            </button>
+                                                            <p className="text-xs text-gray-500 mt-1 truncate max-w-[96px]">
+                                                                {file.name}
+                                                            </p>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Upload multiple part images. Click
+                                            to add more.
+                                        </p>
                                     </div>
 
                                     <div className="md:col-span-2">
