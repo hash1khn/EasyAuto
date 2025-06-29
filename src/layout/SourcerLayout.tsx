@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useUserRoles } from '@/hooks/useUserRoles';
 
 const SourcerLayout: React.FC = () => {
-  const { user, signOut } = useAuth();  // Add auth hook
+  const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRoles();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigationItems = [
@@ -63,11 +66,18 @@ const SourcerLayout: React.FC = () => {
               ))}
             </nav>
           </div>
-          <div className="mt-auto p-6">
-            {/* <div className="mb-4 px-4 py-2 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Logged in as</p>
-              <p className="font-medium text-gray-800">{user?.user_metadata?.full_name|| user?.email || 'Sourcer'}</p>
-            </div> */}
+          <div className="mt-auto p-6 space-y-3">
+            {/* Update this check to call isAdmin as a function */}
+            {isAdmin() && (
+              <Button
+                variant="outline"
+                className="w-full bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                onClick={() => navigate('/admin')}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                <span className="font-medium">Admin Mode</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               className="w-full flex items-center justify-center text-gray-700 hover:bg-gray-100"

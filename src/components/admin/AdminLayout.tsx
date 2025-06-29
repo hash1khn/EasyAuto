@@ -83,6 +83,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         >
           🧰 Vendor Mode
         </Button>
+
+        {/* Sourcer Mode Button */}
+        <Button
+          onClick={() => navigate('/sourcer')}
+          variant="outline"
+          className="w-full text-sm bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+        >
+          🔍 Sourcer Mode
+        </Button>
       </div>
 
       {/* Sign Out Button */}

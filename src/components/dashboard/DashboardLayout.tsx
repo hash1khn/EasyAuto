@@ -1,4 +1,7 @@
 import { useState, useRef } from "react";
+import { Shield } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/buyer/Sidebar";
 import { DashboardTab } from "@/components/buyer/DashboardTab";
 import { OrderHistoryTab } from "@/components/buyer/OrderHistoryTab";
@@ -22,6 +25,9 @@ export default function DashboardLayout() {
   const whatsappNumber = "+971551776860";
   const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
   const defaultMessage = "Hello! I need help with my order.";
+
+  const { isAdmin } = useUserRoles();
+  const navigate = useNavigate();
 
   const handleOrderCreated = () => {
     setShowOrderModal(false);
@@ -64,11 +70,32 @@ export default function DashboardLayout() {
     }
   };
 
+  // Create a shared sidebar content component
+  const sidebarContent = (
+    <Sidebar 
+      activeTab={activeTab} 
+      onTabChange={setActiveTab}
+    >
+      {isAdmin() && (
+        <div className="p-4 border-t mt-auto">
+          <Button
+            onClick={() => navigate('/admin')}
+            variant="outline"
+            className="w-full text-sm bg-red-50 border-red-200 text-red-700 hover:bg-red-100 flex items-center justify-center"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Admin Mode
+          </Button>
+        </div>
+      )}
+    </Sidebar>
+  );
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-64 border-r">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        {sidebarContent}
       </div>
 
       {/* Mobile Sidebar */}
@@ -79,7 +106,7 @@ export default function DashboardLayout() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0">
-          <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+          {sidebarContent}
         </SheetContent>
       </Sheet>
 

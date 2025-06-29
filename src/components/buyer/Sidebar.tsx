@@ -18,6 +18,7 @@ interface SidebarProps {
   className?: string
   activeTab: string
   onTabChange: (tab: string) => void
+  children?: React.ReactNode // Add this line
 }
 
 interface UserProfile {
@@ -32,7 +33,7 @@ interface UserRole {
   is_approved: boolean
 }
 
-export const Sidebar = ({ className, activeTab, onTabChange }: SidebarProps) => {
+export const Sidebar = ({ className, activeTab, onTabChange, children }: SidebarProps) => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -194,6 +195,8 @@ export const Sidebar = ({ className, activeTab, onTabChange }: SidebarProps) => 
             Switch to Vendor
           </button>
         )}
+
+        {children} {/* Add this line */}
 
         <button
           onClick={handleSignOut}
