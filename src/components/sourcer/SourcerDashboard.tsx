@@ -95,6 +95,8 @@ const SourcerDashboard: React.FC = () => {
         inspectionImages: [] as File[],
         reviewNotes: "",
     });
+    // Add to the existing state declarations
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     const [addQuoteForm, setAddQuoteForm] = useState({
         vendorName: "",
@@ -1142,7 +1144,15 @@ const SourcerDashboard: React.FC = () => {
                                                                     "/placeholder.svg"
                                                                 }
                                                                 alt={`Part from ${quote.vendorName}`}
-                                                                className="w-32 h-20 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                                                                className="w-32 h-20 object-cover rounded-lg border border-gray-200 flex-shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    setPreviewImage(
+                                                                        quote.imageUrl
+                                                                    );
+                                                                }}
                                                             />
                                                         )}
                                                     </div>
@@ -1441,6 +1451,26 @@ const SourcerDashboard: React.FC = () => {
                                 )}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Preview Modal */}
+            {previewImage && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                    onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl w-full">
+                        <img
+                            src={previewImage}
+                            alt="Preview"
+                            className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+                        />
+                        <button
+                            onClick={() => setPreviewImage(null)}
+                            className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75">
+                            <X className="h-6 w-6" />
+                        </button>
                     </div>
                 </div>
             )}
