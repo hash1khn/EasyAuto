@@ -45,10 +45,21 @@ export interface Part {
   admin_collected_by: string | null;
   admin_collected_at: string | null;
   is_accepted: boolean | null;
-  // New fields
-  expected_delivery_date?: string | null;
-  delivery_photo_url?: string | null;
-  photos?: string[];
+  estimated_budget: number | null;
+  expected_delivery_date: string | null;
+  delivery_photo_url: string | null;
+  photos: string[] | null;
+  pickup_notes: string | null;
+  pickup_at: string | null;
+  picked_up_by: string | null;
+  pickup_confirmation: boolean | null;
+  updated_at: string;
+  delivery_note: string | null;
+  pickup_photo_urls: string[] | null;
+  inspection_images: string[] | null;
+  inspected_by: string | null;
+  inspected_at: string | null;
+  
   // Relations
   vehicle?: Vehicle;
   order?: Order;

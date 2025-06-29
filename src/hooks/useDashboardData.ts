@@ -48,6 +48,7 @@ export const useDashboardData = () => {
             description,
             part_number,
             quantity,
+            inspection_images,
             shipping_status,
             created_at,
             vehicle:vehicles (

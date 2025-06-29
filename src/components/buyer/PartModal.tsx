@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusBadge } from "./StatusBadge"
 import type { Part, Vehicle } from "@/lib/order"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 
 interface PartModalProps {
   part: Part | null
@@ -14,6 +15,7 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
   // Get accepted bid if any
   const acceptedBid = part.bids?.find((bid) => bid.status === "accepted")
   const isPartConfirmed = acceptedBid !== undefined
+  const hasInspectionImages = part.inspection_images && part.inspection_images.length > 0
 
   return (
     <Dialog open={!!part} onOpenChange={() => onOpenChange(null)}>
@@ -33,6 +35,36 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+          {/* Inspection Images Carousel - Only if images exist */}
+          {hasInspectionImages && (
+            <div className="bg-white border rounded-lg p-6">
+              <h3 className="font-semibold mb-4 text-lg">Inspection Images</h3>
+              <div className="px-8">
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {part.inspection_images.map((image, index) => (
+                      <CarouselItem key={index}>
+                        <div className="flex justify-center">
+                          <img
+                            src={image || "/placeholder.svg"}
+                            alt={`Inspection image ${index + 1}`}
+                            className="max-w-full h-auto max-h-64 rounded-lg border object-contain"
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  {part.inspection_images.length > 1 && (
+                    <>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </>
+                  )}
+                </Carousel>
+              </div>
+            </div>
+          )}
+
           {/* Part Information Block - Always Visible */}
           <div className="bg-white border rounded-lg p-6">
             <h3 className="font-semibold mb-4 text-lg">Part Information</h3>
@@ -77,18 +109,6 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
                   <div>
                     <p className="text-sm text-muted-foreground">Vendor Notes</p>
                     <p className="text-sm mt-1">{acceptedBid.notes}</p>
-                  </div>
-                )}
-
-                {/* Vendor Image - Only if image exists */}
-                {acceptedBid.image_url && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-3">Part Image</p>
-                    <img
-                      src={acceptedBid.image_url || "/placeholder.svg"}
-                      alt="Part image"
-                      className="max-w-full h-auto rounded-lg border"
-                    />
                   </div>
                 )}
               </div>
