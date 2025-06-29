@@ -58,7 +58,7 @@ function App() {
                                 path="/dashboard"
                                 element={
                                     <ProtectedRoute
-                                        allowedRoles={["buyer"]}
+                                        allowedRoles={["buyer", "admin"]}
                                         requireApproval={true}>
                                         <Dashboard />
                                     </ProtectedRoute>
@@ -85,7 +85,7 @@ function App() {
                                 path="/vendor"
                                 element={
                                     <ProtectedRoute
-                                        allowedRoles={["vendor"]}
+                                        allowedRoles={["vendor", "admin"]}
                                         requireApproval>
                                         <VendorDashboard />
                                     </ProtectedRoute>
@@ -182,7 +182,7 @@ function App() {
                             <Route
                                 path="/sourcer"
                                 element={
-                                    <ProtectedRoute allowedRoles={["sourcer"]}>
+                                    <ProtectedRoute allowedRoles={["sourcer", "admin"]}>
                                         <SourcerLayout />
                                     </ProtectedRoute>
                                 }>
