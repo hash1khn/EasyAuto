@@ -48,6 +48,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       case 'admin':
         navigate('/admin');
         break;
+      case 'sourcer':
+        navigate('/sourcer');
+        break;
       default:
         navigate('/');
     }

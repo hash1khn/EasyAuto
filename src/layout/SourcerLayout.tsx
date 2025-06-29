@@ -5,9 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
 const SourcerLayout: React.FC = () => {
-  const { signOut } = useAuth();  // Add auth hook
+  const { user, signOut } = useAuth();  // Add auth hook
   const location = useLocation();
-  const sourcerName = "John Smith";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigationItems = [
@@ -65,6 +64,10 @@ const SourcerLayout: React.FC = () => {
             </nav>
           </div>
           <div className="mt-auto p-6">
+            {/* <div className="mb-4 px-4 py-2 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-500">Logged in as</p>
+              <p className="font-medium text-gray-800">{user?.user_metadata?.full_name|| user?.email || 'Sourcer'}</p>
+            </div> */}
             <Button
               variant="outline"
               className="w-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
@@ -92,7 +95,7 @@ const SourcerLayout: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 hidden sm:block">
-                Welcome back
+                Hello, {user?.user_metadata?.full_name|| user?.email?.split('@')[0] || 'Sourcer'}
               </span>
               <span className="bg-mint-100 text-mint-800 px-3 py-1 rounded-full text-sm font-medium">
                 Sourcer
