@@ -253,9 +253,19 @@ const getGroupedByAddress = (deliveryData: GroupedDeliveryData[]) => {
                                 className="flex items-center gap-3 cursor-pointer hover:text-blue-600"
                                 onClick={() => handleOpenDetailsModal(part)}
                               >
-                                {part.photos && part.photos.length > 0 ? (
+                                {(part.pickup_photo_urls && part.pickup_photo_urls.length > 0) ? (
                                   <img
-                                    src={part.photos[0] || "/placeholder.svg"}
+                                    src={part.pickup_photo_urls[0]}
+                                    alt={`${part.part_name} pickup`}
+                                    className="w-12 h-12 object-cover rounded-md"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = "none"
+                                    }}
+                                  />
+                                ) : part.photos && part.photos.length > 0 ? (
+                                  <img
+                                    src={part.photos[0]}
                                     alt={part.part_name}
                                     className="w-12 h-12 object-cover rounded-md"
                                     onError={(e) => {

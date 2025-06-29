@@ -13,18 +13,24 @@ interface PartDetailsModalProps {
   part: EnrichedPart | null
 }
 
-const ImageCarousel: React.FC<{ images: string[] }> = ({ images }) => {
+interface ImageCarouselProps {
+  images: string[]
+  pickupImages?: string[] | null
+}
+
+const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, pickupImages }) => {
+  const allImages = [...images, ...(pickupImages || [])]
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const goToPrevious = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1))
+    setCurrentIndex((prevIndex) => (prevIndex === 0 ? allImages.length - 1 : prevIndex - 1))
   }
 
   const goToNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1))
+    setCurrentIndex((prevIndex) => (prevIndex === allImages.length - 1 ? 0 : prevIndex + 1))
   }
 
-  if (!images || images.length === 0) {
+  if (!allImages || allImages.length === 0) {
     return (
       <div className="aspect-square w-full bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500">
         <Package className="h-12 w-12 text-gray-400" />
@@ -36,16 +42,17 @@ const ImageCarousel: React.FC<{ images: string[] }> = ({ images }) => {
     <div className="relative w-full">
       <div className="rounded-lg overflow-hidden aspect-video relative">
         <img
-          src={images[currentIndex] || "/placeholder.svg"}
-          alt="Part Image"
+          src={allImages[currentIndex] || "/placeholder.svg"}
+          alt={`Part Image ${currentIndex + 1}`}
           className="w-full h-full object-cover"
           onError={(e) => {
             const target = e.target as HTMLImageElement
             target.src = "/placeholder.svg?height=400&width=400"
           }}
         />
+       
       </div>
-      {images.length > 1 && (
+      {allImages.length > 1 && (
         <>
           <Button
             onClick={goToPrevious}
@@ -64,7 +71,7 @@ const ImageCarousel: React.FC<{ images: string[] }> = ({ images }) => {
             <ChevronRight className="h-4 w-4" />
           </Button>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {images.map((_, index) => (
+            {allImages.map((_, index) => (
               <div
                 key={index}
                 className={`w-2 h-2 rounded-full ${index === currentIndex ? "bg-white" : "bg-white/50"}`}
@@ -108,7 +115,10 @@ const PartDetailsModal: React.FC<PartDetailsModalProps> = ({ isOpen, onClose, pa
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div>
-            <ImageCarousel images={part.imageUrls} />
+            <ImageCarousel
+              images={part.imageUrls}
+              pickupImages={part.pickup_photo_urls}
+            />
 
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
               <div>

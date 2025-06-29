@@ -6,6 +6,7 @@ export interface DeliveryPart {
   part_number: string | null
   quantity: number
   photos: string[] | null
+  pickup_photo_urls: string[] | null  // Add this line
   shipping_status: string
   order_id: string
   vehicle_id: string
@@ -69,7 +70,8 @@ export interface EnrichedPart {
   quantity: number;
   orderId: string;
   vehicleName: string;
-  imageUrls: string[];
+  imageUrls: string[]
+  pickup_photo_urls?: string[] | null  // Add this line
   condition: QuoteCondition;
   status: string;
   vendorId: string;
