@@ -120,7 +120,7 @@ export const VendorApplicationStatus = () => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
           >
             Back to Home
           </Button>
