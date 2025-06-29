@@ -36,6 +36,7 @@ import { UserProfile } from "@/hooks/useAdminData";
 
 export const VendorApplications: React.FC = () => {
     const { applications, refresh: refetchVendorApplications } = useAdminData();
+    console.log("VendorApplications", applications);
     const [loadingStates, setLoadingStates] = useState<{
         [key: string]: boolean;
     }>({});
@@ -85,7 +86,7 @@ export const VendorApplications: React.FC = () => {
             const { error: roleUpdateError } = await supabase
                 .from("user_roles")
                 .update({
-                    role: "vendor",
+                    // role: "vendor",
                     is_approved: true,
                 })
                 .eq("user_id", appDraft.user_id);
@@ -122,16 +123,16 @@ export const VendorApplications: React.FC = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold">Vendor Applications</h1>
+                <h1 className="text-2xl font-bold">User Applications</h1>
                 <p className="text-gray-500">
-                    Review and accept new applications.
+                    Review and manage both buyer and vendor applications.
                 </p>
             </div>
             <div className="bg-white rounded-lg shadow overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Business Name</TableHead>
+                            <TableHead>Type</TableHead>
                             <TableHead>Business Name</TableHead>
                             <TableHead>Applicant Name</TableHead>
                             <TableHead>Contact</TableHead>
@@ -145,7 +146,15 @@ export const VendorApplications: React.FC = () => {
                         {filteredApplications.map((app) => (
                             <TableRow key={app.id}>
                                 <TableCell>
-                                    {app.business_name || "N/A"}
+                                    <Badge
+                                        variant={app.role === "vendor" ? "default" : "secondary"}
+                                        className={app.role === "vendor" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
+                                    >
+                                        {app.role === "vendor" ? "Vendor" : "Buyer"}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    {app.role === "vendor" ? app.business_name || "N/A" : "-"}
                                 </TableCell>
                                 <TableCell>{app.full_name}</TableCell>
                                 <TableCell>{app.whatsapp_number}</TableCell>
@@ -187,15 +196,32 @@ export const VendorApplications: React.FC = () => {
             <Dialog open={modalOpen} onOpenChange={handleCloseModal}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Application Details</DialogTitle>
+                        <DialogTitle>
+                            {appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application Details
+                        </DialogTitle>
                         <DialogDescription>
-                            Review vendor application details
+                            Review {appDraft?.role === "vendor" ? "vendor" : "buyer"} application details
                         </DialogDescription>
                     </DialogHeader>
 
                     {appDraft && (
                         <div className="space-y-6 py-4">
                             <div className="grid grid-cols-1 gap-4">
+                                {/* Application Type */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm text-muted-foreground">
+                                        Application Type
+                                    </Label>
+                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                        <Badge
+                                            variant={appDraft.role === "vendor" ? "default" : "secondary"}
+                                            className={appDraft.role === "vendor" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
+                                        >
+                                            {appDraft.role === "vendor" ? "Vendor" : "Buyer"}
+                                        </Badge>
+                                    </div>
+                                </div>
+
                                 {/* Email */}
                                 <div className="space-y-1.5">
                                     <Label className="text-sm text-muted-foreground">
@@ -272,10 +298,12 @@ export const VendorApplications: React.FC = () => {
                     <DialogFooter className="border-t pt-4">
                         <Button
                             onClick={handleAccept}
-                            disabled={loadingStates[appDraft?.user_id]}>
+                            disabled={loadingStates[appDraft?.user_id]}
+                            className={appDraft?.role === "vendor" ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}
+                        >
                             {loadingStates[appDraft?.user_id]
                                 ? "Processing..."
-                                : "Accept Application"}
+                                : `Accept ${appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application`}
                         </Button>
                         <Button variant="outline" onClick={handleCloseModal}>
                             Close

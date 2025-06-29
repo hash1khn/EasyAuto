@@ -45,8 +45,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       case 'vendor':
         navigate(isApproved ? '/vendor' : '/vendor/status');
         break;
+      case 'admin':
+        navigate('/admin');
+        break;
       default:
-        navigate('/dashboard');
+        navigate('/');
     }
   };
 

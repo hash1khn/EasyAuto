@@ -55,7 +55,7 @@ export const SignupPage = () => {
   const { signUp } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState<SignupFormData>({
-    role: 'buyer', // Default role
+    role: '' as 'buyer' | 'vendor', // Default role
     fullName: '',
     businessName: '',
     email: '',
@@ -104,65 +104,88 @@ export const SignupPage = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const userData = {
-        full_name: formData.fullName,
-        whatsapp_number: `971${formData.whatsappNumber}`,
-        location: formData.location,
-        delivery_address: formData.address,
-        business_name: formData.role === 'vendor' ? formData.businessName : null,
-        google_maps_url: formData.googleMapsUrl || null,
-        role: formData.role,
-        // Add vendor specific data
-        ...(formData.role === 'vendor' && {
-          vendor_tags: formData.vehicleMakes,
-          application_status: 'pending',
-          application_submitted_at: new Date().toISOString()
-        })
-      };
-
-      const { error, needsConfirmation } = await signUp({
-        email: formData.email,
-        password: formData.password,
-        userData: userData
-      });
-
-      if (error) {
-        toast({
-          title: "Error creating account",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else if (needsConfirmation) {
-        setSignupEmail(formData.email);
-        setShowConfirmation(true);
-      } else {
-        // Redirect to home page after successful signup
-        navigate('/', { replace: true });
-        toast({
-          title: "Account created",
-          description: formData.role === 'vendor' 
-            ? "Your application has been submitted. We'll review it shortly."
-            : "Your account has been created successfully.",
-        });
-      }
-    } catch (error: any) {
+  // Add validation functions after the state declarations
+  const validateStep1 = () => {
+    if (!formData.fullName.trim()) {
       toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
+        title: "Required Field",
+        description: "Please enter your full name",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
+      return false;
     }
+
+    if (formData.role === 'vendor' && !formData.businessName.trim()) {
+      toast({
+        title: "Required Field",
+        description: "Please enter your business name",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Required Field",
+        description: "Please enter your email",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (formData.vehicleMakes.length === 0) {
+      toast({
+        title: "Required Field",
+        description: "Please select at least one vehicle make",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
   };
 
-  // Update the finish button click handler
+  const validateStep2 = () => {
+    if (!formData.whatsappNumber.trim()) {
+      toast({
+        title: "Required Field",
+        description: "Please enter your WhatsApp number",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.location) {
+      toast({
+        title: "Required Field",
+        description: "Please select your emirate",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.address.trim()) {
+      toast({
+        title: "Required Field",
+        description: "Please enter your full address",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // Update the handleNext function
   const handleNext = () => {
+    if (currentStep === 1 && !validateStep1()) {
+      return;
+    }
+
+    if (currentStep === 2 && !validateStep2()) {
+      return;
+    }
+
     if (currentStep < 3) {
       setCurrentStep(prev => prev + 1);
     } else {
@@ -449,6 +472,87 @@ export const SignupPage = () => {
       )}
     </div>
   );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate role selection
+    if (!formData.role) {
+      toast({
+        title: "Required Selection",
+        description: "Please select whether you are a buyer or vendor",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.password) {
+      toast({
+        title: "Required Field",
+        description: "Please enter a password",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!passwordsMatch) {
+      toast({
+        title: "Password Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const userData = {
+        full_name: formData.fullName,
+        whatsapp_number: `971${formData.whatsappNumber}`,
+        location: formData.location,
+        delivery_address: formData.address,
+        business_name: formData.role === 'vendor' ? formData.businessName : null,
+        google_maps_url: formData.googleMapsUrl || null,
+        role: formData.role,
+        application_status: 'pending', // Set for both roles
+        application_submitted_at: new Date().toISOString(), // Set for both roles
+        vehicle_makes: formData.vehicleMakes, // Store for both roles
+      };
+
+      const { error, needsConfirmation } = await signUp({
+        email: formData.email,
+        password: formData.password,
+        userData: userData
+      });
+
+      if (error) {
+        toast({
+          title: "Error creating account",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else if (needsConfirmation) {
+        setSignupEmail(formData.email);
+        setShowConfirmation(true);
+      } else {
+        navigate('/', { replace: true });
+        toast({
+          title: "Application Submitted",
+          description: "Your application has been submitted and is pending review. We'll notify you once it's approved.",
+          duration: 6000,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>

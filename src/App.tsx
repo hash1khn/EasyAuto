@@ -31,6 +31,7 @@ import { DriverDashboard } from "@/components/driver/DriverDashboard";
 import PickupMapPage from './pages/delivery/PickupMapPage';
 import DeliveringMapPage from './pages/delivery/DeliveringMapPage';
 import { SignupPage } from './pages/SignupPage';
+import { BuyerApplicationStatus } from "./pages/BuyerApplicationStatus";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,14 @@ function App() {
                                         allowedRoles={["buyer"]}
                                         requireApproval={true}>
                                         <Dashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/buyer/status"
+                                element={
+                                    <ProtectedRoute allowedRoles={["buyer"]}>
+                                        <BuyerApplicationStatus />
                                     </ProtectedRoute>
                                 }
                             />
