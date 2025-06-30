@@ -43,6 +43,15 @@ export interface DeliveryPart {
     price: number
     condition: string
     warranty: string
+    is_sourcer_provided: boolean
+    vendor_info?: {
+      name: string
+      phone: string
+      address: string
+      business_name?: string
+      google_maps_url?: string
+      delivery_instructions?: string
+    }
     vendor: {
       id: string
       full_name: string
@@ -89,10 +98,25 @@ export interface EnrichedPart {
     year: number;
   };
   winning_bid?: {
+    id: string;
     price: number;
+    condition: string;
     warranty: string;
-    vendor?: {
+    is_sourcer_provided: boolean;  // Add this
+    vendor_info?: {               // Add this
+      name: string;
+      phone: string;
+      address: string;
       business_name?: string;
+      google_maps_url?: string;
+      delivery_instructions?: string;
+    };
+    vendor: {
+      id: string;
+      full_name: string;
+      whatsapp_number: string;
+      business_name: string;
+      location: string;
     };
   };
   order?: {
