@@ -16,6 +16,7 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   if (!part) return null
+  console.log(part)
 
   // Get accepted bid if any
   const acceptedBid = part.bids?.find((bid) => bid.status === "accepted")
@@ -41,49 +42,28 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
-            {/* Inspection Images Carousel - Only if images exist */}
-            {hasInspectionImages && (
-              <div className="bg-white border rounded-lg p-6">
-                <h3 className="font-semibold mb-4 text-lg">Inspection Images</h3>
-                <div className="px-8">
-                  <Carousel className="w-full">
-                    <CarouselContent>
-                      {part.inspection_images.map((image, index) => (
-                        <CarouselItem key={index}>
-                          <div className="flex justify-center">
-                            <img
-                              src={image || "/placeholder.svg"}
-                              alt={`Inspection image ${index + 1}`}
-                              className="max-w-full h-auto max-h-64 rounded-lg border object-contain cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => setPreviewImage(image)}
-                            />
-                          </div>
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    {part.inspection_images.length > 1 && (
-                      <>
-                        <CarouselPrevious />
-                        <CarouselNext />
-                      </>
-                    )}
-                  </Carousel>
-                </div>
-              </div>
-            )}
-
             {/* Part Information Block - Always Visible */}
             <div className="bg-white border rounded-lg p-6">
               <h3 className="font-semibold mb-4 text-lg">Part Information</h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Quantity</p>
-                  <p className="font-medium">{part.quantity}</p>
+                  <p className="text-sm text-muted-foreground">Part Name</p>
+                  <p className="font-medium">{part.part_name}</p>
                 </div>
                 {part.part_number && (
                   <div>
                     <p className="text-sm text-muted-foreground">Part Number</p>
                     <p className="font-medium">{part.part_number}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Quantity</p>
+                  <p className="font-medium">{part.quantity}</p>
+                </div>
+                {part.estimated_budget && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Max Budget</p>
+                    <p className="font-medium">AED {part.estimated_budget}</p>
                   </div>
                 )}
                 <div className="col-span-2">
@@ -95,30 +75,63 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
 
             {/* Accepted Bid Info Block - Only for accepted bids */}
             {isPartConfirmed && acceptedBid && (
-              <div className="bg-muted border rounded-lg p-6">
-                <h3 className="font-semibold mb-4 text-lg">Accepted Bid Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Accepted Price</p>
-                    <p className="font-bold text-lg">AED {acceptedBid.price}</p>
+              <div className="bg-muted border rounded-lg p-6 space-y-6">
+                <div>
+                  <h3 className="font-semibold mb-4 text-lg">Sourcer Information</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Accepted Price</p>
+                      <p className="font-bold text-lg">AED {acceptedBid.price}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Condition</p>
+                        <p className="font-medium">{acceptedBid.condition}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Warranty</p>
+                        <p className="font-medium">{acceptedBid.warranty}</p>
+                      </div>
+                    </div>
+                    {acceptedBid.notes && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Vendor Notes</p>
+                        <p className="text-sm mt-1">{acceptedBid.notes}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Condition</p>
-                      <p className="font-medium">{acceptedBid.condition}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Warranty</p>
-                      <p className="font-medium">{acceptedBid.warranty}</p>
-                    </div>
-                  </div>
-                  {acceptedBid.notes && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Vendor Notes</p>
-                      <p className="text-sm mt-1">{acceptedBid.notes}</p>
-                    </div>
-                  )}
                 </div>
+
+                {/* Inspection Images Carousel - Only if images exist */}
+                {hasInspectionImages && (
+                  <div>
+                    <h3 className="font-semibold mb-4 text-lg">Inspection Images</h3>
+                    <div className="px-8">
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {part.inspection_images.map((image, index) => (
+                            <CarouselItem key={index}>
+                              <div className="flex justify-center">
+                                <img
+                                  src={image || "/placeholder.svg"}
+                                  alt={`Inspection image ${index + 1}`}
+                                  className="max-w-full h-auto max-h-64 rounded-lg border object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setPreviewImage(image)}
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        {part.inspection_images.length > 1 && (
+                          <>
+                            <CarouselPrevious />
+                            <CarouselNext />
+                          </>
+                        )}
+                      </Carousel>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

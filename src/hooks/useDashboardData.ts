@@ -50,6 +50,7 @@ export const useDashboardData = () => {
             quantity,
             inspection_images,
             shipping_status,
+            estimated_budget,
             created_at,
             vehicle:vehicles (
               id,
