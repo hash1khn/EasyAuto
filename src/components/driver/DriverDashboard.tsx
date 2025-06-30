@@ -142,6 +142,8 @@ export type EnrichedPart = {
   orderId: string
   vehicleName: string
   imageUrls: string[]
+  pickup_photo_urls?: string[] | null 
+  inspection_images?: string[] // Add this line
   condition: QuoteCondition
   status: string
   vendorId: string
@@ -227,7 +229,7 @@ export const DriverDashboard: React.FC = () => {
           part_name,
           part_number,
           quantity,
-          photos,
+          inspection_images,
           shipping_status,
           created_at,
           delivered_at,
@@ -290,7 +292,7 @@ export const DriverDashboard: React.FC = () => {
         part_name: item.part_name,
         part_number: item.part_number || "",
         quantity: item.quantity,
-        photos: item.photos || [],
+        photos: item.inspection_images || [],
         shipping_status: item.shipping_status,
         created_at: item.created_at,
         delivered_at: item.delivered_at,
