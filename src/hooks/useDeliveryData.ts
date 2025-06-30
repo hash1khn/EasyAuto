@@ -135,22 +135,37 @@ export const useDeliveryData = () => {
   }
 
   // Helper function to convert DeliveryPart to EnrichedPart for legacy compatibility
-  const convertToEnrichedPart = (part: DeliveryPart): EnrichedPart => {
-    return {
-      ...part,
-      partName: part.part_name,
-      partNumber: part.part_number || "",
-      imageUrls: part.photos || [],
-      condition: part.winning_bid?.condition || "Unknown",
-      vendorName: part.winning_bid?.vendor?.full_name || "Unknown Vendor",
-      vendorAddress: part.winning_bid?.vendor?.location || "Unknown Address",
-      vendorPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
-      sourcerName: part.winning_bid?.vendor?.full_name || "Unknown Sourcer",
-      sourcerId: part.winning_bid?.vendor?.id || "",
-      sourcerPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
-      orderId: part.order_id,
-    }
-  }
+  const convertToEnrichedPart = (part: any): EnrichedPart => ({
+    ...part,
+    partName: part.part_name,
+    partNumber: part.part_number || "",
+    imageUrls: part.photos || [],
+    condition: part.winning_bid?.condition || "Unknown",
+    vendorName: part.winning_bid?.vendor?.full_name || "Unknown Vendor",
+    vendorAddress: part.winning_bid?.vendor?.location || "Unknown Address",
+    vendorPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
+    sourcerName: part.winning_bid?.vendor?.full_name || "Unknown Sourcer",
+    sourcerId: part.winning_bid?.vendor?.id || "",
+    sourcerPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
+    orderId: part.order_id,
+    winning_bid: part.winning_bid
+      ? {
+          id: part.winning_bid.id,
+          price: part.winning_bid.price,
+          condition: part.winning_bid.condition,
+          warranty: part.winning_bid.warranty,
+          is_sourcer_provided: part.winning_bid.is_sourcer_provided || false,
+          vendor_info: part.winning_bid.vendor_info || undefined,
+          vendor: {
+            id: part.winning_bid.vendor?.id || '',
+            full_name: part.winning_bid.vendor?.full_name || '',
+            whatsapp_number: part.winning_bid.vendor?.whatsapp_number || '',
+            business_name: part.winning_bid.vendor?.business_name || '',
+            location: part.winning_bid.vendor?.location || ''
+          }
+        }
+      : undefined,
+  })
 
   useEffect(() => {
     fetchDeliveryData()
