@@ -139,7 +139,7 @@ const SourcerDashboard: React.FC = () => {
   // Add to the existing state declarations
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
 
   const [addQuoteForm, setAddQuoteForm] = useState({
     vendorName: "",
@@ -154,47 +154,47 @@ const SourcerDashboard: React.FC = () => {
   });
 
   const handleAddQuoteImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files && e.target.files.length > 0) {
-    const newFiles = Array.from(e.target.files);
-    const validFiles: File[] = [];
-    const invalidReasons: string[] = [];
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      const validFiles: File[] = [];
+      const invalidReasons: string[] = [];
 
-    // Validate each file
-    newFiles.forEach(file => {
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        invalidReasons.push(`${file.name}: Invalid file type`);
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
-        return;
-      }
+      // Validate each file
+      newFiles.forEach(file => {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          invalidReasons.push(`${file.name}: Invalid file type`);
+          return;
+        }
 
-      validFiles.push(file);
-    });
+        if (file.size > 5 * 1024 * 1024) {
+          invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+          return;
+        }
 
-    // Show errors for invalid files
-    if (invalidReasons.length > 0) {
-      toast({
-        title: "Some files were invalid",
-        description: invalidReasons.join('\n'),
-        variant: "destructive",
-        duration: 5000
+        validFiles.push(file);
       });
-    }
 
-    // Only proceed with valid files
-    if (validFiles.length > 0) {
-      setAddQuoteForm(prev => ({
-        ...prev,
-        imageFiles: [...prev.imageFiles, ...validFiles],
-      }));
+      // Show errors for invalid files
+      if (invalidReasons.length > 0) {
+        toast({
+          title: "Some files were invalid",
+          description: invalidReasons.join('\n'),
+          variant: "destructive",
+          duration: 5000
+        });
+      }
+
+      // Only proceed with valid files
+      if (validFiles.length > 0) {
+        setAddQuoteForm(prev => ({
+          ...prev,
+          imageFiles: [...prev.imageFiles, ...validFiles],
+        }));
+      }
     }
-  }
-  e.target.value = "";
-};
+    e.target.value = "";
+  };
 
   const removeQuoteImage = (indexToRemove: number) => {
     setAddQuoteForm((prev) => ({
@@ -481,7 +481,7 @@ const SourcerDashboard: React.FC = () => {
         price: Number.parseFloat(addQuoteForm.price),
         notes: addQuoteForm.vendorNotes,
         status: "accepted", // Auto-accept sourcer quotes
-        image_urls: imageUrls.length > 0 ? imageUrls : null,        warranty: addQuoteForm.warranty,
+        image_urls: imageUrls.length > 0 ? imageUrls : null, warranty: addQuoteForm.warranty,
         condition: addQuoteForm.condition,
         vendor_info: vendorInfo,
         is_sourcer_provided: true,
@@ -779,16 +779,16 @@ const SourcerDashboard: React.FC = () => {
               <button
                 onClick={() => setViewMode("table")}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === "table"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}>
                 📊 Table
               </button>
               <button
                 onClick={() => setViewMode("card")}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === "card"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}>
                 🃏 Cards
               </button>
@@ -1250,14 +1250,14 @@ const SourcerDashboard: React.FC = () => {
                           </div>
 
                           {quote.imageUrls?.length ? (
-  <div className="w-full">
-    <ImageCarousel images={quote.imageUrls} />
-  </div>
-) : (
-  <div className="w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-    No images
-  </div>
-)}
+                            <div className="w-full">
+                              <ImageCarousel images={quote.imageUrls} />
+                            </div>
+                          ) : (
+                            <div className="w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                              No images
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex-shrink-0 mt-4 md:mt-0">
@@ -1277,8 +1277,8 @@ const SourcerDashboard: React.FC = () => {
                           ) : (
                             <span
                               className={`px-3 py-2 rounded-lg text-sm font-medium ${quote.status === "accepted"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
                                 }`}
                             >
                               {quote.status === "accepted" ? "Accepted" : "Rejected"}
@@ -1372,19 +1372,19 @@ const SourcerDashboard: React.FC = () => {
                   </div>
 
                   {selectedQuote.imageUrls?.length ? (
-  <div>
-    <h4 className="font-medium text-gray-800 mb-3">
-      Part Images
-    </h4>
-    <div className="w-full">
-      <ImageCarousel images={selectedQuote.imageUrls} />
-    </div>
-  </div>
-) : (
-  <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-    No part images available
-  </div>
-)}
+                    <div>
+                      <h4 className="font-medium text-gray-800 mb-3">
+                        Part Images
+                      </h4>
+                      <div className="w-full">
+                        <ImageCarousel images={selectedQuote.imageUrls} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                      No part images available
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column - Vendor Info & Review Form */}
@@ -1865,40 +1865,40 @@ const SourcerDashboard: React.FC = () => {
 
                     {/* Image Preview Grid */}
                     {addQuoteForm.imageFiles.length > 0 ? (
-  <div className="mt-4">
-    <Carousel className="w-full">
-      <CarouselContent>
-        {addQuoteForm.imageFiles.map((file, index) => (
-          <CarouselItem key={`${file.name}-${index}`} className="basis-1/2 sm:basis-1/3 md:basis-1/4">
-            <div className="relative group p-1">
-              <img
-                src={URL.createObjectURL(file)}
-                alt={`Upload preview ${index + 1}`}
-                className="h-24 w-full object-cover rounded-lg border border-gray-200"
-              />
-              <button
-                type="button"
-                onClick={() => removeQuoteImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <p className="text-xs text-gray-500 mt-1 truncate">
-                {file.name}
-              </p>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      {addQuoteForm.imageFiles.length > 4 && (
-        <>
-          <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
-          <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
-        </>
-      )}
-    </Carousel>
-  </div>
-) : null}
+                      <div className="mt-4">
+                        <Carousel className="w-full">
+                          <CarouselContent>
+                            {addQuoteForm.imageFiles.map((file, index) => (
+                              <CarouselItem key={`${file.name}-${index}`} className="basis-1/2 sm:basis-1/3 md:basis-1/4">
+                                <div className="relative group p-1">
+                                  <img
+                                    src={URL.createObjectURL(file)}
+                                    alt={`Upload preview ${index + 1}`}
+                                    className="h-24 w-full object-cover rounded-lg border border-gray-200"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeQuoteImage(index)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                  <p className="text-xs text-gray-500 mt-1 truncate">
+                                    {file.name}
+                                  </p>
+                                </div>
+                              </CarouselItem>
+                            ))}
+                          </CarouselContent>
+                          {addQuoteForm.imageFiles.length > 4 && (
+                            <>
+                              <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+                              <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+                            </>
+                          )}
+                        </Carousel>
+                      </div>
+                    ) : null}
                     <p className="text-xs text-gray-500 mt-1">
                       Upload multiple part images. Click
                       to add more.
