@@ -253,11 +253,6 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                   <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
                     {deliveryPhotos.map((file, index) => (
                       <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(file) || "/placeholder.svg"}
-                          alt={`Delivery photo ${index + 1}`}
-                          className="w-full h-20 object-cover rounded border"
-                        />
                         <button
                           type="button"
                           onClick={() => {

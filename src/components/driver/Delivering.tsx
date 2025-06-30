@@ -95,37 +95,39 @@ const getGroupedByAddress = (deliveryData: GroupedDeliveryData[]) => {
     setDetailsModalState({ isOpen: false, part: null })
   }
 
-  const handleConfirmDelivered = async (invoice: any) => {
-    const buyerId = invoice.buyerData.buyer_id
-    const partIdsToUpdate = invoice.parts.map((p: any) => p.id)
+  // In your Delivering.tsx file, update the handleConfirmDelivered function:
 
-    try {
-      // Update each part status to delivered
-      const updatePromises = partIdsToUpdate.map((partId: string) =>
-        updatePartStatus(partId, "delivered", {
-          delivery_photo_url: invoice.deliveryPhotos?.[0] ? URL.createObjectURL(invoice.deliveryPhotos[0]) : null,
-        }),
-      )
+const handleConfirmDelivered = async (invoice: any) => {
+  const buyerId = invoice.buyerData.buyer_id
+  const partIdsToUpdate = invoice.parts.map((p: any) => p.id)
 
-      await Promise.all(updatePromises)
+  try {
+    // The handleDeliveryConfirmation function already handles:
+    // 1. Photo uploads to Supabase storage
+    // 2. Creating invoice records
+    // 3. Updating part statuses
+    // 4. Creating activity logs
+    
+    // So we don't need to call updatePartStatus separately
+    // The delivery service handles everything
 
-      // Clear selections
-      setSelectedParts((prev) => {
-        const newSelection = { ...prev }
-        delete newSelection[buyerId]
-        return newSelection
-      })
+    // Clear selections
+    setSelectedParts((prev) => {
+      const newSelection = { ...prev }
+      delete newSelection[buyerId]
+      return newSelection
+    })
 
-      handleCloseDeliveringModal()
-      alert(`${partIdsToUpdate.length} part(s) marked as 'Delivered'.`)
+    handleCloseDeliveringModal()
+    alert(`${partIdsToUpdate.length} part(s) marked as 'Delivered'.`)
 
-      // Refresh data
-      refetch()
-    } catch (error) {
-      console.error("Error updating delivery status:", error)
-      alert("Failed to update delivery status. Please try again.")
-    }
+    // Refresh data
+    refetch()
+  } catch (error) {
+    console.error("Error updating delivery status:", error)
+    alert("Failed to update delivery status. Please try again.")
   }
+}
 
   const getSelectedPartsForBuyer = (buyerData: GroupedDeliveryData) => {
     if (!selectedParts[buyerData.buyer_id]) return []
