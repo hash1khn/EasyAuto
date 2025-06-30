@@ -1,80 +1,142 @@
-import React from "react"
-import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel"
-import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/contexts/AuthContext"
+import React from "react";
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Interfaces for quote history data
+
+interface UserProfile {
+  id: string;
+  full_name: string;
+  whatsapp_number: string;
+  location: string;
+  user: {
+    email: string;
+  };
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  user_profiles: UserProfile;
+}
+
+interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  vin: string;
+}
+
+interface Part {
+  id: string;
+  part_name: string;
+  shipping_status: string;
+  inspection_images: string[];
+  inspected_by: string;
+  inspected_at: string;
+  order_id: string;
+  vehicles: Vehicle;
+  orders: Order;
+}
+
+interface Bid {
+  id: string;
+  price: number;
+  status: string;
+  warranty: 'No Warranty' | '3 Days' | '7 Days' | '14 Days' | '30 Days' | string; 
+  condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair";
+  image_url: string;
+  vendor_info: any;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  is_sourcer_provided: boolean;
+  sourcer_notes: string;
+  vendor_id: string;
+  vendor: {
+    id: string;
+    full_name: string;
+    whatsapp_number: string;
+    location: string;
+    user: {
+      email: string;
+    };
+  };
+  parts: Part;
+}
+
 interface VendorInfo {
-  name: string
-  phone: string
-  email: string
-  address: string
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  isSourcerProvided: boolean;
 }
 
 interface InspectionInfo {
-  notes: string
-  images: string[]
+  notes: string;
+  images: string[];
 }
 
 interface AcceptedQuote {
-  id: string
-  orderId: string
-  vehicleId: string
-  vehicleMake: string
-  vehicleModel: string
-  vehicleYear: number
-  location: string
-  buyerName: string
-  buyerPhone: string
-  partName: string
-  status: "Accepted" | "Out for Delivery" | "Delivered"
-  price: number
-  vendor: VendorInfo
-  warranty: string
-  condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair"
-  inspection: InspectionInfo
-  acceptedDate: string
-  shippingStatus: string
+  id: string;
+  orderId: string;
+  vehicleId: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: number;
+  location: string;
+  buyerName: string;
+  buyerPhone: string;
+  partName: string;
+  status: "Accepted" | "Out for Delivery" | "Delivered";
+  price: number;
+  vendor: VendorInfo;
+  warranty: 'No Warranty' | '3 Days' | '7 Days' | '14 Days' | '30 Days' | string; 
+  condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair";
+  inspection: InspectionInfo;
+  acceptedDate: string;
+  shippingStatus: string;
+  isSourcerProvided: boolean;
 }
 
 interface GroupedOrder {
-  orderId: string
-  location: string
-  buyerName: string
-  buyerPhone: string
-  parts: AcceptedQuote[]
-  vehicles: Set<string>
+  orderId: string;
+  location: string;
+  buyerName: string;
+  buyerPhone: string;
+  parts: AcceptedQuote[];
+  vehicles: Set<string>;
 }
 
 const QuoteHistory: React.FC = () => {
-  const { user } = useAuth()
-  const [statusFilter, setStatusFilter] = useState<string>("All")
-  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false)
-  const [selectedVendor, setSelectedVendor] = useState<VendorInfo | null>(null)
-  const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false)
-  const [selectedQuoteForInspection, setSelectedQuoteForInspection] = useState<AcceptedQuote | null>(null)
-  const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth();
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<VendorInfo | null>(null);
+  const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+  const [selectedQuoteForInspection, setSelectedQuoteForInspection] = useState<AcceptedQuote | null>(null);
+  const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchAcceptedQuotes()
+      fetchAcceptedQuotes();
     }
-  }, [user])
+  }, [user]);
 
   const fetchAcceptedQuotes = async () => {
-    if (!user) return
+    if (!user) return;
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      // Fetch accepted bids for this sourcer with related data
-      // Note: Based on schema, there's no reviewed_by field, so we'll use a different approach
       const { data, error } = await supabase
         .from("bids")
         .select(`
@@ -90,6 +152,16 @@ const QuoteHistory: React.FC = () => {
           updated_at,
           is_sourcer_provided,
           sourcer_notes,
+          vendor_id,
+          vendor:vendor_id(
+            id,
+            full_name,
+            whatsapp_number,
+            location,
+            user:user_id(
+              email
+            )
+          ),
           parts!inner(
             id,
             part_name,
@@ -112,151 +184,136 @@ const QuoteHistory: React.FC = () => {
                 id,
                 full_name,
                 whatsapp_number,
-                location
+                location,
+                delivery_address
               )
             )
           )
         `)
         .eq("status", "accepted")
-        .order("updated_at", { ascending: false })
+        .in("parts.shipping_status", ["confirmed", "out_for_delivery", "delivered"])
+        .order("updated_at", { ascending: false });
 
-      if (error) throw error
+      if (error) throw error;
 
-      // Filter for quotes that were either sourcer-provided or inspected by this user
-      const filteredData = (data || []).filter((bid) => {
-        return bid.is_sourcer_provided || bid.parts.inspected_by === user.id
-      })
+      const transformedQuotes: AcceptedQuote[] = (data as any[]).map((bid) => {
+  // Extract first element from arrays returned by Supabase for relations
+  const part = Array.isArray(bid.parts) ? bid.parts[0] : bid.parts;
+  const vehicle = part && Array.isArray(part.vehicles) ? part.vehicles[0] : part?.vehicles;
+  const order = part && Array.isArray(part.orders) ? part.orders[0] : part?.orders;
+  const userProfile = order && Array.isArray(order.user_profiles) ? order.user_profiles[0] : order?.user_profiles;
+  const isSourcerProvided = bid.is_sourcer_provided;
+  const vendorInfo = bid.vendor_info || {};
+  const vendor = Array.isArray(bid.vendor) ? bid.vendor[0] : bid.vendor;
 
-      // Transform the data to match the component interface
-      const transformedQuotes: AcceptedQuote[] = filteredData.map((bid) => {
-        const part = bid.parts
-        const vehicle = part.vehicles
-        const order = part.orders
-        const userProfile = order.user_profiles
+  return {
+    id: bid.id,
+    orderId: order?.id,
+    vehicleId: vehicle?.id,
+    vehicleMake: vehicle?.make,
+    vehicleModel: vehicle?.model,
+    vehicleYear: vehicle?.year,
+    location: userProfile?.location || "UAE",
+    buyerName: userProfile?.full_name,
+    buyerPhone: userProfile?.whatsapp_number,
+    partName: part?.part_name,
+    status: getDisplayStatus(part?.shipping_status),
+    price: bid.price,
+    vendor: {
+      name: isSourcerProvided ? vendorInfo.name : vendor?.full_name || "Unknown Vendor",
+      phone: isSourcerProvided ? vendorInfo.phone : vendor?.whatsapp_number || "N/A",
+      email: isSourcerProvided ? vendorInfo.email : vendor?.user?.email || "N/A",
+      address: isSourcerProvided ? vendorInfo.address : vendor?.location || "N/A",
+      isSourcerProvided
+    },
+    warranty: bid.warranty || "No Warranty",
+    condition: bid.condition || "Used - Good",
+    inspection: {
+      notes: bid.sourcer_notes || bid.notes || "No inspection notes available",
+      images: part?.inspection_images || ["/placeholder.svg?height=200&width=300"],
+    },
+    acceptedDate: bid.updated_at || bid.created_at,
+    shippingStatus: part?.shipping_status,
+    isSourcerProvided
+  };
+});
 
-        // Extract vendor info from JSONB field or use defaults
-        const vendorInfo = bid.vendor_info || {}
-
-        // Map shipping status to display status
-        const getDisplayStatus = (shippingStatus: string): "Accepted" | "Out for Delivery" | "Delivered" => {
-          switch (shippingStatus) {
-            case "pending":
-            case "confirmed":
-              return "Accepted"
-            case "out_for_delivery":
-              return "Out for Delivery"
-            case "delivered":
-              return "Delivered"
-            default:
-              return "Accepted"
-          }
-        }
-
-        return {
-          id: bid.id,
-          orderId: order.id,
-          vehicleId: vehicle.id,
-          vehicleMake: vehicle.make,
-          vehicleModel: vehicle.model,
-          vehicleYear: vehicle.year,
-          location: userProfile.location || "UAE",
-          buyerName: userProfile.full_name,
-          buyerPhone: userProfile.whatsapp_number,
-          partName: part.part_name,
-          status: getDisplayStatus(part.shipping_status),
-          price: bid.price,
-          vendor: {
-            name: vendorInfo.name || "Unknown Vendor",
-            phone: vendorInfo.phone || "N/A",
-            email: vendorInfo.email || "N/A",
-            address: vendorInfo.address || "N/A",
-          },
-          warranty: bid.warranty || "No Warranty",
-          condition: bid.condition || "Used - Good",
-          inspection: {
-            notes: bid.sourcer_notes || bid.notes || "No inspection notes available",
-            images: part.inspection_images || ["/placeholder.svg?height=200&width=300"],
-          },
-          acceptedDate: bid.updated_at || bid.created_at,
-          shippingStatus: part.shipping_status,
-        }
-      })
-
-      setAcceptedQuotes(transformedQuotes)
+      setAcceptedQuotes(transformedQuotes);
     } catch (error) {
-      console.error("Error fetching accepted quotes:", error)
+      console.error("Error fetching accepted quotes:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const getDisplayStatus = (shippingStatus: string) => {
+    switch (shippingStatus) {
+      case "confirmed": return "Accepted";
+      case "out_for_delivery": return "Out for Delivery";
+      case "delivered": return "Delivered";
+      default: return "Accepted";
+    }
+  };
 
   const openVendorModal = (vendor: VendorInfo) => {
-    setSelectedVendor(vendor)
-    setIsVendorModalOpen(true)
-  }
+    setSelectedVendor(vendor);
+    setIsVendorModalOpen(true);
+  };
 
   const closeVendorModal = () => {
-    setIsVendorModalOpen(false)
-    setSelectedVendor(null)
-  }
+    setIsVendorModalOpen(false);
+    setSelectedVendor(null);
+  };
 
   const openInspectionModal = (quote: AcceptedQuote) => {
-    setSelectedQuoteForInspection(quote)
-    setIsInspectionModalOpen(true)
-  }
+    setSelectedQuoteForInspection(quote);
+    setIsInspectionModalOpen(true);
+  };
 
   const closeInspectionModal = () => {
-    setIsInspectionModalOpen(false)
-    setSelectedQuoteForInspection(null)
-  }
+    setIsInspectionModalOpen(false);
+    setSelectedQuoteForInspection(null);
+  };
 
-  // Filter quotes based on status
-  const filteredQuotes = acceptedQuotes.filter((quote) => statusFilter === "All" || quote.status === statusFilter)
+  const filteredQuotes = acceptedQuotes.filter((quote) => 
+    statusFilter === "All" || quote.status === statusFilter
+  );
 
-  // Group quotes by order
   const groupedOrders: GroupedOrder[] = filteredQuotes.reduce((acc, quote) => {
-    let order = acc.find((o) => o.orderId === quote.orderId)
-    if (!order) {
-      order = {
+    const existingOrder = acc.find((o) => o.orderId === quote.orderId);
+    if (existingOrder) {
+      existingOrder.parts.push(quote);
+      existingOrder.vehicles.add(`${quote.vehicleYear} ${quote.vehicleMake} ${quote.vehicleModel}`);
+    } else {
+      acc.push({
         orderId: quote.orderId,
         location: quote.location,
         buyerName: quote.buyerName,
         buyerPhone: quote.buyerPhone,
-        parts: [],
-        vehicles: new Set(),
-      }
-      acc.push(order)
+        parts: [quote],
+        vehicles: new Set([`${quote.vehicleYear} ${quote.vehicleMake} ${quote.vehicleModel}`])
+      });
     }
-    order.parts.push(quote)
-    order.vehicles.add(`${quote.vehicleYear} ${quote.vehicleMake} ${quote.vehicleModel}`)
-    return acc
-  }, [] as GroupedOrder[])
+    return acc;
+  }, [] as GroupedOrder[]);
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case "Accepted":
-        return "bg-blue-100 text-blue-800"
-      case "Out for Delivery":
-        return "bg-yellow-100 text-yellow-800"
-      case "Delivered":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+      case "Accepted": return "bg-blue-100 text-blue-800";
+      case "Out for Delivery": return "bg-yellow-100 text-yellow-800";
+      case "Delivered": return "bg-green-100 text-green-800";
+      default: return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Accepted":
-        return "✅"
-      case "Out for Delivery":
-        return "🚚"
-      case "Delivered":
-        return "📦"
-      default:
-        return "📋"
+      case "Accepted": return "✅";
+      case "Out for Delivery": return "🚚";
+      case "Delivered": return "📦";
+      default: return "📋";
     }
-  }
+  };
 
   if (!user) {
     return (
@@ -266,7 +323,7 @@ const QuoteHistory: React.FC = () => {
           <p className="text-gray-600">You need to be signed in to view your quote history.</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -277,12 +334,11 @@ const QuoteHistory: React.FC = () => {
           <p className="text-gray-600">Loading quote history...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -306,7 +362,6 @@ const QuoteHistory: React.FC = () => {
         </div>
       </div>
 
-      {/* Orders List */}
       {groupedOrders.length === 0 ? (
         <div className="text-center text-gray-500 py-12">
           <p className="text-lg">
@@ -366,9 +421,18 @@ const QuoteHistory: React.FC = () => {
                           </td>
                           <td className="p-3 text-gray-600">{part.warranty}</td>
                           <td className="p-3">
-                            <Button variant="link" className="p-0 h-auto" onClick={() => openVendorModal(part.vendor)}>
-                              {part.vendor.name}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="link" 
+                                className="p-0 h-auto" 
+                                onClick={() => openVendorModal(part.vendor)}
+                              >
+                                {part.vendor.name}
+                              </Button>
+                              {part.isSourcerProvided && (
+                                <Badge variant="secondary">Sourcer</Badge>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3">
                             <div className="flex items-center space-x-2">
@@ -396,15 +460,16 @@ const QuoteHistory: React.FC = () => {
         </div>
       )}
 
-      {/* Vendor Details Modal */}
       {isVendorModalOpen && selectedVendor && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
-          onClick={closeVendorModal}
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-800">Vendor Information</h3>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Vendor Information</h3>
+                {selectedVendor.isSourcerProvided && (
+                  <Badge variant="secondary" className="mt-1">Sourcer Provided</Badge>
+                )}
+              </div>
               <Button variant="ghost" size="icon" onClick={closeVendorModal} className="rounded-full">
                 <span className="text-2xl">&times;</span>
               </Button>
@@ -416,15 +481,21 @@ const QuoteHistory: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Contact Phone</h4>
-                <p className="text-lg text-gray-800">{selectedVendor.phone}</p>
+                <a href={`tel:${selectedVendor.phone}`} className="text-lg text-gray-800 hover:underline">
+                  {selectedVendor.phone}
+                </a>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Contact Email</h4>
-                <p className="text-lg text-gray-800">{selectedVendor.email}</p>
+                <a href={`mailto:${selectedVendor.email}`} className="text-lg text-gray-800 hover:underline">
+                  {selectedVendor.email}
+                </a>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-500">Seller Address</h4>
-                <p className="text-lg text-gray-700 bg-gray-50 p-3 rounded-md border">{selectedVendor.address}</p>
+                <h4 className="text-sm font-medium text-gray-500">Address</h4>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md border">
+                  {selectedVendor.address}
+                </p>
               </div>
             </div>
             <div className="px-6 py-4 border-t bg-gray-50 rounded-b-2xl text-right">
@@ -434,16 +505,9 @@ const QuoteHistory: React.FC = () => {
         </div>
       )}
 
-      {/* Inspection Details Modal */}
       {isInspectionModalOpen && selectedQuoteForInspection && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
-          onClick={closeInspectionModal}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-6 border-b flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">Inspection Details</h3>
@@ -454,7 +518,6 @@ const QuoteHistory: React.FC = () => {
               </Button>
             </div>
             <div className="p-6 flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Left Column: Image Carousel */}
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-gray-500">Inspection Images</h4>
                 <Carousel className="w-full">
@@ -479,14 +542,21 @@ const QuoteHistory: React.FC = () => {
                   )}
                 </Carousel>
               </div>
-
-              {/* Right Column: Details */}
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Inspection Notes</h4>
                   <p className="text-gray-700 bg-gray-50 p-3 rounded-md border whitespace-pre-wrap">
                     {selectedQuoteForInspection.inspection.notes}
                   </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Vendor</h4>
+                  <div className="bg-gray-50 p-3 rounded-md border">
+                    <p className="font-medium">{selectedQuoteForInspection.vendor.name}</p>
+                    {selectedQuoteForInspection.vendor.isSourcerProvided && (
+                      <Badge variant="secondary" className="mt-1">Sourcer Provided</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -497,7 +567,7 @@ const QuoteHistory: React.FC = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default QuoteHistory
+export default QuoteHistory;
