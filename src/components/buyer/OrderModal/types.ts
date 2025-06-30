@@ -11,5 +11,5 @@ export interface Part {
   partNumber: string;
   description: string;
   quantity: number;
-  estimated_budget?: string;
+  estimatedBudget?: string;
 } 

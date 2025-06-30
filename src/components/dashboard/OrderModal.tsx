@@ -29,6 +29,8 @@ interface Part {
   partNumber: string;
   description: string;
   quantity: number;
+  estimatedBudget?: string;
+
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -134,6 +136,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
 
     setLoading(true);
+    
 
     try {
       // Group parts by vehicle index
@@ -187,9 +190,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               part_name: part.partName,
               part_number: part.partNumber || null,
               description: part.description || null,
-              quantity: part.quantity
+              quantity: part.quantity,
+              estimated_budget: part.estimatedBudget ? parseFloat(part.estimatedBudget) : null
+
             })
         );
+        console.log('Inserting part with estimated budget:', vehicleParts);
+
 
         await Promise.all(partPromises);
 

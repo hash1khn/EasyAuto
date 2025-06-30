@@ -29,7 +29,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   });
 
   const [currentPart, setCurrentPart] = useState<Part>({
-    vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimated_budget: ''
+    vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimatedBudget: ''
   });
   
    const handleClose = () => {
@@ -43,7 +43,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
     partNumber: '', 
     description: '', 
     quantity: 1, 
-    estimated_budget: ''  // Added this line for consistency
+    estimatedBudget: ''  // Added this line for consistency
   });
   onClose();
 };
@@ -71,7 +71,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
       return;
     }
     setParts([...parts, currentPart]);
-    setCurrentPart({ ...currentPart, partName: '', partNumber: '', description: '', quantity: 1, estimated_budget: '' });
+    setCurrentPart({ ...currentPart, partName: '', partNumber: '', description: '', quantity: 1, estimatedBudget: '' });
   };
 
   const removePart = (index: number) => {
@@ -143,7 +143,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
               part_number: part.partNumber || null,
               description: part.description || null,
               quantity: part.quantity,
-              estimated_budget: part.estimated_budget ? parseFloat(part.estimated_budget) : null
+              estimated_budget: part.estimatedBudget ? parseFloat(part.estimatedBudget) : null
             })
         );
 
@@ -161,7 +161,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
             parts: vehicleParts.map(p => ({
               partName: p.partName,
               partNumber: p.partNumber || null,
-              estimatedBudget: p.estimated_budget || null
+              estimatedBudget: p.estimatedBudget || null
             })),
             orderId: orderData.id,
           }
