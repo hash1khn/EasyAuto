@@ -35,17 +35,23 @@ export const VendorApplicationStatus = () => {
         .single();
 
       if (!profileError && !roleError && profile && role) {
-        setStatus({
+        const vendorStatus = {
           application_status: profile.application_status,
           rejection_reason: profile.rejection_reason,
           is_approved: role.is_approved
-        });
+        };
+        setStatus(vendorStatus);
+
+        // Redirect immediately if fully approved
+        if (vendorStatus.application_status === 'approved' && vendorStatus.is_approved) {
+          navigate('/vendor');
+        }
       }
       setLoading(false);
     };
 
     fetchStatus();
-  }, [user]);
+  }, [user, navigate]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -55,6 +61,7 @@ export const VendorApplicationStatus = () => {
     return <div>Error loading application status</div>;
   }
 
+  // If we get here, it means the user isn't fully approved (otherwise they would have been redirected)
   const renderContent = () => {
     if (status.application_status === 'pending') {
       return (
@@ -86,28 +93,14 @@ export const VendorApplicationStatus = () => {
       );
     }
 
-    if (status.application_status === 'approved' && !status.is_approved) {
-      return (
-        <div className="text-center space-y-4">
-          <Shield className="w-16 h-16 mx-auto text-blue-500" />
-          <h1 className="text-2xl font-bold">Final Verification Pending</h1>
-          <p className="text-gray-600">
-            Your application has been approved and is in the final verification stage.
-          </p>
-        </div>
-      );
-    }
-
+    // This case handles approved but not yet is_approved (final verification pending)
     return (
       <div className="text-center space-y-4">
-        <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
-        <h1 className="text-2xl font-bold">Application Approved</h1>
+        <Shield className="w-16 h-16 mx-auto text-blue-500" />
+        <h1 className="text-2xl font-bold">Final Verification Pending</h1>
         <p className="text-gray-600">
-          Your vendor account has been approved. You can now access the vendor dashboard.
+          Your application has been approved and is in the final verification stage.
         </p>
-        <Button onClick={() => navigate('/vendor')}>
-          Go to Vendor Dashboard
-        </Button>
       </div>
     );
   };

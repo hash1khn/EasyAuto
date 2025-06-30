@@ -33,7 +33,7 @@ const CONTACT_INFO = {
     number: "+971551776860",
     formatted: "+971 55 177 6860"
   },
-  email: "support@sgsservices.ae"
+  email: "easycarpartsteam@gmail.com"
 };
 
 const faqCategories = [

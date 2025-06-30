@@ -67,11 +67,12 @@ const Support: React.FC = () => {
             Send us an email for non-urgent inquiries. We typically respond within 24 hours.
           </p>
           <a
-            href="mailto:support@easycarparts.ae"
+            href="mailto:easycarpartsteam@gmail.com"
             className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md flex items-center justify-center"
           >
             <Mail className="h-5 w-5 mr-2" />
-            support@easycarparts.ae
+        easycarpartsteam@gmail.com
+
           </a>
         </div>
 

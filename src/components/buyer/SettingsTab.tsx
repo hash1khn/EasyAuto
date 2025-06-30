@@ -1,13 +1,12 @@
 import type React from "react"
 import { useState, useEffect } from "react"
-import { User, Bell, Shield, MapPin, CreditCard, Save, Loader2 } from "lucide-react"
+import { User, Bell, Shield, MapPin, CreditCard, Save, Loader2, Link } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { ChangePasswordModal } from "./ChangePasswordModal"
-
 
 type PaymentMethod = 'cod' | 'card' | 'bank_transfer';
 
@@ -20,6 +19,7 @@ interface UserProfile {
   delivery_address: string | null
   delivery_phone: string | null
   delivery_instructions: string | null
+  google_maps_url: string | null
   email_notifications: boolean
   sms_notifications: boolean
   whatsapp_notifications: boolean
@@ -45,6 +45,7 @@ export const SettingsTab: React.FC = () => {
     delivery_address: "",
     delivery_phone: "",
     delivery_instructions: "",
+    google_maps_url: "",
     email_notifications: true,
     sms_notifications: true,
     whatsapp_notifications: true,
@@ -77,6 +78,7 @@ export const SettingsTab: React.FC = () => {
           delivery_address: data.delivery_address || "",
           delivery_phone: (data.delivery_phone || "").replace(/^971/, ""),
           delivery_instructions: data.delivery_instructions || "",
+          google_maps_url: data.google_maps_url || "",
           email_notifications: data.email_notifications ?? true,
           sms_notifications: data.sms_notifications ?? true,
           whatsapp_notifications: data.whatsapp_notifications ?? true,
@@ -122,6 +124,7 @@ export const SettingsTab: React.FC = () => {
             ? formData.delivery_phone
             : `971${formData.delivery_phone}`
           : null,
+        google_maps_url: formData.google_maps_url || null,
         updated_at: new Date().toISOString(),
       }
 
@@ -321,6 +324,32 @@ export const SettingsTab: React.FC = () => {
                   onChange={(e) => handleInputChange("delivery_address", e.target.value)}
                   placeholder="Enter your delivery address"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Google Maps URL (Optional)</label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                  <input
+                    type="url"
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.google_maps_url}
+                    onChange={(e) => handleInputChange("google_maps_url", e.target.value)}
+                    placeholder="https://maps.google.com/..."
+                  />
+                </div>
+                {formData.google_maps_url && (
+                  <div className="mt-2">
+                    <a 
+                      href={formData.google_maps_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm hover:underline"
+                    >
+                      View on Google Maps
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div>
