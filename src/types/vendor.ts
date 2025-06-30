@@ -8,7 +8,7 @@ export interface MyQuote {
   condition: QuoteCondition;
   warranty: QuoteWarranty;
   notes?: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   isAccepted: boolean;
 }
 

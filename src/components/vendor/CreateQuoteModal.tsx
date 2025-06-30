@@ -9,7 +9,6 @@ import { Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
-
 interface CreateQuoteModalProps {
   part: VendorPart;
   orderId: string;
@@ -31,8 +30,8 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   const [condition, setCondition] = useState<QuoteCondition>('Used - Good');
   const [warranty, setWarranty] = useState<QuoteWarranty>('7 Days');
   const [notes, setNotes] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -48,39 +47,41 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
         throw new Error('Vendor authentication required');
       }
 
-      let imageUrl: string | undefined;
+      const imageUrls: string[] = [];
 
-      // Handle image upload if present
-      if (imageFile) {
-        // Validate file
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!validTypes.includes(imageFile.type)) {
-          throw new Error('Only JPG, PNG, and WEBP images are allowed');
+      // Handle image uploads if present
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          // Validate file
+          const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+          if (!validTypes.includes(file.type)) {
+            throw new Error('Only JPG, PNG, and WEBP images are allowed');
+          }
+          
+          // Size limit (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error(`File ${file.name} exceeds 5MB limit`);
+          }
+
+          // Generate unique filename
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${user.id}_${part.id}.${fileExt}`;
+          const filePath = `quotes/${fileName}`;
+
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('mybucket')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('mybucket')
+            .getPublicUrl(uploadData.path);
+          
+          imageUrls.push(urlData.publicUrl);
         }
-        
-        // Size limit (5MB)
-        if (imageFile.size > 5 * 1024 * 1024) {
-          throw new Error('File size exceeds 5MB limit');
-        }
-
-        // Generate unique filename
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${user.id}_${part.id}_${Date.now()}.${fileExt}`;
-        const filePath = `quotes/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('mybucket')
-          .upload(filePath, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('mybucket')
-          .getPublicUrl(uploadData.path);
-        
-        imageUrl = urlData.publicUrl;
       }
 
       // Create bid record
@@ -93,7 +94,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           condition,
           warranty,
           notes,
-          image_url: imageUrl,
+          image_urls: imageUrls.length > 0 ? imageUrls : null,
           status: 'pending'
         })
         .select()
@@ -108,7 +109,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
         condition: bid.condition,
         warranty: bid.warranty,
         notes: bid.notes || '',
-        imageUrl: bid.image_url || undefined,
+        imageUrls: bid.image_urls || [],
         isAccepted: false
       };
 
@@ -134,32 +135,49 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      
-      // Basic client-side validation
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
+    if (event.target.files && event.target.files.length > 0) {
+      const newFiles = Array.from(event.target.files);
+      const validFiles: File[] = [];
+      const invalidReasons: string[] = [];
+
+      // Validate each file
+      newFiles.forEach(file => {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          invalidReasons.push(`${file.name}: Invalid file type`);
+          return;
+        }
+        
+        if (file.size > 5 * 1024 * 1024) {
+          invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+          return;
+        }
+
+        validFiles.push(file);
+      });
+
+      // Show errors for invalid files
+      if (invalidReasons.length > 0) {
         toast({
-          title: "Invalid File Type",
-          description: "Please upload a JPG, PNG, or WEBP image",
-          variant: "destructive"
+          title: "Some files were invalid",
+          description: invalidReasons.join('\n'),
+          variant: "destructive",
+          duration: 5000
         });
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: "Maximum file size is 5MB",
-          variant: "destructive"
-        });
-        return;
       }
 
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      // Only proceed with valid files
+      if (validFiles.length > 0) {
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        setImageFiles(prev => [...prev, ...validFiles]);
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      }
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -255,44 +273,51 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Image (Optional)</label>
+            <label className="text-sm font-medium">Images (Optional)</label>
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
               <div className="space-y-1 text-center">
-                {imagePreview ? (
-                  <div className="relative">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="mx-auto h-24 w-auto rounded-md object-cover" 
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-0 right-0 bg-white rounded-full p-1 shadow-sm"
-                      onClick={() => {
-                        setImagePreview(null);
-                        setImageFile(null);
-                      }}
-                      disabled={isSubmitting}
-                    >
-                      <X className="h-4 w-4 text-red-500" />
-                    </button>
+                {imagePreviews.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img 
+                          src={preview} 
+                          alt={`Preview ${index + 1}`} 
+                          className="h-24 w-full rounded-md object-cover" 
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-0 right-0 bg-white rounded-full p-1 shadow-sm"
+                          onClick={() => removeImage(index)}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 )}
                 <div className="flex text-sm text-gray-600 justify-center">
                   <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
-                    <span>Upload a file</span>
+                    <span>Upload files</span>
                     <input
                       type="file"
                       className="sr-only"
                       accept="image/*"
                       onChange={handleImageUpload}
                       disabled={isSubmitting}
+                      multiple
                     />
                   </label>
                 </div>
-                <p className="text-xs text-gray-500">JPG, PNG, WEBP (Max 5MB)</p>
+                <p className="text-xs text-gray-500">JPG, PNG, WEBP (Max 5MB each)</p>
+                {imagePreviews.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {imagePreviews.length} file{imagePreviews.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
               </div>
             </div>
           </div>

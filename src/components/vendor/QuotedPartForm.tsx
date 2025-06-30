@@ -9,7 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2, X, Plus } from "lucide-react";
 import {
     VendorPart,
     MyQuote,
@@ -35,7 +35,7 @@ export const QuotedPartForm = ({
     const { user } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
     const quote = part.myQuote;
     if (!quote) return null;
 
@@ -43,52 +43,86 @@ export const QuotedPartForm = ({
     const [condition, setCondition] = useState<QuoteCondition>(quote.condition);
     const [warranty, setWarranty] = useState<QuoteWarranty>(quote.warranty);
     const [notes, setNotes] = useState(quote.notes || "");
-    const [imagePreview, setImagePreview] = useState<string | null>(
-        quote.imageUrl || null
-    );
+    const [existingImages, setExistingImages] = useState<string[]>(quote.imageUrls || []);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            const file = event.target.files[0];
-
-            // Validate file
-            if (file.size > 5 * 1024 * 1024) {
-                // 5MB limit
+        if (event.target.files) {
+            const files = Array.from(event.target.files);
+            
+            // Check total images count (existing + new)
+            const totalImages = existingImages.length + imageFiles.length + files.length;
+            if (totalImages > 5) {
                 toast({
                     title: "Error",
-                    description: "Image must be less than 5MB",
+                    description: "Maximum 5 images allowed per quote",
                     variant: "destructive",
                 });
                 return;
             }
 
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
+            // Validate file sizes
+            for (const file of files) {
+                if (file.size > 5 * 1024 * 1024) {
+                    toast({
+                        title: "Error",
+                        description: "Each image must be less than 5MB",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+            }
+
+            setImageFiles(prev => [...prev, ...files]);
+            
+            // Create previews for new files
+            const newPreviews = files.map(file => URL.createObjectURL(file));
+            setImagePreviews(prev => [...prev, ...newPreviews]);
         }
+    };
+
+    const removeExistingImage = (index: number) => {
+        setExistingImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeNewImage = (index: number) => {
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => {
+            // Clean up object URL
+            if (prev[index]) {
+                URL.revokeObjectURL(prev[index]);
+            }
+            return prev.filter((_, i) => i !== index);
+        });
     };
 
     const handleUpdate = async () => {
         try {
             setIsSubmitting(true);
-            let imageUrl = quote.imageUrl;
+            let finalImageUrls = [...existingImages];
 
-            // Handle new image upload
-            if (imageFile) {
-                const fileExt = imageFile.name.split(".").pop();
-                const fileName = `${user?.id}_${part.id}_${Date.now()}.${fileExt}`;
-                const filePath = `quotes/${fileName}`;
+            // Upload new images
+            if (imageFiles.length > 0) {
+                const uploadPromises = imageFiles.map(async (file) => {
+                    const fileExt = file.name.split(".").pop();
+                    const fileName = `${user?.id}_${part.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+                    const filePath = `quotes/${fileName}`;
 
-                const { error: uploadError } = await supabase.storage
-                    .from("mybucket")
-                    .upload(filePath, imageFile);
+                    const { error: uploadError } = await supabase.storage
+                        .from("mybucket")
+                        .upload(filePath, file);
 
-                if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-                const { data } = supabase.storage
-                    .from("mybucket")
-                    .getPublicUrl(filePath);
+                    const { data } = supabase.storage
+                        .from("mybucket")
+                        .getPublicUrl(filePath);
 
-                imageUrl = data.publicUrl;
+                    return data.publicUrl;
+                });
+
+                const uploadedUrls = await Promise.all(uploadPromises);
+                finalImageUrls = [...finalImageUrls, ...uploadedUrls];
             }
 
             const updatedQuote: MyQuote = {
@@ -97,7 +131,7 @@ export const QuotedPartForm = ({
                 condition,
                 warranty,
                 notes,
-                imageUrl,
+                imageUrls: finalImageUrls,
             };
 
             await onUpdate(part.id, updatedQuote);
@@ -106,6 +140,11 @@ export const QuotedPartForm = ({
                 title: "Success",
                 description: "Quote updated successfully",
             });
+
+            // Clean up object URLs
+            imagePreviews.forEach(url => URL.revokeObjectURL(url));
+            setImagePreviews([]);
+            setImageFiles([]);
         } catch (error: any) {
             toast({
                 title: "Error",
@@ -118,6 +157,8 @@ export const QuotedPartForm = ({
     };
 
     const handleRemove = () => {
+        // Clean up object URLs
+        imagePreviews.forEach(url => URL.revokeObjectURL(url));
         onRemove(part.id);
     };
 
@@ -128,8 +169,8 @@ export const QuotedPartForm = ({
                 className={`p-4 rounded-b-lg ${
                     quote.isAccepted ? "bg-green-50" : "bg-gray-50"
                 }`}>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="md:col-span-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-4">
                         <div>
                             <p className="text-gray-500">Price</p>
                             <p className="font-medium">AED {quote.price}</p>
@@ -143,14 +184,19 @@ export const QuotedPartForm = ({
                             <p className="font-medium">{quote.warranty}</p>
                         </div>
                     </div>
-                    {quote.imageUrl && (
-                        <div className="md:col-span-1">
-                            <p className="text-gray-500 mb-1">Image</p>
-                            <img
-                                src={quote.imageUrl}
-                                alt="Part image"
-                                className="rounded-lg w-full h-auto max-h-32 object-cover border"
-                            />
+                    {quote.imageUrls && quote.imageUrls.length > 0 && (
+                        <div>
+                            <p className="text-gray-500 mb-2">Images</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {quote.imageUrls.map((imageUrl, index) => (
+                                    <img
+                                        key={index}
+                                        src={imageUrl}
+                                        alt={`Part image ${index + 1}`}
+                                        className="rounded-lg w-full h-20 object-cover border"
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -234,44 +280,89 @@ export const QuotedPartForm = ({
                 </div>
                 <div>
                     <label className="text-sm font-medium">
-                        Image (Optional)
+                        Images (Optional - Max 5)
                     </label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                            {imagePreview ? (
-                                <img
-                                    src={imagePreview}
-                                    alt="Preview"
-                                    className="mx-auto h-24 w-auto rounded-md object-cover"
-                                />
-                            ) : (
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                            )}
-                            <div className="flex text-sm text-gray-600">
-                                <label
-                                    htmlFor="file-upload-update"
-                                    className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                    <span>Change image</span>
-                                    <input
-                                        id="file-upload-update"
-                                        name="file-upload-update"
-                                        type="file"
-                                        className="sr-only"
-                                        onChange={handleImageUpload}
-                                        accept="image/*"
-                                    />
-                                </label>
+                    
+                    {/* Existing Images */}
+                    {existingImages.length > 0 && (
+                        <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-2">Current Images:</p>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                {existingImages.map((imageUrl, index) => (
+                                    <div key={index} className="relative">
+                                        <img
+                                            src={imageUrl}
+                                            alt={`Existing image ${index + 1}`}
+                                            className="w-full h-20 object-cover rounded border"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeExistingImage(index)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                            {imagePreview && (
-                                <button
-                                    type="button"
-                                    onClick={() => setImagePreview(null)}
-                                    className="text-xs text-red-600 hover:text-red-800 flex items-center justify-center gap-1 mx-auto">
-                                    <Trash2 className="h-3 w-3" /> Remove
-                                </button>
-                            )}
                         </div>
-                    </div>
+                    )}
+
+                    {/* New Images Preview */}
+                    {imagePreviews.length > 0 && (
+                        <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-2">New Images:</p>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                {imagePreviews.map((preview, index) => (
+                                    <div key={index} className="relative">
+                                        <img
+                                            src={preview}
+                                            alt={`New image ${index + 1}`}
+                                            className="w-full h-20 object-cover rounded border"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeNewImage(index)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Upload Area */}
+                    {(existingImages.length + imageFiles.length) < 5 && (
+                        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div className="space-y-1 text-center">
+                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                <div className="flex text-sm text-gray-600">
+                                    <label
+                                        htmlFor="file-upload-update"
+                                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>
+                                            <Plus className="inline h-4 w-4 mr-1" />
+                                            Add images
+                                        </span>
+                                        <input
+                                            id="file-upload-update"
+                                            name="file-upload-update"
+                                            type="file"
+                                            className="sr-only"
+                                            onChange={handleImageUpload}
+                                            accept="image/*"
+                                            multiple
+                                        />
+                                    </label>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    {5 - (existingImages.length + imageFiles.length)} remaining
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             <div>
@@ -299,7 +390,7 @@ export const QuotedPartForm = ({
                     size="sm"
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                     disabled={isSubmitting}>
-                    Update Quote
+                    {isSubmitting ? "Updating..." : "Update Quote"}
                 </Button>
             </div>
         </div>

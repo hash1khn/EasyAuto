@@ -216,7 +216,7 @@ export const VendorHome: React.FC = () => {
                 condition: (part.existing_bid.condition as any) || "Used - Good",
                 warranty: part.existing_bid.warranty || "7 Days",
                 notes: part.existing_bid.notes || "",
-                imageUrl: part.existing_bid.image_url,
+                imageUrls: part.existing_bid.image_urls,
                 isAccepted: part.existing_bid.status === "accepted",
               }
             : undefined,

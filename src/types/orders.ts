@@ -87,7 +87,7 @@ export type Bid = {
   price: number
   notes?: string
   status: 'pending' | 'accepted' | 'rejected'
-  image_url?: string
+  image_urls?: string[]
   created_at: string
   updated_at: string
   shipped_at?: string
@@ -142,7 +142,7 @@ export interface MyQuote {
   condition: QuoteCondition;
   warranty: QuoteWarranty;
   notes?: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   isAccepted: boolean;
 }
 

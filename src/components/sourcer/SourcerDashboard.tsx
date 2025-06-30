@@ -6,6 +6,38 @@ import { createClient } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { useToast } from '@/hooks/use-toast';
+
+const ImageCarousel = ({ images }: { images: string[] }) => {
+  if (!images || images.length === 0) return null;
+
+  return (
+    <div className="relative w-full">
+      <Carousel className="w-full">
+        <CarouselContent>
+          {images.map((image, index) => (
+            <CarouselItem key={index}>
+              <div className="p-1">
+                <img
+                  src={image}
+                  alt={`Part image ${index + 1}`}
+                  className="w-full h-48 md:h-64 object-contain rounded-lg"
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {images.length > 1 && (
+          <>
+            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+          </>
+        )}
+      </Carousel>
+    </div>
+  );
+};
 
 interface VendorQuote {
   id: string;
@@ -16,7 +48,7 @@ interface VendorQuote {
   price: number;
   condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair";
   warranty: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   vendorNotes?: string;
   submittedAt: string;
   isAccepted?: boolean;
@@ -106,6 +138,8 @@ const SourcerDashboard: React.FC = () => {
   });
   // Add to the existing state declarations
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { toast } = useToast();
+  
 
   const [addQuoteForm, setAddQuoteForm] = useState({
     vendorName: "",
@@ -119,17 +153,48 @@ const SourcerDashboard: React.FC = () => {
     vendorNotes: "",
   });
 
-  const handleAddQuoteImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const newFiles = Array.from(e.target.files || []);
-    setAddQuoteForm((prev) => ({
-      ...prev,
-      imageFiles: [...prev.imageFiles, ...newFiles],
-    }));
-    // Reset input value to allow selecting the same file again
-    e.target.value = "";
-  };
+  const handleAddQuoteImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files.length > 0) {
+    const newFiles = Array.from(e.target.files);
+    const validFiles: File[] = [];
+    const invalidReasons: string[] = [];
+
+    // Validate each file
+    newFiles.forEach(file => {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        invalidReasons.push(`${file.name}: Invalid file type`);
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+        return;
+      }
+
+      validFiles.push(file);
+    });
+
+    // Show errors for invalid files
+    if (invalidReasons.length > 0) {
+      toast({
+        title: "Some files were invalid",
+        description: invalidReasons.join('\n'),
+        variant: "destructive",
+        duration: 5000
+      });
+    }
+
+    // Only proceed with valid files
+    if (validFiles.length > 0) {
+      setAddQuoteForm(prev => ({
+        ...prev,
+        imageFiles: [...prev.imageFiles, ...validFiles],
+      }));
+    }
+  }
+  e.target.value = "";
+};
 
   const removeQuoteImage = (indexToRemove: number) => {
     setAddQuoteForm((prev) => ({
@@ -218,7 +283,7 @@ const SourcerDashboard: React.FC = () => {
             price,
             notes,
             status,
-            image_url,
+            image_urls,
             created_at,
             warranty,
             condition,
@@ -288,7 +353,7 @@ const SourcerDashboard: React.FC = () => {
               price: bid.price,
               condition: bid.condition,
               warranty: bid.warranty,
-              imageUrl: bid.image_url,
+              imageUrls: bid.image_urls,
               vendorNotes: bid.notes,
               submittedAt: bid.created_at,
               isAccepted: bid.status === "accepted",
@@ -416,8 +481,7 @@ const SourcerDashboard: React.FC = () => {
         price: Number.parseFloat(addQuoteForm.price),
         notes: addQuoteForm.vendorNotes,
         status: "accepted", // Auto-accept sourcer quotes
-        image_url: imageUrls[0] || null, // Primary image (sourcer's image of the part)
-        warranty: addQuoteForm.warranty,
+        image_urls: imageUrls.length > 0 ? imageUrls : null,        warranty: addQuoteForm.warranty,
         condition: addQuoteForm.condition,
         vendor_info: vendorInfo,
         is_sourcer_provided: true,
@@ -1185,17 +1249,15 @@ const SourcerDashboard: React.FC = () => {
                             </div>
                           </div>
 
-                          {quote.imageUrl && (
-                            <img
-                              src={quote.imageUrl || "/placeholder.svg"}
-                              alt={`Part from ${quote.vendorName}`}
-                              className="w-32 h-20 object-cover rounded-lg border border-gray-200 flex-shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewImage(quote.imageUrl);
-                              }}
-                            />
-                          )}
+                          {quote.imageUrls?.length ? (
+  <div className="w-full">
+    <ImageCarousel images={quote.imageUrls} />
+  </div>
+) : (
+  <div className="w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+    No images
+  </div>
+)}
                         </div>
 
                         <div className="flex-shrink-0 mt-4 md:mt-0">
@@ -1309,22 +1371,20 @@ const SourcerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {selectedQuote.imageUrl && (
-                    <div>
-                      <h4 className="font-medium text-gray-800 mb-3">
-                        Part Image
-                      </h4>
-                      <img
-                        src={
-                          selectedQuote.imageUrl ||
-                          "/placeholder.svg"
-                        }
-                        alt="Part"
-                        className="w-full h-auto object-contain rounded-lg border border-gray-200"
-                        style={{ maxHeight: "200px" }}
-                      />
-                    </div>
-                  )}
+                  {selectedQuote.imageUrls?.length ? (
+  <div>
+    <h4 className="font-medium text-gray-800 mb-3">
+      Part Images
+    </h4>
+    <div className="w-full">
+      <ImageCarousel images={selectedQuote.imageUrls} />
+    </div>
+  </div>
+) : (
+  <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+    No part images available
+  </div>
+)}
                 </div>
 
                 {/* Right Column - Vendor Info & Review Form */}
@@ -1804,40 +1864,41 @@ const SourcerDashboard: React.FC = () => {
                     />
 
                     {/* Image Preview Grid */}
-                    {addQuoteForm.imageFiles.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {addQuoteForm.imageFiles.map(
-                          (file, index) => (
-                            <div
-                              key={`${file.name}-${index}`}
-                              className="relative group">
-                              <img
-                                src={URL.createObjectURL(
-                                  file
-                                )}
-                                alt={`Upload preview ${index + 1
-                                  }`}
-                                className="h-24 w-24 object-cover rounded-lg border border-gray-200"
-                              />
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeQuoteImage(
-                                    index
-                                  )
-                                }
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 
-                                 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <X className="h-4 w-4" />
-                              </button>
-                              <p className="text-xs text-gray-500 mt-1 truncate max-w-[96px]">
-                                {file.name}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    )}
+                    {addQuoteForm.imageFiles.length > 0 ? (
+  <div className="mt-4">
+    <Carousel className="w-full">
+      <CarouselContent>
+        {addQuoteForm.imageFiles.map((file, index) => (
+          <CarouselItem key={`${file.name}-${index}`} className="basis-1/2 sm:basis-1/3 md:basis-1/4">
+            <div className="relative group p-1">
+              <img
+                src={URL.createObjectURL(file)}
+                alt={`Upload preview ${index + 1}`}
+                className="h-24 w-full object-cover rounded-lg border border-gray-200"
+              />
+              <button
+                type="button"
+                onClick={() => removeQuoteImage(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <p className="text-xs text-gray-500 mt-1 truncate">
+                {file.name}
+              </p>
+            </div>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+      {addQuoteForm.imageFiles.length > 4 && (
+        <>
+          <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+          <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+        </>
+      )}
+    </Carousel>
+  </div>
+) : null}
                     <p className="text-xs text-gray-500 mt-1">
                       Upload multiple part images. Click
                       to add more.
