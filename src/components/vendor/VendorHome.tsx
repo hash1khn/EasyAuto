@@ -254,23 +254,35 @@ export const VendorHome: React.FC = () => {
       .filter((vehicle) => vehicle.parts.length > 0)
 
     // MY QUOTES: Parts where this vendor has submitted a quote (any status)
-    const quotedVehicles = allVehicles
+    // MY QUOTES: Parts where this vendor has submitted a quote and is_accepted is false
+const quotedVehicles = allVehicles
   .map((vehicle) => ({
     ...vehicle,
-    parts: vehicle.parts.filter((p) => p.myQuote && !p.myQuote.isAccepted), // Only pending/rejected quotes
+    parts: vehicle.parts.filter((p) => {
+      const originalPart = orders.flatMap((o) => o.parts).find((op) => op.id === p.id);
+      return (
+        p.myQuote && 
+        originalPart?.shipping_status === 'pending' && 
+        !originalPart?.is_accepted
+      );
+    }),
   }))
   .filter((vehicle) => vehicle.parts.length > 0);
 
     // ACCEPTED: shipping_status = 'confirmed' AND bid_status = 'accepted'
     const acceptedVehicles = allVehicles
-      .map((vehicle) => ({
-        ...vehicle,
-        parts: vehicle.parts.filter((p) => {
-          const originalPart = orders.flatMap((o) => o.parts).find((op) => op.id === p.id)
-          return originalPart?.shipping_status === "confirmed" && p.myQuote?.isAccepted
-        }),
-      }))
-      .filter((vehicle) => vehicle.parts.length > 0)
+  .map((vehicle) => ({
+    ...vehicle,
+    parts: vehicle.parts.filter((p) => {
+      const originalPart = orders.flatMap((o) => o.parts).find((op) => op.id === p.id);
+      return (
+        p.myQuote?.isAccepted && 
+        originalPart?.shipping_status === 'confirmed' && 
+        originalPart?.is_accepted
+      );
+    }),
+  }))
+  .filter((vehicle) => vehicle.parts.length > 0);
 
     return { newVehicles, quotedVehicles, acceptedVehicles }
   }, [orders])

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VendorPart } from '@/types/vendor';
-import { QuoteCondition, QuoteWarranty, MyQuote } from '@/types/orders';
+import { QuoteCondition, QuoteWarranty } from '@/types/orders';
+import { MyQuote } from '@/types/vendor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
