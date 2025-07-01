@@ -1,16 +1,15 @@
-import type React from "react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { X } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { useToast } from '@/hooks/use-toast';
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { MapPin, Edit2 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/integrations/supabase/client"
+import { X } from "lucide-react"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import { useToast } from "@/hooks/use-toast"
 
 const ImageCarousel = ({ images }: { images: string[] }) => {
-  if (!images || images.length === 0) return null;
+  if (!images || images.length === 0) return null
 
   return (
     <div className="relative w-full">
@@ -20,7 +19,7 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
             <CarouselItem key={index}>
               <div className="p-1">
                 <img
-                  src={image}
+                  src={image || "/placeholder.svg"}
                   alt={`Part image ${index + 1}`}
                   className="w-full h-48 md:h-64 object-contain rounded-lg"
                 />
@@ -36,111 +35,99 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
         )}
       </Carousel>
     </div>
-  );
-};
+  )
+}
 
 interface VendorQuote {
-  id: string;
-  vendorName: string;
-  vendorAddress: string;
-  vendorPhone: string;
-  vendorEmail: string;
-  price: number;
-  condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair";
-  warranty: string;
-  imageUrls?: string[];
-  vendorNotes?: string;
-  submittedAt: string;
-  isAccepted?: boolean;
-  isSourcerProvided?: boolean;
-  sourcerNotes?: string;
-  status: "pending" | "accepted" | "rejected";
+  id: string
+  vendorName: string
+  vendorAddress: string
+  vendorPhone: string
+  vendorEmail: string
+  price: number
+  condition: "New" | "Used - Excellent" | "Used - Good" | "Used - Fair"
+  warranty: string
+  imageUrls?: string[]
+  vendorNotes?: string
+  submittedAt: string
+  isAccepted?: boolean
+  isSourcerProvided?: boolean
+  sourcerNotes?: string
+  status: "pending" | "accepted" | "rejected"
   sourcerReview?: {
-    inspectionImages: string[];
-    reviewNotes: string;
-    acceptedAt: string;
-  };
+    inspectionImages: string[]
+    reviewNotes: string
+    acceptedAt: string
+  }
   vendor_info?: {
-    name?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    sourcerNotes?: string;
-    // Add any other fields that might be in vendor_info
-  };
+    name?: string
+    address?: string
+    phone?: string
+    email?: string
+    sourcerNotes?: string
+  }
 }
 
 interface Part {
-  id: string;
-  partName: string;
-  partNumber?: string;
-  quantity: number;
-  description?: string;
-  estimatedBudget?: number;
-  vendorQuotes: VendorQuote[];
-  // Add inspection image fields
-  inspectionImages?: string[];
-  inspectedBy?: string;
-  inspectedAt?: string;
+  id: string
+  partName: string
+  partNumber?: string
+  quantity: number
+  description?: string
+  estimatedBudget?: number
+  vendorQuotes: VendorQuote[]
+  inspectionImages?: string[]
+  inspectedBy?: string
+  inspectedAt?: string
 }
 
 interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  vin?: string;
+  id: string
+  make: string
+  model: string
+  year: number
+  vin?: string
 }
 
 interface UserProfile {
-  id: string;
-  fullName: string;
-  whatsappNumber: string;
-  location: string;
-  deliveryAddress?: string;
+  id: string
+  fullName: string
+  whatsappNumber: string
+  location: string
+  deliveryAddress?: string
 }
 
 interface Order {
-  id: string;
-  userId: string;
-  status: string;
-  createdAt: string;
-  userProfile: UserProfile;
-  parts: (Part & { vehicle: Vehicle })[];
+  id: string
+  userId: string
+  status: string
+  createdAt: string
+  userProfile: UserProfile
+  parts: (Part & { vehicle: Vehicle })[]
 }
 
 const SourcerDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedQuote, setSelectedQuote] = useState<VendorQuote | null>(
-    null
-  );
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isViewAllQuotesModalOpen, setIsViewAllQuotesModalOpen] =
-    useState(false);
-  const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
-  const [selectedPart, setSelectedPart] = useState<Part | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
-    null
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [vehicleFilter, setVehicleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "no-quotes" | "with-quotes"
-  >("all");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
-  const [submitting, setSubmitting] = useState(false);
-
+  const { user } = useAuth()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedQuote, setSelectedQuote] = useState<VendorQuote | null>(null)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [isViewAllQuotesModalOpen, setIsViewAllQuotesModalOpen] = useState(false)
+  const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false)
+  const [isEditPriceModalOpen, setIsEditPriceModalOpen] = useState(false)
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [vehicleFilter, setVehicleFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "no-quotes" | "with-quotes">("all")
+  const [viewMode, setViewMode] = useState<"table" | "card">("table")
+  const [submitting, setSubmitting] = useState(false)
   const [reviewForm, setReviewForm] = useState({
     inspectionImages: [] as File[],
     reviewNotes: "",
-  });
-  // Add to the existing state declarations
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const { toast } = useToast();
-
-
+  })
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const { toast } = useToast()
   const [addQuoteForm, setAddQuoteForm] = useState({
     vendorName: "",
     vendorAddress: "",
@@ -151,90 +138,86 @@ const SourcerDashboard: React.FC = () => {
     warranty: "",
     imageFiles: [] as File[],
     vendorNotes: "",
-  });
+  })
+
+  // New state for price editing
+  const [editPriceForm, setEditPriceForm] = useState({
+    newPrice: "",
+    priceUpdateNotes: "",
+  })
 
   const handleAddQuoteImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
-      const validFiles: File[] = [];
-      const invalidReasons: string[] = [];
+      const newFiles = Array.from(e.target.files)
+      const validFiles: File[] = []
+      const invalidReasons: string[] = []
 
-      // Validate each file
-      newFiles.forEach(file => {
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      newFiles.forEach((file) => {
+        const validTypes = ["image/jpeg", "image/png", "image/webp"]
         if (!validTypes.includes(file.type)) {
-          invalidReasons.push(`${file.name}: Invalid file type`);
-          return;
+          invalidReasons.push(`${file.name}: Invalid file type`)
+          return
         }
-
         if (file.size > 5 * 1024 * 1024) {
-          invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
-          return;
+          invalidReasons.push(`${file.name}: File exceeds 5MB limit`)
+          return
         }
+        validFiles.push(file)
+      })
 
-        validFiles.push(file);
-      });
-
-      // Show errors for invalid files
       if (invalidReasons.length > 0) {
         toast({
           title: "Some files were invalid",
-          description: invalidReasons.join('\n'),
+          description: invalidReasons.join("\n"),
           variant: "destructive",
-          duration: 5000
-        });
+          duration: 5000,
+        })
       }
 
-      // Only proceed with valid files
       if (validFiles.length > 0) {
-        setAddQuoteForm(prev => ({
+        setAddQuoteForm((prev) => ({
           ...prev,
           imageFiles: [...prev.imageFiles, ...validFiles],
-        }));
+        }))
       }
     }
-    e.target.value = "";
-  };
+    e.target.value = ""
+  }
 
   const removeQuoteImage = (indexToRemove: number) => {
     setAddQuoteForm((prev) => ({
       ...prev,
-      imageFiles: prev.imageFiles.filter(
-        (_, index) => index !== indexToRemove
-      ),
-    }));
-  };
+      imageFiles: prev.imageFiles.filter((_, index) => index !== indexToRemove),
+    }))
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || []);
+    const newFiles = Array.from(e.target.files || [])
     setReviewForm((prev) => ({
       ...prev,
       inspectionImages: [...prev.inspectionImages, ...newFiles],
-    }));
-    // Reset the input value to allow selecting the same file again
-    e.target.value = "";
-  };
+    }))
+    e.target.value = ""
+  }
 
   const removeImage = (indexToRemove: number) => {
     setReviewForm((prev) => ({
       ...prev,
-      inspectionImages: prev.inspectionImages.filter(
-        (_, index) => index !== indexToRemove
-      ),
-    }));
-  };
+      inspectionImages: prev.inspectionImages.filter((_, index) => index !== indexToRemove),
+    }))
+  }
 
   useEffect(() => {
     if (user) {
-      handleLoadData();
+      handleLoadData()
     }
-  }, [user]);
+  }, [user])
 
   const handleLoadData = async () => {
-    setLoading(true);
-    await fetchLiveOrders();
-    setLoading(false);
-  };
+    setLoading(true)
+    await fetchLiveOrders()
+    setLoading(false)
+  }
 
   const fetchLiveOrders = async () => {
     try {
@@ -294,15 +277,14 @@ const SourcerDashboard: React.FC = () => {
     `)
         .in("shipping_status", ["pending"])
         .not("is_accepted", "eq", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
 
-      if (partsError) throw partsError;
+      if (partsError) throw partsError
 
-      const ordersMap = new Map<string, Order>();
+      const ordersMap = new Map<string, Order>()
 
       partsData?.forEach((part) => {
-        const orderId = part.orders.id;
-
+        const orderId = part.orders.id
         if (!ordersMap.has(orderId)) {
           ordersMap.set(orderId, {
             id: part.orders.id,
@@ -317,10 +299,10 @@ const SourcerDashboard: React.FC = () => {
               deliveryAddress: part.orders.user_profiles.delivery_address,
             },
             parts: [],
-          });
+          })
         }
 
-        const order = ordersMap.get(orderId)!;
+        const order = ordersMap.get(orderId)!
         order.parts.push({
           id: part.id,
           partName: part.part_name,
@@ -333,23 +315,15 @@ const SourcerDashboard: React.FC = () => {
           inspectedAt: part.inspected_at,
           vehicle: part.vehicles,
           vendorQuotes: part.bids.map((bid) => {
-            const isSourcerProvided = bid.is_sourcer_provided;
-            const vendorInfo = bid.vendor_info;
+            const isSourcerProvided = bid.is_sourcer_provided
+            const vendorInfo = bid.vendor_info
 
             return {
               id: bid.id,
-              vendorName: isSourcerProvided
-                ? vendorInfo?.name
-                : bid.vendor?.full_name || "Unknown Vendor",
-              vendorAddress: isSourcerProvided
-                ? vendorInfo?.address
-                : bid.vendor?.location || "No address provided",
-              vendorPhone: isSourcerProvided
-                ? vendorInfo?.phone
-                : bid.vendor?.whatsapp_number || "No phone provided",
-              vendorEmail: isSourcerProvided
-                ? vendorInfo?.email
-                : bid.vendor?.user?.email || "No email provided",
+              vendorName: isSourcerProvided ? vendorInfo?.name : bid.vendor?.full_name || "Unknown Vendor",
+              vendorAddress: isSourcerProvided ? vendorInfo?.address : bid.vendor?.location || "No address provided",
+              vendorPhone: isSourcerProvided ? vendorInfo?.phone : bid.vendor?.whatsapp_number || "No phone provided",
+              vendorEmail: isSourcerProvided ? vendorInfo?.email : bid.vendor?.user?.email || "No email provided",
               price: bid.price,
               condition: bid.condition,
               warranty: bid.warranty,
@@ -360,57 +334,92 @@ const SourcerDashboard: React.FC = () => {
               isSourcerProvided,
               status: bid.status,
               vendor_info: vendorInfo,
-              sourcerNotes: bid.sourcer_notes || (isSourcerProvided ? vendorInfo?.sourcerNotes : undefined)
-            };
+              sourcerNotes: bid.sourcer_notes || (isSourcerProvided ? vendorInfo?.sourcerNotes : undefined),
+            }
           }),
-        });
-      });
+        })
+      })
 
-      const processedOrders = Array.from(ordersMap.values());
-      setOrders(processedOrders);
+      const processedOrders = Array.from(ordersMap.values())
+      setOrders(processedOrders)
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("Error fetching orders:", error)
     }
-  };
+  }
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2)}.${fileExt}`;
-      const filePath = `sourcer-images/${fileName}`;
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `sourcer-images/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from("mybucket")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("mybucket").upload(filePath, file)
 
-      if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError
 
-      const { data } = supabase.storage
-        .from("mybucket")
-        .getPublicUrl(filePath);
+      const { data } = supabase.storage.from("mybucket").getPublicUrl(filePath)
 
-      return data.publicUrl;
+      return data.publicUrl
     } catch (error) {
-      console.error("Error uploading image:", error);
-      return null;
+      console.error("Error uploading image:", error)
+      return null
     }
-  };
+  }
+
+  // New function to handle price updates
+  const handleUpdatePrice = async () => {
+    if (!selectedQuote || !editPriceForm.newPrice) return
+
+    setSubmitting(true)
+    try {
+      const newPrice = Number.parseFloat(editPriceForm.newPrice)
+
+      // Update the bid price in the database
+      const { error: updateError } = await supabase
+        .from("bids")
+        .update({
+          price: newPrice,
+          sourcer_notes: editPriceForm.priceUpdateNotes
+            ? `${selectedQuote.sourcerNotes || ""}\n\nPrice updated: ${editPriceForm.priceUpdateNotes}`.trim()
+            : selectedQuote.sourcerNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedQuote.id)
+
+      if (updateError) throw updateError
+
+      // Refresh data
+      await handleLoadData()
+      closeEditPriceModal()
+
+      toast({
+        title: "Price Updated Successfully",
+        description: `Bid price updated to AED ${newPrice}`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error("Error updating price:", error)
+      toast({
+        title: "Error Updating Price",
+        description: "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleAcceptQuote = async (quote: VendorQuote) => {
-    if (!user || !selectedPart) return;
+    if (!user || !selectedPart) return
 
-    setSubmitting(true);
+    setSubmitting(true)
     try {
-      // Upload inspection images if any
-      const imageUrls: string[] = [];
+      const imageUrls: string[] = []
       for (const file of reviewForm.inspectionImages) {
-        const url = await uploadImage(file);
-        if (url) imageUrls.push(url);
+        const url = await uploadImage(file)
+        if (url) imageUrls.push(url)
       }
 
-      // Update the bid status to accepted
       const { error: updateError } = await supabase
         .from("bids")
         .update({
@@ -418,11 +427,10 @@ const SourcerDashboard: React.FC = () => {
           updated_at: new Date().toISOString(),
           sourcer_notes: reviewForm.reviewNotes,
         })
-        .eq("id", quote.id);
+        .eq("id", quote.id)
 
-      if (updateError) throw updateError;
+      if (updateError) throw updateError
 
-      // Update the part with inspection images and acceptance
       const { error: partUpdateError } = await supabase
         .from("parts")
         .update({
@@ -433,36 +441,32 @@ const SourcerDashboard: React.FC = () => {
           inspected_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", selectedPart.id);
+        .eq("id", selectedPart.id)
 
-      if (partUpdateError) throw partUpdateError;
+      if (partUpdateError) throw partUpdateError
 
-      // Refresh data
-      await handleLoadData();
-      closeReviewModal();
-
-      alert("Quote accepted successfully!");
+      await handleLoadData()
+      closeReviewModal()
+      alert("Quote accepted successfully!")
     } catch (error) {
-      console.error("Error accepting quote:", error);
-      alert("Error accepting quote. Please try again.");
+      console.error("Error accepting quote:", error)
+      alert("Error accepting quote. Please try again.")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   const handleAddQuote = async () => {
-    if (!user || !selectedPart || !selectedVehicle) return;
+    if (!user || !selectedPart || !selectedVehicle) return
 
-    setSubmitting(true);
+    setSubmitting(true)
     try {
-      // Upload part images if any
-      const imageUrls: string[] = [];
+      const imageUrls: string[] = []
       for (const file of addQuoteForm.imageFiles) {
-        const url = await uploadImage(file);
-        if (url) imageUrls.push(url);
+        const url = await uploadImage(file)
+        if (url) imageUrls.push(url)
       }
 
-      // Create vendor info object
       const vendorInfo = {
         name: addQuoteForm.vendorName,
         address: addQuoteForm.vendorAddress,
@@ -470,148 +474,128 @@ const SourcerDashboard: React.FC = () => {
         email: addQuoteForm.vendorEmail,
         addedBy: user.id,
         addedAt: new Date().toISOString(),
-        sourcerNotes:
-          `Sourcer-verified quote. ${addQuoteForm.vendorNotes}`.trim(),
-      };
+        sourcerNotes: `Sourcer-verified quote. ${addQuoteForm.vendorNotes}`.trim(),
+      }
 
-      // Insert new bid with auto-accepted status for sourcer quotes
       const { error: insertError } = await supabase.from("bids").insert({
         part_id: selectedPart.id,
-        vendor_id: user.id, // Sourcer's user ID
+        vendor_id: user.id,
         price: Number.parseFloat(addQuoteForm.price),
         notes: addQuoteForm.vendorNotes,
-        status: "accepted", // Auto-accept sourcer quotes
-        image_urls: imageUrls.length > 0 ? imageUrls : null, warranty: addQuoteForm.warranty,
+        status: "accepted",
+        image_urls: imageUrls.length > 0 ? imageUrls : null,
+        warranty: addQuoteForm.warranty,
         condition: addQuoteForm.condition,
         vendor_info: vendorInfo,
         is_sourcer_provided: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      });
+      })
 
-      if (insertError) throw insertError;
+      if (insertError) throw insertError
 
-      // Update the part with inspection images and acceptance
       const { error: partUpdateError } = await supabase
         .from("parts")
         .update({
           is_accepted: true,
           shipping_status: "confirmed",
-          inspection_images: imageUrls, // All images go to parts table as inspection images
+          inspection_images: imageUrls,
           inspected_by: user.id,
           inspected_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", selectedPart.id);
+        .eq("id", selectedPart.id)
 
-      if (partUpdateError) throw partUpdateError;
+      if (partUpdateError) throw partUpdateError
 
-      // Refresh data
-      await handleLoadData();
-      closeAddQuoteModal();
-
-      alert("Quote added and automatically accepted!");
+      await handleLoadData()
+      closeAddQuoteModal()
+      alert("Quote added and automatically accepted!")
     } catch (error) {
-      console.error("Error adding quote:", error);
-      alert("Error adding quote. Please try again.");
+      console.error("Error adding quote:", error)
+      alert("Error adding quote. Please try again.")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
-  // Calculate metrics for parts that need sourcer review
-  const allParts = orders.flatMap((order) => order.parts);
+  const allParts = orders.flatMap((order) => order.parts)
   const metrics = {
     pendingQuotes: allParts.reduce(
-      (total, part) =>
-        total +
-        part.vendorQuotes.filter((q) => q.status === "pending").length,
-      0
+      (total, part) => total + part.vendorQuotes.filter((q) => q.status === "pending").length,
+      0,
     ),
-    noQuotes: allParts.filter((part) => part.vendorQuotes.length === 0)
-      .length,
-  };
+    noQuotes: allParts.filter((part) => part.vendorQuotes.length === 0).length,
+  }
 
-  // Filter parts based on search and filters
   const getFilteredParts = () => {
     const allPartsWithOrder: Array<{
-      order: Order;
-      part: Part & { vehicle: Vehicle };
-    }> = [];
+      order: Order
+      part: Part & { vehicle: Vehicle }
+    }> = []
+
     orders.forEach((order) => {
       order.parts.forEach((part) => {
-        allPartsWithOrder.push({ order, part });
-      });
-    });
+        allPartsWithOrder.push({ order, part })
+      })
+    })
 
     return allPartsWithOrder.filter(({ order, part }) => {
       const matchesSearch =
-        part.partName
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        part.vendorQuotes.some((quote) =>
-          quote.vendorName
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-        );
+        part.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        part.vendorQuotes.some((quote) => quote.vendorName.toLowerCase().includes(searchTerm.toLowerCase()))
 
-      const matchesVehicle =
-        vehicleFilter === "all" || part.vehicle.make === vehicleFilter;
+      const matchesVehicle = vehicleFilter === "all" || part.vehicle.make === vehicleFilter
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "no-quotes" &&
-          part.vendorQuotes.length === 0) ||
-        (statusFilter === "with-quotes" &&
-          part.vendorQuotes.length > 0);
+        (statusFilter === "no-quotes" && part.vendorQuotes.length === 0) ||
+        (statusFilter === "with-quotes" && part.vendorQuotes.length > 0)
 
-      return matchesSearch && matchesVehicle && matchesStatus;
-    });
-  };
+      return matchesSearch && matchesVehicle && matchesStatus
+    })
+  }
 
   const openViewAllQuotesModal = (part: Part & { vehicle: Vehicle }) => {
-    setSelectedPart(part);
-    setSelectedVehicle(part.vehicle);
-    setIsViewAllQuotesModalOpen(true);
-  };
+    setSelectedPart(part)
+    setSelectedVehicle(part.vehicle)
+    setIsViewAllQuotesModalOpen(true)
+  }
 
   const closeViewAllQuotesModal = () => {
-    setIsViewAllQuotesModalOpen(false);
-    setSelectedPart(null);
-    setSelectedVehicle(null);
-  };
+    setIsViewAllQuotesModalOpen(false)
+    setSelectedPart(null)
+    setSelectedVehicle(null)
+  }
 
-  const openReviewModal = (
-    quote: VendorQuote,
-    part: Part & { vehicle: Vehicle }
-  ) => {
-    setSelectedQuote(quote);
-    setSelectedPart(part);
-    setSelectedVehicle(part.vehicle);
-    setIsReviewModalOpen(true);
-  };
+  const openReviewModal = (quote: VendorQuote, part: Part & { vehicle: Vehicle }) => {
+    setSelectedQuote(quote)
+    setSelectedPart(part)
+    setSelectedVehicle(part.vehicle)
+    setIsReviewModalOpen(true)
+  }
 
   const closeReviewModal = () => {
-    setIsReviewModalOpen(false);
-    setSelectedQuote(null);
-    setSelectedPart(null);
-    setSelectedVehicle(null);
+    setIsReviewModalOpen(false)
+    setSelectedQuote(null)
+    setSelectedPart(null)
+    setSelectedVehicle(null)
     setReviewForm({
       inspectionImages: [],
       reviewNotes: "",
-    });
-  };
+    })
+  }
 
   const openAddQuoteModal = (part: Part & { vehicle: Vehicle }) => {
-    setSelectedPart(part);
-    setSelectedVehicle(part.vehicle);
-    setIsAddQuoteModalOpen(true);
-  };
+    setSelectedPart(part)
+    setSelectedVehicle(part.vehicle)
+    setIsAddQuoteModalOpen(true)
+  }
 
   const closeAddQuoteModal = () => {
-    setIsAddQuoteModalOpen(false);
-    setSelectedPart(null);
-    setSelectedVehicle(null);
+    setIsAddQuoteModalOpen(false)
+    setSelectedPart(null)
+    setSelectedVehicle(null)
     setAddQuoteForm({
       vendorName: "",
       vendorAddress: "",
@@ -620,73 +604,89 @@ const SourcerDashboard: React.FC = () => {
       price: "",
       condition: "",
       warranty: "",
-      imageFiles: null,
+      imageFiles: [],
       vendorNotes: "",
-    });
-  };
+    })
+  }
+
+  // New functions for price editing modal
+  const openEditPriceModal = (quote: VendorQuote) => {
+    setSelectedQuote(quote)
+    setEditPriceForm({
+      newPrice: quote.price.toString(),
+      priceUpdateNotes: "",
+    })
+    setIsEditPriceModalOpen(true)
+  }
+
+  const closeEditPriceModal = () => {
+    setIsEditPriceModalOpen(false)
+    setSelectedQuote(null)
+    setEditPriceForm({
+      newPrice: "",
+      priceUpdateNotes: "",
+    })
+  }
 
   const getQuoteStatus = (part: Part) => {
     if (part.vendorQuotes.length === 0) {
-      return { text: "No Quotes", color: "bg-gray-100 text-gray-800" };
+      return { text: "No Quotes", color: "bg-gray-100 text-gray-800" }
     }
-    const acceptedCount = part.vendorQuotes.filter(
-      (q) => q.status === "accepted"
-    ).length;
+
+    const acceptedCount = part.vendorQuotes.filter((q) => q.status === "accepted").length
     if (acceptedCount > 0) {
       return {
         text: `${acceptedCount} Accepted`,
         color: "bg-green-100 text-green-800",
-      };
+      }
     }
+
     return {
       text: `${part.vendorQuotes.length} Quotes`,
       color: "bg-blue-100 text-blue-800",
-    };
-  };
+    }
+  }
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
       case "New":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800"
       case "Used - Excellent":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800"
       case "Used - Good":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800"
       case "Used - Fair":
-        return "bg-orange-100 text-orange-800";
+        return "bg-orange-100 text-orange-800"
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800"
     }
-  };
+  }
 
-  const filteredParts = getFilteredParts();
+  const filteredParts = getFilteredParts()
 
-  // Group filtered parts by order
-  const groupedByOrder = filteredParts.reduce((acc, { order, part }) => {
-    if (!acc[order.id]) {
-      acc[order.id] = {
-        order,
-        parts: [],
-      };
-    }
-    acc[order.id].parts.push(part);
-    return acc;
-  }, {} as Record<string, { order: Order; parts: Array<Part & { vehicle: Vehicle }> }>);
+  const groupedByOrder = filteredParts.reduce(
+    (acc, { order, part }) => {
+      if (!acc[order.id]) {
+        acc[order.id] = {
+          order,
+          parts: [],
+        }
+      }
+      acc[order.id].parts.push(part)
+      return acc
+    },
+    {} as Record<string, { order: Order; parts: Array<Part & { vehicle: Vehicle }> }>,
+  )
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Please sign in
-          </h2>
-          <p className="text-gray-600">
-            You need to be signed in to access the sourcer
-            dashboard.
-          </p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Please sign in</h2>
+          <p className="text-gray-600">You need to be signed in to access the sourcer dashboard.</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (loading) {
@@ -697,7 +697,7 @@ const SourcerDashboard: React.FC = () => {
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -706,32 +706,20 @@ const SourcerDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Pending Vendor Quotes
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-800">Pending Vendor Quotes</h3>
             <span className="text-2xl">⏳</span>
           </div>
-          <div className="text-3xl font-bold text-yellow-600 mb-2">
-            {metrics.pendingQuotes}
-          </div>
-          <p className="text-sm text-gray-600">
-            Vendor quotes awaiting your review
-          </p>
+          <div className="text-3xl font-bold text-yellow-600 mb-2">{metrics.pendingQuotes}</div>
+          <p className="text-sm text-gray-600">Vendor quotes awaiting your review</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              No Vendor Quotes
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-800">No Vendor Quotes</h3>
             <span className="text-2xl">📋</span>
           </div>
-          <div className="text-3xl font-bold text-blue-600 mb-2">
-            {metrics.noQuotes}
-          </div>
-          <p className="text-sm text-gray-600">
-            Parts without any vendor quotes
-          </p>
+          <div className="text-3xl font-bold text-blue-600 mb-2">{metrics.noQuotes}</div>
+          <p className="text-sm text-gray-600">Parts without any vendor quotes</p>
         </div>
       </div>
 
@@ -745,18 +733,15 @@ const SourcerDashboard: React.FC = () => {
                   type="text"
                   placeholder="Search by part name..."
                   value={searchTerm}
-                  onChange={(e) =>
-                    setSearchTerm(e.target.value)
-                  }
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <select
                 value={vehicleFilter}
-                onChange={(e) =>
-                  setVehicleFilter(e.target.value)
-                }
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                onChange={(e) => setVehicleFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 <option value="all">All Vehicles</option>
                 <option value="Toyota">Toyota</option>
                 <option value="Honda">Honda</option>
@@ -766,30 +751,30 @@ const SourcerDashboard: React.FC = () => {
               </select>
               <select
                 value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as any)
-                }
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 <option value="all">All Status</option>
                 <option value="no-quotes">No Quotes</option>
                 <option value="with-quotes">With Quotes</option>
               </select>
             </div>
+
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setViewMode("table")}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === "table"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}>
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
                 📊 Table
               </button>
               <button
                 onClick={() => setViewMode("card")}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === "card"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}>
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === "card" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
                 🃏 Cards
               </button>
             </div>
@@ -799,282 +784,166 @@ const SourcerDashboard: React.FC = () => {
 
       {/* Orders and Parts */}
       <div className="space-y-6">
-        {Object.entries(groupedByOrder).map(
-          ([orderId, { order, parts }]) => {
-            const totalParts = parts.length;
-            const acceptedCount = parts.reduce(
-              (total, part) =>
-                total +
-                part.vendorQuotes.filter(
-                  (q) => q.status === "accepted"
-                ).length,
-              0
-            );
+        {Object.entries(groupedByOrder).map(([orderId, { order, parts }]) => {
+          const totalParts = parts.length
+          const acceptedCount = parts.reduce(
+            (total, part) => total + part.vendorQuotes.filter((q) => q.status === "accepted").length,
+            0,
+          )
 
-            return (
-              <div
-                key={orderId}
-                className="bg-white rounded-lg shadow-md border border-gray-200">
-                {/* Order Summary Bar */}
-                <div className="sticky top-0 bg-gray-50 px-6 py-4 border-b border-gray-200 z-10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Order #{order.id.slice(-8)}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {totalParts} Parts |{" "}
-                        {acceptedCount} Accepted |
-                        Location:{" "}
-                        {order.userProfile.location}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">
-                        Buyer:{" "}
-                        {order.userProfile.fullName}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {
-                          order.userProfile
-                            .whatsappNumber
-                        }
-                      </p>
-                    </div>
+          return (
+            <div key={orderId} className="bg-white rounded-lg shadow-md border border-gray-200">
+              {/* Order Summary Bar */}
+              <div className="sticky top-0 bg-gray-50 px-6 py-4 border-b border-gray-200 z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Order #{order.id.slice(-8)}</h3>
+                    <p className="text-sm text-gray-600">
+                      {totalParts} Parts | {acceptedCount} Accepted | Location: {order.userProfile.location}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Buyer: {order.userProfile.fullName}</p>
+                    <p className="text-sm text-gray-600">{order.userProfile.whatsappNumber}</p>
                   </div>
                 </div>
+              </div>
 
-                {/* Parts List */}
-                <div className="p-6">
-                  {viewMode === "table" ? (
-                    /* Table View */
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Part Name
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Part Number
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Vehicle
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Qty
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Budget
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Quote Status
-                            </th>
-                            <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {parts.map((part) => {
-                            const quoteStatus =
-                              getQuoteStatus(
-                                part
-                              );
-                            return (
-                              <tr
-                                key={part.id}
-                                className="border-b border-gray-100 hover:bg-gray-50">
-                                <td className="py-4 px-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900">
-                                    {
-                                      part.partName
-                                    }
-                                  </div>
-                                </td>
-                                <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                                  {part.partNumber ||
-                                    "N/A"}
-                                </td>
-                                <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
-                                  {
-                                    part
-                                      .vehicle
-                                      .year
-                                  }{" "}
-                                  {
-                                    part
-                                      .vehicle
-                                      .make
-                                  }{" "}
-                                  {
-                                    part
-                                      .vehicle
-                                      .model
-                                  }
-                                </td>
-                                <td className="py-4 px-4">
-                                  <span className="text-sm text-gray-800">
-                                    {
-                                      part.quantity
-                                    }
-                                  </span>
-                                </td>
-                                <td className="py-4 px-4">
-                                  {part.estimatedBudget ? (
-                                    <span className="text-sm font-medium text-gray-800">
-                                      AED{" "}
-                                      {
-                                        part.estimatedBudget
-                                      }
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-gray-500">
-                                      -
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-4 px-4">
-                                  <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${quoteStatus.color}`}>
-                                    {
-                                      quoteStatus.text
-                                    }
-                                  </span>
-                                </td>
-                                <td className="py-4 px-4">
-                                  {part
-                                    .vendorQuotes
-                                    .length >
-                                    0 ? (
-                                    <div className="flex items-center space-x-2">
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={() =>
-                                          openViewAllQuotesModal(
-                                            part
-                                          )
-                                        }>
-                                        View
-                                        Quotes
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      onClick={() =>
-                                        openAddQuoteModal(
-                                          part
-                                        )
-                                      }>
-                                      +
-                                      Add
-                                      Quote
+              {/* Parts List */}
+              <div className="p-6">
+                {viewMode === "table" ? (
+                  /* Table View */
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Part Name
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Part Number
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Vehicle
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Qty
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Budget
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Quote Status
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {parts.map((part) => {
+                          const quoteStatus = getQuoteStatus(part)
+                          return (
+                            <tr key={part.id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-4 px-4 whitespace-nowrap">
+                                <div className="font-medium text-gray-900">{part.partName}</div>
+                              </td>
+                              <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                                {part.partNumber || "N/A"}
+                              </td>
+                              <td className="py-4 px-4 whitespace-nowrap text-sm text-gray-500">
+                                {part.vehicle.year} {part.vehicle.make} {part.vehicle.model}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="text-sm text-gray-800">{part.quantity}</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                {part.estimatedBudget ? (
+                                  <span className="text-sm font-medium text-gray-800">AED {part.estimatedBudget}</span>
+                                ) : (
+                                  <span className="text-sm text-gray-500">-</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${quoteStatus.color}`}>
+                                  {quoteStatus.text}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                {part.vendorQuotes.length > 0 ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Button variant="default" size="sm" onClick={() => openViewAllQuotesModal(part)}>
+                                      View Quotes
                                     </Button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    /* Card View */
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {parts.map((part) => {
-                        const quoteStatus =
-                          getQuoteStatus(part);
-                        return (
-                          <div
-                            key={part.id}
-                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                            <div className="p-4 flex-grow">
-                              <div>
-                                <h4 className="font-bold text-gray-800">
-                                  {
-                                    part.partName
-                                  }
-                                </h4>
-                                <p className="text-sm text-gray-600">{`${part.vehicle.year} ${part.vehicle.make} ${part.vehicle.model}`}</p>
-                              </div>
-                              <div className="mt-4 space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600">
-                                    Qty:
-                                  </span>
-                                  <p className="font-medium">
-                                    {
-                                      part.quantity
-                                    }
-                                  </p>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600">
-                                    Budget:
-                                  </span>
-                                  <p className="font-medium">
-                                    {part.estimatedBudget
-                                      ? `AED ${part.estimatedBudget}`
-                                      : "-"}
-                                  </p>
-                                </div>
-                              </div>
+                                  </div>
+                                ) : (
+                                  <Button variant="secondary" size="sm" onClick={() => openAddQuoteModal(part)}>
+                                    + Add Quote
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  /* Card View */
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {parts.map((part) => {
+                      const quoteStatus = getQuoteStatus(part)
+                      return (
+                        <div
+                          key={part.id}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="p-4 flex-grow">
+                            <div>
+                              <h4 className="font-bold text-gray-800">{part.partName}</h4>
+                              <p className="text-sm text-gray-600">{`${part.vehicle.year} ${part.vehicle.make} ${part.vehicle.model}`}</p>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${quoteStatus.color}`}>
-                                {
-                                  quoteStatus.text
-                                }
-                              </span>
-
-                              {part.vendorQuotes
-                                .length > 0 ? (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() =>
-                                    openViewAllQuotesModal(
-                                      part
-                                    )
-                                  }>
-                                  View Quotes
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() =>
-                                    openAddQuoteModal(
-                                      part
-                                    )
-                                  }>
-                                  + Add Quote
-                                </Button>
-                              )}
+                            <div className="mt-4 space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Qty:</span>
+                                <p className="font-medium">{part.quantity}</p>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Budget:</span>
+                                <p className="font-medium">
+                                  {part.estimatedBudget ? `AED ${part.estimatedBudget}` : "-"}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                          <div className="flex items-center justify-between">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${quoteStatus.color}`}>
+                              {quoteStatus.text}
+                            </span>
+                            {part.vendorQuotes.length > 0 ? (
+                              <Button variant="default" size="sm" onClick={() => openViewAllQuotesModal(part)}>
+                                View Quotes
+                              </Button>
+                            ) : (
+                              <Button variant="secondary" size="sm" onClick={() => openAddQuoteModal(part)}>
+                                + Add Quote
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            );
-          }
-        )}
+            </div>
+          )
+        })}
 
         {Object.keys(groupedByOrder).length === 0 && (
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-            <p className="text-lg text-gray-500">
-              No parts found matching your criteria
-            </p>
-            <p className="text-sm text-gray-400 mt-2">
-              Try adjusting your search or filters
-            </p>
+            <p className="text-lg text-gray-500">No parts found matching your criteria</p>
+            <p className="text-sm text-gray-400 mt-2">Try adjusting your search or filters</p>
           </div>
         )}
       </div>
@@ -1083,26 +952,27 @@ const SourcerDashboard: React.FC = () => {
       {isViewAllQuotesModalOpen && selectedPart && selectedVehicle && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={closeViewAllQuotesModal}>
+          onClick={closeViewAllQuotesModal}
+        >
           <div
             className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-start p-6 border-b">
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">
-                  Vendor Quotes for {selectedPart.partName}
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-800">Vendor Quotes for {selectedPart.partName}</h3>
                 <p className="text-gray-600 mt-1">
-                  {`${selectedVehicle.make} ${selectedVehicle.model
-                    } ${selectedVehicle.year} - ${selectedVehicle.vin || "No VIN"
-                    }`}
+                  {`${selectedVehicle.make} ${selectedVehicle.model} ${selectedVehicle.year} - ${
+                    selectedVehicle.vin || "No VIN"
+                  }`}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={closeViewAllQuotesModal}
-                className="rounded-full -mt-2 -mr-2">
+                className="rounded-full -mt-2 -mr-2"
+              >
                 <span className="text-2xl">&times;</span>
               </Button>
             </div>
@@ -1112,48 +982,45 @@ const SourcerDashboard: React.FC = () => {
                 {/* Part Information section */}
                 <div className="mb-8">
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                      Part Information
-                    </h4>
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4">Part Information</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
                       <div>
-                        <p className="text-gray-500">
-                          Quantity
-                        </p>
-                        <p className="font-medium text-gray-800">
-                          {selectedPart.quantity}
-                        </p>
+                        <p className="text-gray-500">Quantity</p>
+                        <p className="font-medium text-gray-800">{selectedPart.quantity}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">
-                          Part Number
-                        </p>
-                        <p className="font-medium text-gray-800">
-                          {selectedPart.partNumber ||
-                            "-"}
-                        </p>
+                        <p className="text-gray-500">Part Number</p>
+                        <p className="font-medium text-gray-800">{selectedPart.partNumber || "-"}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">
-                          Customer Budget
-                        </p>
+                        <p className="text-gray-500">Customer Budget</p>
                         <p className="text-lg font-bold text-red-600">
-                          {selectedPart.estimatedBudget
-                            ? `AED ${selectedPart.estimatedBudget}`
-                            : "N/A"}
+                          {selectedPart.estimatedBudget ? `AED ${selectedPart.estimatedBudget}` : "N/A"}
                         </p>
                       </div>
                     </div>
                     {selectedPart.description && (
                       <div className="mt-6 border-t border-gray-200 pt-4">
-                        <p className="text-gray-500 text-sm">
-                          Description
-                        </p>
-                        <p className="font-medium text-gray-800 text-sm">
-                          {selectedPart.description}
-                        </p>
+                        <p className="text-gray-500 text-sm">Description</p>
+                        <p className="font-medium text-gray-800 text-sm">{selectedPart.description}</p>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Vendor % Note */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-yellow-600 text-lg">💡</span>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-yellow-800">Pricing Reminder</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Remember to keep the vendor percentage in mind when reviewing or updating bid prices. Ensure
+                        pricing remains competitive while maintaining fair vendor margins.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -1171,9 +1038,7 @@ const SourcerDashboard: React.FC = () => {
                         <div className="flex items-center gap-4 w-full md:w-auto flex-1">
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-gray-800">
-                                {quote.vendorName}
-                              </h4>
+                              <h4 className="font-semibold text-gray-800">{quote.vendorName}</h4>
                               {quote.isSourcerProvided && (
                                 <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
                                   Sourcer Added
@@ -1188,7 +1053,7 @@ const SourcerDashboard: React.FC = () => {
                                 <span>{quote.vendorAddress}</span>
                                 <a
                                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                    quote.vendorAddress
+                                    quote.vendorAddress,
                                   )}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -1200,20 +1065,14 @@ const SourcerDashboard: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">Phone:</span>
-                                <a
-                                  href={`tel:${quote.vendorPhone}`}
-                                  className="text-blue-500 hover:underline"
-                                >
+                                <a href={`tel:${quote.vendorPhone}`} className="text-blue-500 hover:underline">
                                   {quote.vendorPhone}
                                 </a>
                               </div>
                               {quote.vendorEmail && (
                                 <div className="flex items-center gap-1">
                                   <span className="font-medium">Email:</span>
-                                  <a
-                                    href={`mailto:${quote.vendorEmail}`}
-                                    className="text-blue-500 hover:underline"
-                                  >
+                                  <a href={`mailto:${quote.vendorEmail}`} className="text-blue-500 hover:underline">
                                     {quote.vendorEmail}
                                   </a>
                                 </div>
@@ -1230,21 +1089,16 @@ const SourcerDashboard: React.FC = () => {
 
                             {/* Quote Details */}
                             <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm">
-                              <span className="font-bold text-blue-600">
-                                AED {quote.price}
-                              </span>
+                              <span className="font-bold text-blue-600">AED {quote.price}</span>
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(
-                                  quote.condition
+                                  quote.condition,
                                 )}`}
                               >
                                 {quote.condition}
                               </span>
                               <span>
-                                Warranty:{" "}
-                                <span className="font-medium">
-                                  {quote.warranty}
-                                </span>
+                                Warranty: <span className="font-medium">{quote.warranty}</span>
                               </span>
                             </div>
                           </div>
@@ -1260,29 +1114,53 @@ const SourcerDashboard: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="flex-shrink-0 mt-4 md:mt-0">
+                        <div className="flex-shrink-0 mt-4 md:mt-0 flex flex-col gap-2">
                           {quote.status === "pending" ? (
-                            <button
-                              onClick={() => {
-                                setIsViewAllQuotesModalOpen(false);
-                                openReviewModal(
-                                  quote,
-                                  selectedPart as Part & { vehicle: Vehicle }
-                                );
-                              }}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                              Review & Accept
-                            </button>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setIsViewAllQuotesModalOpen(false)
+                                  openReviewModal(quote, selectedPart as Part & { vehicle: Vehicle })
+                                }}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                Review & Accept
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsViewAllQuotesModalOpen(false)
+                                  openEditPriceModal(quote)
+                                }}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                                Edit Price
+                              </button>
+                            </>
                           ) : (
-                            <span
-                              className={`px-3 py-2 rounded-lg text-sm font-medium ${quote.status === "accepted"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                            <>
+                              <span
+                                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                                  quote.status === "accepted"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
                                 }`}
-                            >
-                              {quote.status === "accepted" ? "Accepted" : "Rejected"}
-                            </span>
+                              >
+                                {quote.status === "accepted" ? "Accepted" : "Rejected"}
+                              </span>
+                              {quote.status === "accepted" && (
+                                <button
+                                  onClick={() => {
+                                    setIsViewAllQuotesModalOpen(false)
+                                    openEditPriceModal(quote)
+                                  }}
+                                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                  Edit Price
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -1295,77 +1173,163 @@ const SourcerDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Edit Price Modal */}
+      {isEditPriceModalOpen && selectedQuote && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeEditPriceModal}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start p-6 border-b">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Update Bid Price</h3>
+                <p className="text-gray-600 mt-1">Vendor: {selectedQuote.vendorName}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={closeEditPriceModal} className="rounded-full -mt-2 -mr-2">
+                <span className="text-2xl">&times;</span>
+              </Button>
+            </div>
+
+            <div className="p-6">
+              {/* Vendor % Reminder */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <span className="text-yellow-600 text-lg">⚠️</span>
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="text-sm font-medium text-yellow-800">Pricing Reminder</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Keep the vendor percentage in mind when updating the price. Ensure the new price maintains fair
+                      vendor margins.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Current Price:</span>
+                    <span className="font-semibold text-lg text-gray-800">AED {selectedQuote.price}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Price (AED) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPriceForm.newPrice}
+                    onChange={(e) =>
+                      setEditPriceForm({
+                        ...editPriceForm,
+                        newPrice: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter new price"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Update Notes (Optional)</label>
+                  <textarea
+                    value={editPriceForm.priceUpdateNotes}
+                    onChange={(e) =>
+                      setEditPriceForm({
+                        ...editPriceForm,
+                        priceUpdateNotes: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Reason for price update (optional)..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 p-6 bg-gray-50 border-t">
+              <button
+                type="button"
+                onClick={closeEditPriceModal}
+                disabled={submitting}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdatePrice}
+                disabled={submitting || !editPriceForm.newPrice || Number.parseFloat(editPriceForm.newPrice) <= 0}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Price"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Review Modal */}
       {isReviewModalOpen && selectedQuote && selectedPart && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={closeReviewModal}>
+          onClick={closeReviewModal}
+        >
           <div
             className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-start p-6 border-b">
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">
-                  Review & Accept Quote
-                </h3>
-                <p className="text-gray-600 mt-1">
-                  From: {selectedQuote.vendorName}
-                </p>
+                <h3 className="text-2xl font-bold text-gray-800">Review & Accept Quote</h3>
+                <p className="text-gray-600 mt-1">From: {selectedQuote.vendorName}</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closeReviewModal}
-                className="rounded-full -mt-2 -mr-2">
+              <Button variant="ghost" size="icon" onClick={closeReviewModal} className="rounded-full -mt-2 -mr-2">
                 <span className="text-2xl">&times;</span>
               </Button>
             </div>
+
             <div className="flex-1 overflow-y-auto">
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Column - Quote Details */}
                 <div className="space-y-6">
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-3">
-                      Quote Details
-                    </h4>
+                    <h4 className="font-medium text-gray-800 mb-3">Quote Details</h4>
                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                          Price:
-                        </span>
-                        <span className="font-semibold text-lg text-blue-600">
-                          AED {selectedQuote.price}
-                        </span>
+                        <span className="text-gray-600">Price:</span>
+                        <span className="font-semibold text-lg text-blue-600">AED {selectedQuote.price}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                          Condition:
-                        </span>
+                        <span className="text-gray-600">Condition:</span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(
-                            selectedQuote.condition
-                          )}`}>
+                            selectedQuote.condition,
+                          )}`}
+                        >
                           {selectedQuote.condition}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                          Warranty:
-                        </span>
-                        <span className="font-medium">
-                          {selectedQuote.warranty}
-                        </span>
+                        <span className="text-gray-600">Warranty:</span>
+                        <span className="font-medium">{selectedQuote.warranty}</span>
                       </div>
                       {selectedQuote.vendorNotes && (
                         <div className="pt-2">
-                          <span className="text-gray-600">
-                            Notes:
-                          </span>
-                          <p className="text-sm mt-1 bg-white p-2 border rounded">
-                            {
-                              selectedQuote.vendorNotes
-                            }
-                          </p>
+                          <span className="text-gray-600">Notes:</span>
+                          <p className="text-sm mt-1 bg-white p-2 border rounded">{selectedQuote.vendorNotes}</p>
                         </div>
                       )}
                     </div>
@@ -1373,9 +1337,7 @@ const SourcerDashboard: React.FC = () => {
 
                   {selectedQuote.imageUrls?.length ? (
                     <div>
-                      <h4 className="font-medium text-gray-800 mb-3">
-                        Part Images
-                      </h4>
+                      <h4 className="font-medium text-gray-800 mb-3">Part Images</h4>
                       <div className="w-full">
                         <ImageCarousel images={selectedQuote.imageUrls} />
                       </div>
@@ -1390,37 +1352,21 @@ const SourcerDashboard: React.FC = () => {
                 {/* Right Column - Vendor Info & Review Form */}
                 <div className="space-y-6">
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-3">
-                      Vendor Information
-                    </h4>
+                    <h4 className="font-medium text-gray-800 mb-3">Vendor Information</h4>
                     <div className="bg-blue-50 rounded-lg p-4 space-y-3 text-sm">
                       <div>
-                        <span className="text-gray-600 font-medium">
-                          Address:
-                        </span>
-                        <p className="mt-1">
-                          {
-                            selectedQuote.vendorAddress
-                          }
-                        </p>
+                        <span className="text-gray-600 font-medium">Address:</span>
+                        <p className="mt-1">{selectedQuote.vendorAddress}</p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-600 font-medium">
-                          Phone:
-                        </span>
-                        <a
-                          href={`tel:${selectedQuote.vendorPhone}`}
-                          className="text-blue-600 hover:underline">
+                        <span className="text-gray-600 font-medium">Phone:</span>
+                        <a href={`tel:${selectedQuote.vendorPhone}`} className="text-blue-600 hover:underline">
                           {selectedQuote.vendorPhone}
                         </a>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-600 font-medium">
-                          Email:
-                        </span>
-                        <a
-                          href={`mailto:${selectedQuote.vendorEmail}`}
-                          className="text-blue-600 hover:underline">
+                        <span className="text-gray-600 font-medium">Email:</span>
+                        <a href={`mailto:${selectedQuote.vendorEmail}`} className="text-blue-600 hover:underline">
                           {selectedQuote.vendorEmail}
                         </a>
                       </div>
@@ -1428,19 +1374,11 @@ const SourcerDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-3">
-                      Your Review
-                    </h4>
+                    <h4 className="font-medium text-gray-800 mb-3">Your Review</h4>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Upload Inspection Images (
-                          {
-                            reviewForm
-                              .inspectionImages
-                              .length
-                          }{" "}
-                          selected)
+                          Upload Inspection Images ({reviewForm.inspectionImages.length} selected)
                         </label>
                         <input
                           type="file"
@@ -1448,64 +1386,40 @@ const SourcerDashboard: React.FC = () => {
                           onChange={handleImageUpload}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Upload photos from your
-                          vendor inspection visit.
-                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Upload photos from your vendor inspection visit.</p>
 
                         {/* Preview selected images */}
-                        {reviewForm.inspectionImages
-                          .length > 0 && (
-                            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                              {reviewForm.inspectionImages.map(
-                                (file, index) => (
-                                  <div
-                                    key={`${file.name}-${index}`}
-                                    className="relative group">
-                                    <img
-                                      src={URL.createObjectURL(
-                                        file
-                                      )}
-                                      alt={`Upload preview ${index +
-                                        1
-                                        }`}
-                                      className="h-24 w-24 object-cover rounded-lg border border-gray-200"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        removeImage(
-                                          index
-                                        )
-                                      }
-                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                    <p className="text-xs text-gray-500 mt-1 truncate max-w-[96px]">
-                                      {
-                                        file.name
-                                      }
-                                    </p>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          )}
+                        {reviewForm.inspectionImages.length > 0 && (
+                          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {reviewForm.inspectionImages.map((file, index) => (
+                              <div key={`${file.name}-${index}`} className="relative group">
+                                <img
+                                  src={URL.createObjectURL(file) || "/placeholder.svg"}
+                                  alt={`Upload preview ${index + 1}`}
+                                  className="h-24 w-24 object-cover rounded-lg border border-gray-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index)}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                                <p className="text-xs text-gray-500 mt-1 truncate max-w-[96px]">{file.name}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Review Notes
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
                         <textarea
-                          value={
-                            reviewForm.reviewNotes
-                          }
+                          value={reviewForm.reviewNotes}
                           onChange={(e) =>
                             setReviewForm({
                               ...reviewForm,
-                              reviewNotes:
-                                e.target.value,
+                              reviewNotes: e.target.value,
                             })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1519,20 +1433,21 @@ const SourcerDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+
             <div className="flex space-x-3 p-6 bg-gray-50 border-t">
               <button
                 type="button"
                 onClick={closeReviewModal}
                 disabled={submitting}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50">
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+              >
                 Cancel
               </button>
               <button
                 onClick={() => handleAcceptQuote(selectedQuote)}
-                disabled={
-                  submitting || !reviewForm.reviewNotes.trim()
-                }
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center">
+                disabled={submitting || !reviewForm.reviewNotes.trim()}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
                 {submitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -1551,16 +1466,18 @@ const SourcerDashboard: React.FC = () => {
       {previewImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setPreviewImage(null)}>
+          onClick={() => setPreviewImage(null)}
+        >
           <div className="relative max-w-4xl w-full">
             <img
-              src={previewImage}
+              src={previewImage || "/placeholder.svg"}
               alt="Preview"
               className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
             />
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75">
+              className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75"
+            >
               <X className="h-6 w-6" />
             </button>
           </div>
@@ -1571,27 +1488,20 @@ const SourcerDashboard: React.FC = () => {
       {isAddQuoteModalOpen && selectedPart && selectedVehicle && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={closeAddQuoteModal}>
+          onClick={closeAddQuoteModal}
+        >
           <div
             className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">
-                  Add Manual Quote
-                </h3>
+                <h3 className="text-xl font-bold text-gray-800">Add Manual Quote</h3>
                 <p className="text-sm text-gray-600">
-                  {selectedPart.partName} for{" "}
-                  {selectedVehicle.year}{" "}
-                  {selectedVehicle.make}{" "}
-                  {selectedVehicle.model}
+                  {selectedPart.partName} for {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closeAddQuoteModal}
-                className="rounded-full -mt-2 -mr-2">
+              <Button variant="ghost" size="icon" onClick={closeAddQuoteModal} className="rounded-full -mt-2 -mr-2">
                 <span className="text-2xl">&times;</span>
               </Button>
             </div>
@@ -1600,62 +1510,37 @@ const SourcerDashboard: React.FC = () => {
               <div className="p-6 space-y-6">
                 {/* Part & Vehicle Info */}
                 <div className="p-4 bg-gray-50 border rounded-lg">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                    Part Information
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Part Information</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-500">
-                        Part Name
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {selectedPart.partName}
-                      </p>
+                      <p className="text-gray-500">Part Name</p>
+                      <p className="font-medium text-gray-800">{selectedPart.partName}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">
-                        Vehicle
-                      </p>
+                      <p className="text-gray-500">Vehicle</p>
                       <p className="font-medium text-gray-800">{`${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">VIN</p>
-                      <p className="font-medium text-gray-800">
-                        {selectedVehicle.vin || "N/A"}
-                      </p>
+                      <p className="font-medium text-gray-800">{selectedVehicle.vin || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">
-                        Part Number
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {selectedPart.partNumber ||
-                          "N/A"}
-                      </p>
+                      <p className="text-gray-500">Part Number</p>
+                      <p className="font-medium text-gray-800">{selectedPart.partNumber || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">
-                        Quantity
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {selectedPart.quantity}
-                      </p>
+                      <p className="text-gray-500">Quantity</p>
+                      <p className="font-medium text-gray-800">{selectedPart.quantity}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">
-                        Customer Budget
-                      </p>
+                      <p className="text-gray-500">Customer Budget</p>
                       <p className="font-bold text-red-600">
-                        {selectedPart.estimatedBudget
-                          ? `AED ${selectedPart.estimatedBudget}`
-                          : "N/A"}
+                        {selectedPart.estimatedBudget ? `AED ${selectedPart.estimatedBudget}` : "N/A"}
                       </p>
                     </div>
                     {selectedPart.description && (
                       <div className="col-span-full">
-                        <p className="text-gray-500">
-                          Description
-                        </p>
+                        <p className="text-gray-500">Description</p>
                         <p className="font-medium text-gray-800 bg-white p-2 rounded border">
                           {selectedPart.description}
                         </p>
@@ -1664,15 +1549,27 @@ const SourcerDashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Vendor % Note */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-yellow-600 text-lg">💡</span>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-yellow-800">Pricing Reminder</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Keep the vendor percentage in mind when setting the quote price. Ensure fair vendor margins
+                        while remaining competitive.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Vendor Info */}
                 <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 border p-4 rounded-lg">
-                  <legend className="text-lg font-semibold text-gray-800 px-2">
-                    Vendor Details
-                  </legend>
+                  <legend className="text-lg font-semibold text-gray-800 px-2">Vendor Details</legend>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vendor Name
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
                     <input
                       type="text"
                       value={addQuoteForm.vendorName}
@@ -1688,51 +1585,35 @@ const SourcerDashboard: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vendor Phone
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Phone</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                        +971
-                      </span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+971</span>
                       <input
                         type="tel"
                         value={addQuoteForm.vendorPhone}
                         onChange={(e) => {
-                          // Remove any non-numeric characters and the +971 prefix if entered
-                          const cleaned =
-                            e.target.value
-                              .replace(/\D/g, "")
-                              .replace(
-                                /^971/,
-                                ""
-                              );
+                          const cleaned = e.target.value.replace(/\D/g, "").replace(/^971/, "")
                           setAddQuoteForm({
                             ...addQuoteForm,
                             vendorPhone: cleaned,
-                          });
+                          })
                         }}
                         className="w-full pl-14 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
                         placeholder="50 123 4567"
                         required
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter number without country code
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Enter number without country code</p>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vendor Address
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Address</label>
                     <input
                       type="text"
                       value={addQuoteForm.vendorAddress}
                       onChange={(e) =>
                         setAddQuoteForm({
                           ...addQuoteForm,
-                          vendorAddress:
-                            e.target.value,
+                          vendorAddress: e.target.value,
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
@@ -1741,9 +1622,7 @@ const SourcerDashboard: React.FC = () => {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vendor Email
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Email</label>
                     <input
                       type="email"
                       value={addQuoteForm.vendorEmail}
@@ -1761,13 +1640,9 @@ const SourcerDashboard: React.FC = () => {
 
                 {/* Quote Details */}
                 <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 border p-4 rounded-lg">
-                  <legend className="text-lg font-semibold text-gray-800 px-2">
-                    Quote Details
-                  </legend>
+                  <legend className="text-lg font-semibold text-gray-800 px-2">Quote Details</legend>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price (AED)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (AED)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1782,11 +1657,8 @@ const SourcerDashboard: React.FC = () => {
                       required
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Condition
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
                     <select
                       value={addQuoteForm.condition}
                       onChange={(e) =>
@@ -1796,27 +1668,17 @@ const SourcerDashboard: React.FC = () => {
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required>
-                      <option value="">
-                        Select condition
-                      </option>
+                      required
+                    >
+                      <option value="">Select condition</option>
                       <option value="New">New</option>
-                      <option value="Used - Excellent">
-                        Used - Excellent
-                      </option>
-                      <option value="Used - Good">
-                        Used - Good
-                      </option>
-                      <option value="Used - Fair">
-                        Used - Fair
-                      </option>
+                      <option value="Used - Excellent">Used - Excellent</option>
+                      <option value="Used - Good">Used - Good</option>
+                      <option value="Used - Fair">Used - Fair</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warranty
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Warranty</label>
                     <select
                       value={addQuoteForm.warranty}
                       onChange={(e) =>
@@ -1826,33 +1688,19 @@ const SourcerDashboard: React.FC = () => {
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required>
-                      <option value="">
-                        Select warranty
-                      </option>
-                      <option value="No Warranty">
-                        No Warranty
-                      </option>
-                      <option value="3 Days">
-                        3 Days
-                      </option>
-                      <option value="7 Days">
-                        7 Days
-                      </option>
-                      <option value="14 Days">
-                        14 Days
-                      </option>
-                      <option value="30 Days">
-                        30 Days
-                      </option>
+                      required
+                    >
+                      <option value="">Select warranty</option>
+                      <option value="No Warranty">No Warranty</option>
+                      <option value="3 Days">3 Days</option>
+                      <option value="7 Days">7 Days</option>
+                      <option value="14 Days">14 Days</option>
+                      <option value="30 Days">30 Days</option>
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Part Images (
-                      {addQuoteForm.imageFiles.length}{" "}
-                      selected)
+                      Part Images ({addQuoteForm.imageFiles.length} selected)
                     </label>
                     <input
                       type="file"
@@ -1862,17 +1710,19 @@ const SourcerDashboard: React.FC = () => {
                  file:rounded-full file:border-0 file:text-sm file:font-semibold 
                  file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
-
                     {/* Image Preview Grid */}
                     {addQuoteForm.imageFiles.length > 0 ? (
                       <div className="mt-4">
                         <Carousel className="w-full">
                           <CarouselContent>
                             {addQuoteForm.imageFiles.map((file, index) => (
-                              <CarouselItem key={`${file.name}-${index}`} className="basis-1/2 sm:basis-1/3 md:basis-1/4">
+                              <CarouselItem
+                                key={`${file.name}-${index}`}
+                                className="basis-1/2 sm:basis-1/3 md:basis-1/4"
+                              >
                                 <div className="relative group p-1">
                                   <img
-                                    src={URL.createObjectURL(file)}
+                                    src={URL.createObjectURL(file) || "/placeholder.svg"}
                                     alt={`Upload preview ${index + 1}`}
                                     className="h-24 w-full object-cover rounded-lg border border-gray-200"
                                   />
@@ -1883,9 +1733,7 @@ const SourcerDashboard: React.FC = () => {
                                   >
                                     <X className="h-4 w-4" />
                                   </button>
-                                  <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {file.name}
-                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
                                 </div>
                               </CarouselItem>
                             ))}
@@ -1899,16 +1747,10 @@ const SourcerDashboard: React.FC = () => {
                         </Carousel>
                       </div>
                     ) : null}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Upload multiple part images. Click
-                      to add more.
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Upload multiple part images. Click to add more.</p>
                   </div>
-
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vendor Notes
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Notes</label>
                     <textarea
                       value={addQuoteForm.vendorNotes}
                       onChange={(e) =>
@@ -1925,12 +1767,14 @@ const SourcerDashboard: React.FC = () => {
                 </fieldset>
               </div>
             </div>
+
             <div className="flex space-x-4 p-6 bg-gray-50 border-t">
               <button
                 type="button"
                 onClick={closeAddQuoteModal}
                 disabled={submitting}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50">
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+              >
                 Cancel
               </button>
               <button
@@ -1942,7 +1786,8 @@ const SourcerDashboard: React.FC = () => {
                   !addQuoteForm.condition ||
                   !addQuoteForm.warranty
                 }
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center">
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
                 {submitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -1957,7 +1802,7 @@ const SourcerDashboard: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default SourcerDashboard;
+export default SourcerDashboard
