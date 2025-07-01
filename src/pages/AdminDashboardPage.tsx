@@ -9,6 +9,7 @@ import { VendorApplications } from '@/components/admin/VendorApplications';
 import LogisticsPage from '@/pages/LogisticsPage';
 import { AdminLogs } from '@/components/admin/logs/AdminLogs';
 import { AdminOrders } from '@/components/admin/orders/AdminOrders';
+import { PriceModifiers } from '@/components/admin/PriceModifiers';
 
 const AdminDashboardPage = () => {
   const { loading, error, refresh } = useAdminData();
@@ -47,6 +48,8 @@ const AdminDashboardPage = () => {
         return <AdminOrders />;
       case 'logistics':
         return <LogisticsPage />;
+      case 'modifiers':
+        return <PriceModifiers />;
       case 'logs':
         return <AdminLogs />;
       default:
