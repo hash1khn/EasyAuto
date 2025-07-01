@@ -442,11 +442,11 @@ const LogisticsPage = () => {
                                       {part.part_name}{" "}
                                       <span className="text-xs text-gray-500">({part.part_number || "N/A"})</span> x
                                       {part.quantity}
-                                      {vendor && (
+                                      {/* {vendor && (
                                         <span className="ml-2 text-xs text-blue-700 font-semibold">
                                           Vendor: {vendor.business_name || vendor.full_name}
                                         </span>
-                                      )}
+                                      )} */}
                                     </li>
                                   )
                                 })}
