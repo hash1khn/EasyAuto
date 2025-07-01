@@ -114,8 +114,7 @@ const HeroSection = () => {
                     Get The Right Car Parts — Fast.
                 </h1>
                 <p className="text-lg sm:text-xl text-gray-200 mb-8 max-w-3xl mx-auto [text-shadow:0_2px_4px_rgba(0,0,0,0.6)]">
-                    Find parts, compare prices, and get fast delivery from
-                    trusted UAE suppliers.
+                We find, inspect, and deliver the right part — so you don’t have to.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <Button
@@ -201,7 +200,7 @@ const ProblemSolutionSection = () => (
                     Old Way vs EasyCarParts
                 </h2>
                 <p className="mt-4 text-lg text-gray-500">
-                    Stop wasting time. Start getting parts faster.
+                    Stop wasting time. Start getting the correct, parts faster.
                 </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
@@ -249,16 +248,16 @@ const ProblemSolutionSection = () => (
                             <li className="flex items-start">
                                 <CheckCircle className="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
                                 <span>
-                                    Get many offers from trusted suppliers
+                                We do the sourcing and inspection for you
                                 </span>
                             </li>
                             <li className="flex items-start">
                                 <CheckCircle className="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                                <span>Easy price & delivery comparison</span>
+                                <span>Transparent pricing and verified vendors</span>
                             </li>
                             <li className="flex items-start">
                                 <CheckCircle className="h-6 w-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                                <span>Fast delivery, no stress</span>
+                                <span>Fast delivery, cash or card on arrival</span>
                             </li>
                         </ul>
                     </CardContent>
@@ -307,11 +306,11 @@ const HowItWorksSection = () => (
                                     2
                                 </p>
                             </div>
-                            <h3 className="text-xl font-bold">Get Quotes</h3>
+                            <h3 className="text-xl font-bold">We Source</h3>
                         </CardHeader>
                         <CardContent>
                             <p className="text-gray-600">
-                                Suppliers send prices. Choose best offer.{" "}
+                            Our team finds, verifies, and checks parts.{" "}
                             </p>
                         </CardContent>
                     </Card>
@@ -325,12 +324,12 @@ const HowItWorksSection = () => (
                                 </p>
                             </div>
                             <h3 className="text-xl font-bold">
-                                Pay & Delivery
+                                Pay on Delivery
                             </h3>
                         </CardHeader>
                         <CardContent>
                             <p className="text-gray-600">
-                                Pay and get your parts fast.
+                                Inspect the part. Pay by cash or card.
                             </p>
                         </CardContent>
                     </Card>
@@ -498,10 +497,10 @@ const DualCTASection = () => {
                         icon={<Wrench className="h-10 w-10 text-blue-600" />}
                         title="For Garages & Repair Shops"
                         description={[
-                            "Find the parts you need.",
-                            "Get quotes fast.",
-                            "Pay online.",
-                            "Fast delivery.",
+                            "Order what you need.",
+                            "We do ALL the legwork.",
+                            "Verified parts, delivered fast.",
+                            "Pay after inspection, cash or card.",
                         ]}
                         buttonText="Start Buying Parts"
                         subtext="Free to join — No monthly fees"
