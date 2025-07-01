@@ -184,43 +184,41 @@ const LogisticsPage = () => {
         try {
             const { data, error } = await supabase
                 .from("parts")
-                .select(
-                    `
-          id,
-          part_name,
-          part_number,
-          quantity,
-          shipping_status,
-          shipped_at,
-          collected_at,
-          delivered_at,
-          pickup_notes,
-          delivery_note,
-          created_at,
-          vehicle:vehicles (
+                .select(`
+        id,
+        part_name,
+        part_number,
+        quantity,
+        shipping_status,
+        shipped_at,
+        collected_at,
+        delivered_at,
+        pickup_notes,
+        delivery_note,
+        created_at,
+        vehicle:vehicles (
             make,
             model,
             year,
             user_profile:user_profiles (
-              full_name,
-              whatsapp_number,
-              location
+                full_name,
+                whatsapp_number,
+                location
             )
-          ),
-          bids!inner (
+        ),
+        bids!inner (
             id,
             status,
+            is_sourcer_provided,
+            vendor_info,
             vendor:user_profiles (
-              full_name,
-              business_name,
-              whatsapp_number,
-              is_sourcer_provided,
-              vendor_info,
-              location
+                full_name,
+                business_name,
+                whatsapp_number,
+                location
             )
-          )
-        `
-                )
+        )
+    `)
                 .in("shipping_status", ["out_for_delivery"])
                 .eq("bids.status", "accepted");
 
