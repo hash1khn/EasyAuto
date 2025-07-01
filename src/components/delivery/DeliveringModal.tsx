@@ -1,5 +1,5 @@
 import type React from "react"
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import type { EnrichedPart, GroupedDeliveryData } from "@/types/delivery"
 import { handleDeliveryConfirmation } from "@/lib/delivery-service"
 import { toast } from "@/components/ui/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 interface InvoiceData {
   parts: EnrichedPart[]
@@ -19,8 +20,16 @@ interface InvoiceData {
   deliveryNotes: string
   driverName: string
   subtotal: number
+  vatAmount: number
+  serviceFee: number
   grandTotal: number
   buyerData?: GroupedDeliveryData
+    priceModifiers: {
+    vendor_percentage: number
+    vat_percentage: number
+    service_charge_percentage: number
+  }
+
 }
 
 interface DeliveringModalProps {
@@ -52,14 +61,47 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   const [deliveryPhotos, setDeliveryPhotos] = useState<File[]>([])
   const [deliveryNotes, setDeliveryNotes] = useState("")
   const [driverName, setDriverName] = useState("")
+   const [priceModifiers, setPriceModifiers] = useState({
+    vendor_percentage: 10,
+    vat_percentage: 5,
+    service_charge_percentage: 5
+  })
+useEffect(() => {
+    const fetchModifiers = async () => {
+      const { data } = await supabase
+        .from('price_modifiers')
+        .select('*')
+        .single()
+      if (data) setPriceModifiers(data)
+    }
+    fetchModifiers()
+  }, [])
 
-  console.log('this s parts',parts)
-  const subtotal = parts.reduce(
-    (sum, part) => sum + (part.winning_bid?.price || 0) * (part.quantity || 1),
-    0
-  ); 
-  const deliveryFeeNum = Number.parseFloat(deliveryFee) || 0
-  const grandTotal = subtotal + deliveryFeeNum
+
+ const calculatePrices = () => {
+    const deliveryFeeNum = Number.parseFloat(deliveryFee) || 0
+    
+    // Calculate subtotal with vendor markup
+    const subtotal = parts.reduce((sum, part) => {
+      const basePrice = part.winning_bid?.price || 0
+      const finalUnitPrice = basePrice * (1 + priceModifiers.vendor_percentage / 100)
+      return sum + (finalUnitPrice * (part.quantity || 1))
+    }, 0)
+
+    // Calculate taxable amount (subtotal + delivery)
+    const taxableAmount = subtotal + deliveryFeeNum
+    
+    // Calculate VAT and Service Charge
+    const vatAmount = taxableAmount * (priceModifiers.vat_percentage / 100)
+    const serviceFee = taxableAmount * (priceModifiers.service_charge_percentage / 100)
+    
+    // Calculate grand total
+    const grandTotal = subtotal + deliveryFeeNum + vatAmount + serviceFee
+
+    return { subtotal, deliveryFeeNum, vatAmount, serviceFee, grandTotal }
+  }
+
+  const { subtotal, deliveryFeeNum, vatAmount, serviceFee, grandTotal } = calculatePrices()
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AE", {
@@ -86,39 +128,41 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
     }
 
     try {
-      const invoice = await handleDeliveryConfirmation({
-        parts,
+      // Update parts with final prices including vendor markup
+      const updatedParts = parts.map(part => ({
+        ...part,
+        winning_bid: {
+          ...part.winning_bid,
+          price: (part.winning_bid?.price || 0) * (1 + priceModifiers.vendor_percentage / 100)
+        }
+      }))
+
+      const invoiceData = {
+        parts: updatedParts,
         buyerData,
-        deliveryFee: Number(deliveryFee) || 0,
+        address,
+        deliveryFee: deliveryFeeNum,
         paymentMethod,
         paymentReference: paymentReference.trim() || undefined,
         deliveryPhotos,
         deliveryNotes,
         driverName: driverName.trim(),
         subtotal,
+        vatAmount,
+        serviceFee,
         grandTotal,
-      })
+        priceModifiers
+      }
+
+      await handleDeliveryConfirmation(invoiceData)
+
+      onConfirm(invoiceData)
+      onClose()
 
       toast({
         title: "Success",
         description: "Delivery confirmed and invoice generated successfully",
       })
-
-      onConfirm({
-        parts,
-        address,
-        deliveryFee: Number(deliveryFee) || 0,
-        paymentMethod,
-        paymentReference: paymentReference.trim() || undefined,
-        deliveryPhotos,
-        deliveryNotes,
-        driverName: driverName.trim(),
-        subtotal,
-        grandTotal,
-        buyerData,
-      })
-
-      onClose()
     } catch (error) {
       console.error("Error confirming delivery:", error)
       toast({
@@ -163,18 +207,22 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                   </thead>
                   <tbody>
                     {parts.map((part) => {
-  const unitPrice = part.winning_bid?.price || 0; // ✅ Use actual bid price
-  return (
-    <tr key={part.id}>
-      <td className="px-3 py-2">{part.partName}</td>
-      <td className="px-3 py-2 text-center">{part.quantity}</td>
-      <td className="px-3 py-2 text-right">{formatCurrency(unitPrice)}</td>
-      <td className="px-3 py-2 text-right">
-        {formatCurrency(unitPrice * (part.quantity || 1))}
-      </td>
-    </tr>
-  );
-})}
+                      const basePrice = part.winning_bid?.price || 0
+                      const unitPrice = basePrice * (1 + priceModifiers.vendor_percentage / 100)
+                      return (
+                        <tr key={part.id}>
+                          <td className="px-3 py-2">{part.partName}</td>
+                          <td className="px-3 py-2 text-center">{part.quantity}</td>
+                          <td className="px-3 py-2 text-right">
+                            {formatCurrency(unitPrice)}
+                            
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {formatCurrency(unitPrice * (part.quantity || 1))}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                   <tfoot>
                     <tr>
@@ -197,6 +245,18 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                           className="w-28 text-right inline-block"
                         />
                       </td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-right">
+                        + VAT ({priceModifiers.vat_percentage}%):
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(vatAmount)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-right">
+                        + Service Charge ({priceModifiers.service_charge_percentage}%):
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(serviceFee)}</td>
                     </tr>
                     <tr>
                       <td colSpan={3} className="px-3 py-2 text-right font-bold">

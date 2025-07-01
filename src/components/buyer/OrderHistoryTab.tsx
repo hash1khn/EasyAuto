@@ -10,6 +10,7 @@ import { PartModal } from "./PartModal";
 import { ReceiptModal } from "./ReceiptModal";
 import { RefundReceiptModal } from "./RefundReceiptModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { PriceModifiers } from "../admin/PriceModifiers";
 
 interface OrderSummary {
   id: string;
@@ -37,6 +38,19 @@ export const OrderHistoryTab = () => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [priceModifiers, setPriceModifiers] = useState({
+    vendor_percentage: 10,})
+
+  useEffect(() => {
+      const fetchModifiers = async () => {
+        const { data } = await supabase
+          .from('price_modifiers')
+          .select('*')
+          .single()
+        if (data) setPriceModifiers(data)
+      }
+      fetchModifiers()
+    }, [])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,6 +223,7 @@ export const OrderHistoryTab = () => {
         part={selectedPart}
         vehicle={selectedPart ? vehicles.find(v => v.id === selectedPart.vehicle_id) : null}
         onOpenChange={() => setSelectedPart(null)}
+        priceModifiers={priceModifiers}
       />
       <ReceiptModal 
         isOpen={!!receiptInvoiceId}
