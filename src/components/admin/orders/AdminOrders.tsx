@@ -968,7 +968,7 @@ export const AdminOrders = () => {
                       <Card key={delivery.id} className="p-4 border border-gray-200">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                           <div>
-                            <div className="font-semibold">Delivery #{delivery.id.slice(0, 8)}</div>
+                            <div className="font-semibold">Delivery #{delivery.id}</div>
                             <div className="text-sm text-gray-500">Driver: {delivery.driver_name || "N/A"}</div>
                             <div className="text-sm text-gray-500">Status: Delivered</div>
                             <div className="text-sm text-gray-500">
@@ -1125,7 +1125,7 @@ export const AdminOrders = () => {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
                   <div className="font-medium text-gray-600">
-                    Invoice ID: <span className="font-normal text-gray-900">{selectedInvoice.id.slice(0, 8)}</span>
+                    Invoice ID: <span className="font-normal text-gray-900">{selectedInvoice.id}</span>
                   </div>
                   <div className="font-medium text-gray-600">
                     Status: <span className="font-normal text-gray-900">{selectedInvoice.payment_status}</span>

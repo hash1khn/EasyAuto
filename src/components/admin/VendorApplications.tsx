@@ -36,7 +36,6 @@ import { UserProfile } from "@/hooks/useAdminData";
 
 export const VendorApplications: React.FC = () => {
     const { applications, refresh: refetchVendorApplications } = useAdminData();
-    console.log("VendorApplications", applications);
     const [loadingStates, setLoadingStates] = useState<{
         [key: string]: boolean;
     }>({});
@@ -117,8 +116,10 @@ export const VendorApplications: React.FC = () => {
     };
 
     const filteredApplications = applications.filter(
-        (app) => app.application_status !== "not_applied"
-    );
+  (app) => 
+    app.application_status !== "not_applied" && 
+    (app.role === "vendor" || app.role === "buyer") // Explicitly allow only these
+);
 
     return (
         <div className="space-y-6">
