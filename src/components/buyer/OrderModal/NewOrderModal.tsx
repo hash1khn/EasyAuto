@@ -23,6 +23,8 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   const [step, setStep] = useState(1);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const [currentVehicle, setCurrentVehicle] = useState<Vehicle>({
     make: '', model: '', year: new Date().getFullYear(), vin: ''
@@ -79,6 +81,10 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   };
 
   const handleSubmitOrder = async () => {
+ if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setLoading(true);
     if (!user || vehicles.length === 0 || parts.length === 0) {
       toast({
         title: "Cannot submit order",
@@ -196,7 +202,10 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+    setTimeout(() => {
+        setIsSubmitting(false);
+        setLoading(false);
+      }, 500);
     }
   };
 
