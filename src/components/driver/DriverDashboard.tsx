@@ -764,17 +764,10 @@ export const DriverDashboard: React.FC = () => {
                                                     <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
                                                     <div className="flex flex-col">
                                                         <a
-                                                            href={
-                                                                vendor.google_maps_url ||
-                                                                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                                                    vendor.address
-                                                                )}`
-                                                            }
+                                                            href={vendor.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vendor.address)}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            onClick={(e) =>
-                                                                e.stopPropagation()
-                                                            }
+                                                            onClick={(e) => e.stopPropagation()}
                                                             className="hover:text-blue-600">
                                                             {vendor.address}
                                                         </a>
