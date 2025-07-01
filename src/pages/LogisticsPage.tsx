@@ -663,7 +663,7 @@ const LogisticsPage = () => {
                                     {completedInvoices.map((invoice) => (
                                         <TableRow key={invoice.id}>
                                             <TableCell>
-                                                REC-{invoice.id.slice(-3)}
+                                                REC-{String(invoice.id).slice(-3)}
                                             </TableCell>
                                             <TableCell>{invoice.id}</TableCell>
                                             <TableCell>
