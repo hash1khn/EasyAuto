@@ -153,9 +153,7 @@ export const VendorApplications: React.FC = () => {
                                         {app.role === "vendor" ? "Vendor" : "Buyer"}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
-                                    {app.role === "vendor" ? app.business_name || "N/A" : "-"}
-                                </TableCell>
+                                <TableCell>{app.business_name || "N/A"}</TableCell>
                                 <TableCell>{app.full_name}</TableCell>
                                 <TableCell>{app.whatsapp_number}</TableCell>
                                 <TableCell>{app.location}</TableCell>
