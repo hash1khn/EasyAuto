@@ -266,12 +266,16 @@ const Delivering: React.FC = () => {
                                                         }
                                                         className="flex items-center gap-1 hover:text-blue-600">
                                                         <MapPin className="h-4 w-4" />{" "}
-                                                        {buyerData.delivery_address}
+                                                        {
+                                                            buyerData.delivery_address
+                                                        }
                                                     </a>
                                                 ) : (
                                                     <div className="flex items-center gap-1 text-gray-500">
                                                         <MapPin className="h-4 w-4" />{" "}
-                                                        {buyerData.delivery_address}
+                                                        {
+                                                            buyerData.delivery_address
+                                                        }
                                                     </div>
                                                 )}
                                                 <a
@@ -437,11 +441,7 @@ const Delivering: React.FC = () => {
                                                                                 .vendor_info
                                                                                 ?.business_name ||
                                                                                 "Sourcer Added"}
-                                                                            <Badge
-                                                                                variant="secondary"
-                                                                                className="text-[10px]">
-                                                                                Sourcer
-                                                                            </Badge>
+                                                                           
                                                                         </p>
                                                                     </>
                                                                 ) : (

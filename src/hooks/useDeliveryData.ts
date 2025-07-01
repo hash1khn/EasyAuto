@@ -43,6 +43,8 @@ export const useDeliveryData = () => {
             condition,
             warranty,
             status,
+            is_sourcer_provided,
+            vendor_info,
             vendor:user_profiles!bids_vendor_id_fkey (
               id,
               full_name,
@@ -81,6 +83,7 @@ export const useDeliveryData = () => {
         // Find the winning/accepted bid
         const winningBid = part.bids?.find((bid: any) => bid.status === "accepted")
 
+        // Update the enrichedPart mapping to handle sourcer-provided vendors
         const enrichedPart: DeliveryPart = {
           ...part,
           winning_bid: winningBid
@@ -89,7 +92,17 @@ export const useDeliveryData = () => {
                 price: winningBid.price,
                 condition: winningBid.condition,
                 warranty: winningBid.warranty,
-                vendor: winningBid.vendor,
+                is_sourcer_provided: winningBid.is_sourcer_provided || false,
+                vendor_info: winningBid.is_sourcer_provided ? winningBid.vendor_info : undefined,
+                vendor: winningBid.is_sourcer_provided && winningBid.vendor_info
+                  ? {
+                      id: `sourcer-${winningBid.id}`,
+                      full_name: winningBid.vendor_info.name,
+                      whatsapp_number: winningBid.vendor_info.phone,
+                      business_name: winningBid.vendor_info.business_name || '',
+                      location: winningBid.vendor_info.address
+                    }
+                  : winningBid.vendor
               }
             : undefined,
         }
@@ -141,9 +154,15 @@ export const useDeliveryData = () => {
     partNumber: part.part_number || "",
     imageUrls: part.photos || [],
     condition: part.winning_bid?.condition || "Unknown",
-    vendorName: part.winning_bid?.vendor?.full_name || "Unknown Vendor",
-    vendorAddress: part.winning_bid?.vendor?.location || "Unknown Address",
-    vendorPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
+    vendorName: part.winning_bid?.is_sourcer_provided 
+      ? part.winning_bid.vendor_info?.name 
+      : part.winning_bid?.vendor?.full_name || "Unknown Vendor",
+    vendorAddress: part.winning_bid?.is_sourcer_provided
+      ? part.winning_bid.vendor_info?.address
+      : part.winning_bid?.vendor?.location || "Unknown Address",
+    vendorPhone: part.winning_bid?.is_sourcer_provided
+      ? part.winning_bid.vendor_info?.phone
+      : part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
     sourcerName: part.winning_bid?.vendor?.full_name || "Unknown Sourcer",
     sourcerId: part.winning_bid?.vendor?.id || "",
     sourcerPhone: part.winning_bid?.vendor?.whatsapp_number || "Unknown Phone",
@@ -155,14 +174,16 @@ export const useDeliveryData = () => {
           condition: part.winning_bid.condition,
           warranty: part.winning_bid.warranty,
           is_sourcer_provided: part.winning_bid.is_sourcer_provided || false,
-          vendor_info: part.winning_bid.vendor_info || undefined,
-          vendor: {
-            id: part.winning_bid.vendor?.id || '',
-            full_name: part.winning_bid.vendor?.full_name || '',
-            whatsapp_number: part.winning_bid.vendor?.whatsapp_number || '',
-            business_name: part.winning_bid.vendor?.business_name || '',
-            location: part.winning_bid.vendor?.location || ''
-          }
+          vendor_info: part.winning_bid.is_sourcer_provided ? part.winning_bid.vendor_info : undefined,
+          vendor: part.winning_bid.is_sourcer_provided && part.winning_bid.vendor_info
+            ? {
+                id: `sourcer-${part.winning_bid.id}`,
+                full_name: part.winning_bid.vendor_info.name,
+                whatsapp_number: part.winning_bid.vendor_info.phone,
+                business_name: part.winning_bid.vendor_info.business_name || '',
+                location: part.winning_bid.vendor_info.address
+              }
+            : part.winning_bid.vendor
         }
       : undefined,
   })
