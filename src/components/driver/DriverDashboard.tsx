@@ -763,22 +763,24 @@ export const DriverDashboard: React.FC = () => {
                                                 <div className="flex items-start gap-1">
                                                     <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
                                                     <div className="flex flex-col">
-                                                        <a
-                                                            href={vendor.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vendor.address)}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="hover:text-blue-600">
-                                                            {vendor.address}
-                                                        </a>
+                                                        {vendor.google_maps_url ? (
+                                                            <a
+                                                                href={vendor.google_maps_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="hover:text-blue-600">
+                                                                {vendor.address}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-500">
+                                                                {vendor.address}
+                                                            </span>
+                                                        )}
                                                         {vendor.delivery_instructions && (
                                                             <span className="text-xs text-gray-500 mt-1">
-                                                                <span className="font-medium">
-                                                                    Instructions:{" "}
-                                                                </span>
-                                                                {
-                                                                    vendor.delivery_instructions
-                                                                }
+                                                                <span className="font-medium">Instructions: </span>
+                                                                {vendor.delivery_instructions}
                                                             </span>
                                                         )}
                                                     </div>

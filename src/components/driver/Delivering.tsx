@@ -254,22 +254,26 @@ const Delivering: React.FC = () => {
                                                 {buyerData.buyer_name}
                                             </h3>
                                             <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                                <a
-                                                    href={
-                                                        buyerData.google_maps_url ||
-                                                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                                                            buyerData.delivery_address
-                                                        )}`
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                    className="flex items-center gap-1 hover:text-blue-600">
-                                                    <MapPin className="h-4 w-4" />{" "}
-                                                    {buyerData.delivery_address}
-                                                </a>
+                                                {buyerData.google_maps_url ? (
+                                                    <a
+                                                        href={
+                                                            buyerData.google_maps_url
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                        className="flex items-center gap-1 hover:text-blue-600">
+                                                        <MapPin className="h-4 w-4" />{" "}
+                                                        {buyerData.delivery_address}
+                                                    </a>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 text-gray-500">
+                                                        <MapPin className="h-4 w-4" />{" "}
+                                                        {buyerData.delivery_address}
+                                                    </div>
+                                                )}
                                                 <a
                                                     href={`tel:${buyerData.delivery_phone}`}
                                                     onClick={(e) =>
