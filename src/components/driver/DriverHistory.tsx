@@ -4,7 +4,7 @@ import { formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, ChevronUp, FileText, ImageIcon } from "lucide-react"
+import { ChevronDown, ChevronUp, FileText, ImageIcon, Phone, MapPin } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { ReceiptModal as BuyerReceiptModal } from "@/components/buyer/ReceiptModal"
 
@@ -32,6 +32,13 @@ interface Invoice {
       part_name: string
       bids: Array<{
         vendor_id: string
+        is_sourcer_provided: boolean
+        vendor_info?: {
+          name: string
+          business_name?: string
+          address: string
+          phone: string
+        }
         vendor: {
           full_name: string
           business_name: string
@@ -47,7 +54,13 @@ const DriverHistory: React.FC = () => {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
   const [notesModal, setNotesModal] = useState<Invoice | null>(null)
-  const [vendorModal, setVendorModal] = useState<any>(null)
+  const [vendorModal, setVendorModal] = useState<{
+    name: string;
+    business_name?: string;
+    location: string;
+    whatsapp_number: string;
+    is_sourcer_provided: boolean;
+  } | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -77,7 +90,14 @@ const DriverHistory: React.FC = () => {
                 part_name,
                 bids(
                   vendor_id,
-                  vendor:vendor_id(full_name, business_name, location, whatsapp_number)
+                  is_sourcer_provided,
+                  vendor_info,
+                  vendor:vendor_id(
+                    full_name, 
+                    business_name, 
+                    location, 
+                    whatsapp_number
+                  )
                 )
               )
             )
@@ -138,23 +158,50 @@ const DriverHistory: React.FC = () => {
                 </thead>
                 <tbody>
                   {invoice.invoice_parts.map((invoicePart, idx) => {
-                    const vendor = invoicePart.part.bids[0]?.vendor
+                    const bid = invoicePart.part.bids[0];
+                    const vendorDetails = bid?.is_sourcer_provided && bid.vendor_info
+                      ? {
+                          name: bid.vendor_info.name,
+                          business_name: bid.vendor_info.business_name,
+                          location: bid.vendor_info.address,
+                          whatsapp_number: bid.vendor_info.phone,
+                          is_sourcer_provided: true
+                        }
+                      : bid?.vendor
+                        ? {
+                            name: bid.vendor.full_name,
+                            business_name: bid.vendor.business_name,
+                            location: bid.vendor.location,
+                            whatsapp_number: bid.vendor.whatsapp_number,
+                            is_sourcer_provided: false
+                          }
+                        : null;
+
                     return (
                       <tr key={idx}>
                         <td className="px-3 py-2">{invoicePart.part.part_name}</td>
                         <td className="px-3 py-2 text-center">{invoicePart.quantity}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(invoicePart.unit_price)}</td>
+                        <td className="px-3 py-2 text-right">
+                          {formatCurrency(invoicePart.unit_price)}
+                        </td>
                         <td className="px-3 py-2 text-right">
                           {formatCurrency(invoicePart.unit_price * invoicePart.quantity)}
                         </td>
                         <td className="px-3 py-2 text-left">
-                          {vendor ? (
+                          {vendorDetails ? (
                             <Button
                               variant="link"
                               className="p-0 h-auto text-blue-600"
-                              onClick={() => setVendorModal(vendor)}
+                              onClick={() => setVendorModal(vendorDetails)}
                             >
-                              {vendor.business_name || vendor.full_name}
+                              <div className="text-left">
+                                {vendorDetails.business_name || vendorDetails.name}
+                                {vendorDetails.is_sourcer_provided && (
+                                  <Badge variant="secondary" className="ml-2 text-xs">
+                                    Sourcer Added
+                                  </Badge>
+                                )}
+                              </div>
                             </Button>
                           ) : (
                             "Unknown vendor"
@@ -248,13 +295,26 @@ const DriverHistory: React.FC = () => {
       <Dialog open={!!vendorModal} onOpenChange={() => setVendorModal(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Vendor Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Vendor Details
+              {vendorModal?.is_sourcer_provided && (
+                <Badge variant="secondary">Sourcer Added</Badge>
+              )}
+            </DialogTitle>
           </DialogHeader>
           {vendorModal && (
-            <div>
-              <div className="mb-2 font-semibold">{vendorModal.business_name || vendorModal.full_name}</div>
-              <div className="mb-2 text-gray-700">{vendorModal.location}</div>
-              <div className="mb-2 text-gray-700">{vendorModal.whatsapp_number}</div>
+            <div className="space-y-2">
+              <div className="font-semibold">
+                {vendorModal.business_name || vendorModal.name}
+              </div>
+              <div className="text-gray-700 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {vendorModal.location}
+              </div>
+              <div className="text-gray-700 flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                {vendorModal.whatsapp_number}
+              </div>
             </div>
           )}
         </DialogContent>
