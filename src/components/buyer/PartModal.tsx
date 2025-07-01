@@ -3,16 +3,21 @@ import { StatusBadge } from "./StatusBadge"
 import type { Part, Vehicle } from "@/lib/order"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Portal } from "@radix-ui/react-portal"
+import { supabase } from "@/integrations/supabase/client"
 
 interface PartModalProps {
   part: Part | null
   vehicle: Vehicle
   onOpenChange: (part: Part | null) => void
+  priceModifiers: {
+    vendor_percentage: number
+  }
 }
 
-export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
+
+export function PartModal({ part, vehicle, onOpenChange ,priceModifiers}: PartModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   if (!part) return null
@@ -22,6 +27,11 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
   const acceptedBid = part.bids?.find((bid) => bid.status === "accepted")
   const isPartConfirmed = acceptedBid !== undefined
   const hasInspectionImages = part.inspection_images && part.inspection_images.length > 0
+
+  const getBuyerPrice = (price: number) => 
+    price * (1 + priceModifiers.vendor_percentage / 100)
+
+
 
   return (
     <>
@@ -81,7 +91,7 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Accepted Price</p>
-                      <p className="font-bold text-lg">AED {acceptedBid.price}</p>
+                      <p className="font-bold text-lg">AED {getBuyerPrice(acceptedBid.price).toFixed(2)}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
@@ -151,11 +161,11 @@ export function PartModal({ part, vehicle, onOpenChange }: PartModalProps) {
       {/* Image Preview Modal */}
       {previewImage && (
         <Portal>
-          <div 
+          <div
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100]"
             onClick={() => setPreviewImage(null)}
           >
-            <div 
+            <div
               className="relative max-w-7xl w-full mx-4 cursor-zoom-out"
               onClick={(e) => e.stopPropagation()}
             >

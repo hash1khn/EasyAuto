@@ -1,9 +1,11 @@
-import { useState } from "react"
+import { useState ,useEffect} from "react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { StatusBadge } from "./StatusBadge"
 import { PartModal } from "./PartModal"
+import { supabase } from "@/integrations/supabase/client"
+
 import type { Part, Vehicle } from "@/lib/order"
 
 interface VehicleGroupProps {
@@ -14,6 +16,21 @@ interface VehicleGroupProps {
 export const VehicleGroup = ({ vehicle, parts }: VehicleGroupProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedPart, setSelectedPart] = useState<Part | null>(null)
+  const [priceModifiers, setPriceModifiers] = useState({
+    vendor_percentage: 10 // Default fallback
+  })
+
+
+  useEffect(() => {
+    const fetchModifiers = async () => {
+      const { data } = await supabase
+        .from('price_modifiers')
+        .select('*')
+        .single()
+      if (data) setPriceModifiers(data)
+    }
+    fetchModifiers()
+  }, [])
 
   // Get group status based on parts
   const getGroupStatus = () => {
@@ -90,7 +107,8 @@ export const VehicleGroup = ({ vehicle, parts }: VehicleGroupProps) => {
         </CollapsibleContent>
       </Collapsible>
 
-      {selectedPart && <PartModal part={selectedPart} vehicle={vehicle} onOpenChange={setSelectedPart} />}
+      {selectedPart && <PartModal part={selectedPart} vehicle={vehicle} onOpenChange={setSelectedPart}   priceModifiers={priceModifiers}
+ />}
     </div>
   )
 }
