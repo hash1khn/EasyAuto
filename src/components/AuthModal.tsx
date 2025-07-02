@@ -51,6 +51,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       case 'sourcer':
         navigate('/sourcer');
         break;
+      case 'driver':
+        navigate('/driver/dashboard');
+        break;
       default:
         navigate('/');
     }
