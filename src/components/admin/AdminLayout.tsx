@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { ResponsiveSidebar } from '@/components/layout/ResponsiveSidebar';
-import { Home, Users, FileText, Settings, LogOut, Package, History, Truck, User, Activity } from 'lucide-react';
+import { Home, Users, FileText, Settings, LogOut, Package, History, Truck, User, Activity ,Percent} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export type AdminTabId = 'overview' | 'users' | 'applications' | 'orders' | 'logistics' | 'logs';
+export type AdminTabId = 'overview' | 'users' | 'applications' | 'orders' | 'logistics' | 'logs' | 'modifiers';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -20,6 +20,8 @@ const tabs = [
   { id: 'applications' as AdminTabId, label: 'Applications', icon: FileText },
   { id: 'orders' as AdminTabId, label: 'Orders', icon: Package }, // Changed from History to Package
   { id: 'logistics' as AdminTabId, label: 'Logistics', icon: Truck },
+  { id: 'modifiers' as AdminTabId, label: 'Price Modifiers', icon: Percent },
+
   { id: 'logs' as AdminTabId, label: 'Logs', icon: Activity },
 ];
 
@@ -82,6 +84,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           className="w-full text-sm bg-mint-50 border-mint-200 text-mint-700 hover:bg-mint-100"
         >
           🧰 Vendor Mode
+        </Button>
+
+        {/* Sourcer Mode Button */}
+        <Button
+          onClick={() => navigate('/sourcer')}
+          variant="outline"
+          className="w-full text-sm bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+        >
+          🔍 Sourcer Mode
         </Button>
       </div>
 

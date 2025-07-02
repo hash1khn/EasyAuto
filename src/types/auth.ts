@@ -1,6 +1,6 @@
 import { User, Session } from '@supabase/supabase-js';
 
-export type UserRole = 'buyer' | 'vendor' | 'admin' | 'driver';
+export type UserRole = 'buyer' | 'vendor' | 'admin' | 'driver' | 'sourcer';
 
 export interface SignUpData {
   email: string;
@@ -29,12 +29,14 @@ export interface AuthResult {
 
 export interface SignInResponse extends AuthResult {
   role?: UserRole;
+  isApproved?: boolean;
 }
 
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  initialized: boolean;
   signUp: (data: SignUpData) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<SignInResponse>;
   signOut: () => Promise<void>;

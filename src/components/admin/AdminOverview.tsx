@@ -1,39 +1,113 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, ShoppingCart, Briefcase, UserCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAdminData } from '@/hooks/useAdminData';
 import { LiveOrdersTable } from './LiveOrdersTable';
+import { AdminOrderModal } from './AdminOrderModal';
 
 export const AdminOverview: React.FC = () => {
-  const { stats } = useAdminData();
+  const { stats, refresh } = useAdminData();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const statCards = [
-    { title: 'Total Orders', value: stats?.total_orders, Icon: ShoppingCart },
-    { title: 'Total Users', value: stats?.total_users, Icon: Users },
-    { title: 'Total Buyers', value: stats?.total_buyers, Icon: UserCheck },
-    { title: 'Total Vendors', value: stats?.total_vendors, Icon: Briefcase },
+  const metrics = [
+    { 
+      label: 'Total Part Orders', 
+      value: stats?.total_parts?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Active Parts', 
+      value: stats?.active_parts?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Delivered Parts', 
+      value: stats?.delivered_parts?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Total Revenue', 
+      value: stats?.total_revenue 
+        ? `AED ${stats.total_revenue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}` 
+        : '-',
+    },
+    { 
+      label: 'Vendors', 
+      value: stats?.total_vendors?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Buyers', 
+      value: stats?.total_buyers?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Outstanding Payments', 
+      value: stats?.outstanding_payments 
+        ? `AED ${stats.outstanding_payments.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}` 
+        : '-',
+    },
+    { 
+      label: 'Pending Vendor Quotes', 
+      value: stats?.pending_quotes?.toLocaleString() ?? '-',
+    },
+    { 
+      label: 'Flagged Issues', 
+      value: stats?.flagged_issues ? (
+        <div className="flex flex-col items-center text-sm">
+          <span className="text-2xl font-bold text-red-600">
+            {stats.flagged_issues.total}
+          </span>
+          <div className="mt-1 text-gray-600 text-xs space-y-1">
+            {stats.flagged_issues.pending_refunds > 0 && 
+              <div>Pending Refunds: {stats.flagged_issues.pending_refunds}</div>}
+            {stats.flagged_issues.pending_applications > 0 && 
+              <div>Pending Applications: {stats.flagged_issues.pending_applications}</div>}
+            {stats.flagged_issues.unprocessed_payouts > 0 && 
+              <div>Unprocessed Payouts: {stats.flagged_issues.unprocessed_payouts}</div>}
+            {stats.flagged_issues.problem_shipments > 0 && 
+              <div>Problem Shipments: {stats.flagged_issues.problem_shipments}</div>}
+            {stats.flagged_issues.failed_payments > 0 && 
+              <div>Failed Payments: {stats.flagged_issues.failed_payments}</div>}
+          </div>
+        </div>
+      ) : '-'
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Platform Overview</h1>
-        <p className="text-gray-500">A high-level look at platform activity.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Admin Overview</h2>
+          <p className="text-gray-500">Platform metrics and activity</p>
+        </div>
+        <Button 
+          size="lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          + Create Order
+        </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map(stat => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value ?? '-'}</div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="hover:shadow-lg transition-shadow duration-200">
+            <CardContent className="flex flex-col items-center justify-center p-6 min-h-[120px]">
+              <span className="text-lg font-semibold text-gray-800">{metric.label}</span>
+              <span className="text-2xl text-blue-600 mt-2 font-bold">{metric.value}</span>
             </CardContent>
           </Card>
         ))}
       </div>
-      <LiveOrdersTable />
+
+      <AdminOrderModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onOrderCreated={refresh}
+      />
     </div>
   );
-}; 
+};

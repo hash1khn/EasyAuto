@@ -1,15 +1,14 @@
 import { Part } from './orders';
 
 export type QuoteCondition = 'Used - Excellent' | 'Used - Good' | 'Used - Fair';
-export type QuoteWarranty = 'No Warranty' | '3 Days' | '7 Days' | '14 Days' | '30 Days';
-
+export type QuoteWarranty = 'No Warranty' | '3 Days' | '7 Days' | '14 Days' | '30 Days' | string; 
 export interface MyQuote {
   id: string;
   price: number;
   condition: QuoteCondition;
   warranty: QuoteWarranty;
   notes?: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   isAccepted: boolean;
 }
 

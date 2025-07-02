@@ -13,6 +13,7 @@ interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOrderCreated?: () => void;
+  selectedBuyerId?: string | null;
 }
 
 interface Vehicle {
@@ -28,9 +29,16 @@ interface Part {
   partNumber: string;
   description: string;
   quantity: number;
+  estimatedBudget?: string;
+
 }
 
-export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrderCreated }) => {
+export const OrderModal: React.FC<OrderModalProps> = ({
+  isOpen,
+  onClose,
+  onOrderCreated,
+  selectedBuyerId
+}) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -115,16 +123,20 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
   };
 
   const handleSubmitOrder = async () => {
-    if (!user || vehicles.length === 0 || parts.length === 0) {
+    // Use selectedBuyerId if provided (admin case), otherwise use current user's id
+    const orderUserId = selectedBuyerId || user?.id;
+
+    if (!orderUserId || vehicles.length === 0 || parts.length === 0) {
       toast({
         title: "Cannot submit order",
-        description: "Please add at least one vehicle and one part.",
+        description: "Please complete all required information.",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
+    
 
     try {
       // Group parts by vehicle index
@@ -145,7 +157,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
           .insert({
-            user_id: user.id,
+            user_id: orderUserId,
             status: 'open'
           })
           .select()
@@ -157,7 +169,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .insert({
-            user_id: user.id,
+            user_id: orderUserId,
             make: vehicle.make,
             model: vehicle.model,
             year: vehicle.year,
@@ -178,9 +190,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrder
               part_name: part.partName,
               part_number: part.partNumber || null,
               description: part.description || null,
-              quantity: part.quantity
+              quantity: part.quantity,
+              estimated_budget: part.estimatedBudget ? parseFloat(part.estimatedBudget) : null
+
             })
         );
+        console.log('Inserting part with estimated budget:', vehicleParts);
+
 
         await Promise.all(partPromises);
 

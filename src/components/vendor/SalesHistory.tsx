@@ -11,18 +11,17 @@ import { ChevronDown, ChevronRight, Download, DollarSign, Package, Calendar } fr
 interface SalesOrder {
   order_id: string;
   order_date: string;
-  order_status: string;
-  is_paid: boolean;
   total_parts: number;
   total_earnings: number;
   parts: {
     id: string;
     part_name: string;
     quantity: number;
-    bid_price: number;
     vendor_earning: number;
     shipping_status: string;
     shipped_at: string | null;
+    collected_at: string | null;
+    delivered_at: string | null;
   }[];
 }
 
@@ -45,13 +44,11 @@ export const SalesHistory: React.FC = () => {
   }, [user]);
 
   const getOrderDisplayStatus = (order: SalesOrder): string => {
-    if (!order.is_paid) {
-      return order.order_status;
-    }
-
-    const allPartsDelivered = order.parts.every(part => part.shipping_status === 'delivered');
+    const allPartsDelivered = order.parts.every(part => 
+      part.shipping_status === 'delivered' || part.delivered_at
+    );
     const anyPartCollected = order.parts.some(part => 
-      part.shipping_status === 'collected' || part.shipping_status === 'admin_collected'
+      part.shipping_status === 'collected' || part.collected_at
     );
 
     if (allPartsDelivered) {
@@ -85,7 +82,7 @@ export const SalesHistory: React.FC = () => {
       // Step 2: Get part IDs from bids
       const partIds = bidsData.map(bid => bid.part_id);
 
-      // Step 3: Get parts data with order information - ONLY for paid orders
+      // Step 3: Get parts data with order information
       const { data: partsData, error: partsError } = await supabase
         .from('parts')
         .select(`
@@ -94,15 +91,18 @@ export const SalesHistory: React.FC = () => {
           quantity,
           shipping_status,
           order_id,
+          collected_at,
+          delivered_at,
           orders!inner (
             id,
-            created_at,
-            status,
-            is_paid
+            created_at
+          ),
+          invoices!inner (
+            payment_status
           )
         `)
         .in('id', partIds)
-        .eq('orders.is_paid', true);
+        .eq('invoices.payment_status', 'paid');
 
       if (partsError) throw partsError;
 
@@ -115,14 +115,12 @@ export const SalesHistory: React.FC = () => {
           if (!bid) continue;
 
           const orderId = part.order_id;
-          const vendorEarning = Number(bid.price) * 0.9; // 90% of bid price
+          const vendorEarning = bid.price
 
           if (!orderMap.has(orderId)) {
             orderMap.set(orderId, {
               order_id: orderId,
               order_date: part.orders.created_at,
-              order_status: part.orders.status,
-              is_paid: part.orders.is_paid,
               total_parts: 0,
               total_earnings: 0,
               parts: []
@@ -136,10 +134,11 @@ export const SalesHistory: React.FC = () => {
             id: part.id,
             part_name: part.part_name,
             quantity: part.quantity,
-            bid_price: Number(bid.price),
             vendor_earning: vendorEarning,
-            shipping_status: part.shipping_status || 'pending_pickup',
-            shipped_at: bid.shipped_at
+            shipping_status: part.shipping_status || 'pending',
+            shipped_at: bid.shipped_at,
+            collected_at: part.collected_at,
+            delivered_at: part.delivered_at
           });
         }
       }
@@ -194,7 +193,6 @@ export const SalesHistory: React.FC = () => {
         'Order Date': new Date(order.order_date).toLocaleDateString(),
         'Part Name': part.part_name,
         'Quantity': part.quantity,
-        'Bid Price (AED)': part.bid_price.toFixed(2),
         'Your Earning (AED)': part.vendor_earning.toFixed(2),
         'Shipping Status': part.shipping_status,
         'Order Status': getOrderDisplayStatus(order)
@@ -219,11 +217,9 @@ export const SalesHistory: React.FC = () => {
     const displayStatus = getOrderDisplayStatus(order);
     
     const statusMap = {
-      'open': { variant: 'outline' as const, label: 'Open' },
-      'pickup': { variant: 'secondary' as const, label: 'Pick-up' },
-      'delivering': { variant: 'default' as const, label: 'Delivering' },
-      'completed': { variant: 'default' as const, label: 'Completed' },
-      'cancelled': { variant: 'destructive' as const, label: 'Cancelled' }
+      'pickup': { variant: 'secondary' as const, label: 'Ready for Pickup' },
+      'delivering': { variant: 'default' as const, label: 'In Delivery' },
+      'completed': { variant: 'default' as const, label: 'Completed' }
     };
     
     const config = statusMap[displayStatus as keyof typeof statusMap] || { variant: 'outline' as const, label: displayStatus };
@@ -232,10 +228,13 @@ export const SalesHistory: React.FC = () => {
 
   const getShippingStatusBadge = (status: string) => {
     const statusMap = {
-      'pending_pickup': { variant: 'outline' as const, label: 'Pending Pickup' },
-      'collected': { variant: 'secondary' as const, label: 'Collected' },
-      'admin_collected': { variant: 'secondary' as const, label: 'Admin Collected' },
-      'delivered': { variant: 'default' as const, label: 'Delivered' }
+      'pending': { variant: 'outline' as const, label: 'Pending' },
+      'confirmed': { variant: 'secondary' as const, label: 'Confirmed' },
+      'out_for_delivery': { variant: 'secondary' as const, label: 'Out for Delivery' },
+      'delivered': { variant: 'default' as const, label: 'Delivered' },
+      'collected': { variant: 'default' as const, label: 'Collected' },
+      'cancelled': { variant: 'destructive' as const, label: 'Cancelled' },
+      'refunded': { variant: 'destructive' as const, label: 'Refunded' }
     };
     
     const config = statusMap[status as keyof typeof statusMap] || { variant: 'outline' as const, label: status };
@@ -364,10 +363,6 @@ export const SalesHistory: React.FC = () => {
                                       </div>
                                       <div className="flex items-center space-x-4">
                                         <div className="text-right">
-                                          <div className="text-sm text-gray-600">Bid Price</div>
-                                          <div className="font-medium">AED {part.bid_price.toFixed(2)}</div>
-                                        </div>
-                                        <div className="text-right">
                                           <div className="text-sm text-gray-600">Your Earning</div>
                                           <div className="font-semibold text-green-600">AED {part.vendor_earning.toFixed(2)}</div>
                                         </div>
@@ -379,6 +374,11 @@ export const SalesHistory: React.FC = () => {
                                     {part.shipped_at && (
                                       <div className="mt-2 text-sm text-gray-500">
                                         Shipped on: {new Date(part.shipped_at).toLocaleString()}
+                                      </div>
+                                    )}
+                                    {part.delivered_at && (
+                                      <div className="mt-2 text-sm text-gray-500">
+                                        Delivered on: {new Date(part.delivered_at).toLocaleString()}
                                       </div>
                                     )}
                                   </div>

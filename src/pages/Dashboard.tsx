@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { AuthModal } from '@/components/AuthModal';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import  DashboardLayout from '@/components/dashboard/DashboardLayout'
 import { BuyerDashboard } from '@/components/dashboard/BuyerDashboard';
 import { QuoteHistory } from '@/components/dashboard/QuoteHistory';
 import { Support } from '@/components/dashboard/Support';
@@ -21,6 +21,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showVendorApplication, setShowVendorApplication] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -98,6 +99,7 @@ const Dashboard = () => {
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
+        showSignup={showSignup}
       />
     );
   }

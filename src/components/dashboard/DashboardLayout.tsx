@@ -1,111 +1,145 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { ResponsiveSidebar } from '@/components/layout/ResponsiveSidebar';
-import { Home, FileText, HeadphonesIcon, Settings, LogOut, Shield } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useUserRoles } from '@/hooks/useUserRoles';
-import { DashboardTab } from '@/types/dashboard';
+import { useState, useRef } from "react";
+import { Shield } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useNavigate } from "react-router-dom";
+import { Sidebar } from "@/components/buyer/Sidebar";
+import { DashboardTab } from "@/components/buyer/DashboardTab";
+import { OrderHistoryTab } from "@/components/buyer/OrderHistoryTab";
+import { SupportTab } from "@/components/buyer/SupportTab";
+import { SettingsTab } from "@/components/buyer/SettingsTab";
+import { Button } from "@/components/ui/button";
+import { Menu, MessageSquare, Plus } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { NewOrderModal } from "@/components/buyer/OrderModal/NewOrderModal";
 
-const tabs = [
-  { id: 'home' as DashboardTab, label: 'Dashboard', icon: Home },
-  { id: 'quotes' as DashboardTab, label: 'Order History', icon: FileText },
-  { id: 'support' as DashboardTab, label: 'Support', icon: HeadphonesIcon },
-  { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
-  // Note: vendor-application tab is not shown in the sidebar but is handled in the Dashboard component
-];
+export default function DashboardLayout() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const refetchOrdersRef = useRef<() => void>(() => {});
+  
+  // WhatsApp support details
+  const whatsappNumber = "+971551776860";
+  const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
+  const defaultMessage = "Hello! I need help with my order.";
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-  activeTab: DashboardTab;
-  onTabChange: (tab: DashboardTab) => void;
-  userProfile?: any;
-  showVendorSwitch?: boolean;     // Add this
-  onSwitchToVendor?: () => void;  // Add this
-}
-
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
-  children,
-  activeTab,
-  onTabChange,
-  userProfile,
-  showVendorSwitch = false,    // Add with default value
-  onSwitchToVendor            // Add this
-}) => {
-  const { signOut } = useAuth();
-  const { isAdmin: isAdminUser } = useUserRoles();
+  const { isAdmin } = useUserRoles();
   const navigate = useNavigate();
 
-  const sidebarItems = tabs.map(tab => ({
-    id: tab.id,
-    label: tab.label,
-    icon: tab.icon,
-    isActive: activeTab === tab.id,
-    onClick: () => onTabChange(tab.id)
-  }));
+  const handleOrderCreated = () => {
+    setShowOrderModal(false);
+    if (refetchOrdersRef.current) {
+      refetchOrdersRef.current();
+    }
+  };
 
-  const header = (
-    <div className="p-4 space-y-2">
-      <div className='text-center text-sm p-2 bg-gray-50 text-gray-700 rounded-md'>
-        Buyer: {userProfile?.full_name}
-      </div>
-    </div>
-  );
+  const handleWhatsAppClick = () => {
+    window.open(`${whatsappUrl}?text=${encodeURIComponent(defaultMessage)}`, '_blank');
+  };
 
-  const footer = (
-    <div className="space-y-3">
-      {/* Show vendor switch if enabled */}
-      {showVendorSwitch && onSwitchToVendor && (
-        <div className="space-y-2 border-b border-gray-200 pb-3 mb-3">
-          <Button
-            onClick={onSwitchToVendor}
-            variant="outline"
-            className="w-full text-sm"
-          >
-            Switch to Vendor Mode
-          </Button>
-        </div>
-      )}
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <DashboardTab />;
+      case "orderHistory":
+        return <OrderHistoryTab />;
+      case "support":
+        return <SupportTab />;
+      case "settings":
+        return <SettingsTab />;
+      default:
+        return <DashboardTab />;
+    }
+  };
 
-      {/* Show admin switch if user is admin */}
-      {isAdminUser() && (
-        <div className="space-y-2 border-b border-gray-200 pb-3 mb-3">
-          <p className="text-xs text-gray-500 mb-2">Switch Dashboard</p>
+  const getTabTitle = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return "Dashboard";
+      case "orderHistory":
+        return "Order History";
+      case "support":
+        return "Support";
+      case "settings":
+        return "Settings";
+      default:
+        return "Dashboard";
+    }
+  };
+
+  // Create a shared sidebar content component
+  const sidebarContent = (
+    <Sidebar 
+      activeTab={activeTab} 
+      onTabChange={setActiveTab}
+    >
+      {isAdmin() && (
+        <div className="p-4 border-t mt-auto">
           <Button
             onClick={() => navigate('/admin')}
             variant="outline"
-            className="w-full text-sm bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+            className="w-full text-sm bg-red-50 border-red-200 text-red-700 hover:bg-red-100 flex items-center justify-center"
           >
             <Shield className="w-4 h-4 mr-2" />
             Admin Mode
           </Button>
         </div>
       )}
-
-      <Button
-        onClick={signOut}
-        variant="outline"
-        className="w-full flex items-center justify-center"
-      >
-        <LogOut className="w-4 h-4 mr-2" />
-        Sign Out
-      </Button>
-    </div>
+    </Sidebar>
   );
 
   return (
-    <ResponsiveSidebar
-      title="Buyer Dashboard"
-      subtitle="EasyCarParts.ae"
-      items={sidebarItems}
-      header={header}
-      footer={footer}
-    >
-      <main className="min-h-screen bg-gray-50"> {/* Add min-h-screen */}
-        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-          {children}
-        </div>
-      </main>
-    </ResponsiveSidebar>
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64 border-r">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Sidebar */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden absolute top-4 left-4">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0">
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <header className="border-b p-4 md:p-6 flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="md:hidden w-8" /> {/* Spacer for mobile */}
+            <h1 className="text-2xl font-bold">{getTabTitle()}</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button onClick={() => setShowOrderModal(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Order
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleWhatsAppClick}
+            >
+              <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp Help
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
+          {renderTabContent()}
+        </main>
+      </div>
+      
+      <NewOrderModal 
+        isOpen={showOrderModal}
+        onClose={() => setShowOrderModal(false)}
+        onOrderCreated={handleOrderCreated} 
+      />
+    </div>
   );
-};
+}

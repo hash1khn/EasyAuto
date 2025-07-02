@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, ArrowLeft, ArrowRight, Settings, Package, Car } from 'lucide-react';
+import { Plus, X, ArrowLeft, ArrowRight, Settings, Package, Car, DollarSign } from 'lucide-react';
 
 interface Vehicle {
   make: string;
@@ -22,6 +21,7 @@ interface Part {
   partNumber: string;
   description: string;
   quantity: number;
+  estimatedBudget?: string;
 }
 
 interface PartsStepProps {
@@ -57,7 +57,8 @@ export const PartsStep: React.FC<PartsStepProps> = ({
       partName: '',
       partNumber: '',
       description: '',
-      quantity: 1
+      quantity: 1,
+      estimatedBudget: ''
     }));
   };
 
@@ -122,6 +123,23 @@ export const PartsStep: React.FC<PartsStepProps> = ({
               />
             </div>
             
+            <div>
+              <Label htmlFor="estimatedBudget">Max Budget (Optional)</Label>
+              <div className="relative mt-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <DollarSign className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  id="estimatedBudget"
+                  type="number"
+                  placeholder="e.g., 150"
+                  value={currentPart.estimatedBudget || ''}
+                  onChange={(e) => setCurrentPart(prev => ({ ...prev, estimatedBudget: e.target.value }))}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            
             <div className="md:col-span-2">
               <Label htmlFor="description">Additional Details (Optional)</Label>
               <Textarea
@@ -173,6 +191,12 @@ export const PartsStep: React.FC<PartsStepProps> = ({
                           <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs px-1.5 py-0.5">
                             {part.quantity}x
                           </Badge>
+                          {part.estimatedBudget && (
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs px-1.5 py-0.5 flex items-center">
+                              <DollarSign className="w-3 h-3 mr-1" />
+                              {part.estimatedBudget}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center text-xs text-gray-600 space-x-1">
                           <Car className="w-3 h-3" />

@@ -6,11 +6,10 @@ import { Home, BarChart3, Settings, LogOut, Package, Shield } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import { useUserRoles } from '@/hooks/useUserRoles';
 
-export type VendorDashboardTab = 'home' | 'ready-to-ship' | 'sales-history' | 'settings';
+export type VendorDashboardTab = 'home' | 'ready-to-ship' |'settings';
 
 const tabs = [
   { id: 'home' as VendorDashboardTab, label: 'Vendor Home', icon: Home },
-  { id: 'ready-to-ship' as VendorDashboardTab, label: 'Ready to Ship', icon: Package },
   { id: 'sales-history' as VendorDashboardTab, label: 'Sales History', icon: BarChart3 },
   { id: 'settings' as VendorDashboardTab, label: 'Settings', icon: Settings },
 ];

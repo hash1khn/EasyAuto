@@ -2,46 +2,182 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+
+interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  vin?: string;
+  parts: Array<{
+    id: string;
+    part_name: string;
+    part_number?: string;
+    quantity: number;
+    shipping_status: string;
+  }>;
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  status: string;
+  vehicles: Vehicle[];
+}
 
 interface RecentOrdersProps {
   userId: string;
 }
 
-// Define more specific types based on your expected query result
-type Order = {
+// First, add an interface for the Supabase response
+interface PartWithVehicle {
   id: string;
-  created_at: string;
-  status: 'open' | 'partial' | 'closed' | 'cancelled' | 'refunded' | 'ready_for_checkout' | 'completed';
-  is_paid: boolean;
-  parts: { part_name: string; quantity: number }[];
-  invoice: { invoice_url: string | null; total_amount: number } | null;
-  vehicle: { make: string; model: string; year: number } | null;
+  order_id: string;
+  vehicle_id: string;
+  part_name: string;
+  part_number?: string;
+  quantity: number;
+  shipping_status: string;
+  vehicles: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+    vin?: string;
+  };
+}
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'confirmed':
+      return 'bg-blue-100 text-blue-800';
+    case 'out_for_delivery':
+      return 'bg-purple-100 text-purple-800';
+    case 'delivered':
+      return 'bg-green-100 text-green-800';
+    case 'cancelled':
+      return 'bg-red-100 text-red-800';
+    case 'refunded':
+      return 'bg-orange-100 text-orange-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const formatStatus = (status: string) => {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const getOverallOrderStatus = (vehicles: Vehicle[]) => {
+  const allParts = vehicles.flatMap(v => v.parts);
+  if (allParts.length === 0) return 'No Parts';
+
+  const statuses = allParts.map(p => p.shipping_status);
+
+  if (statuses.every(s => s === 'delivered')) return 'Fully Delivered';
+  if (statuses.some(s => s === 'cancelled')) return 'Cancelled';
+  if (statuses.some(s => s === 'out_for_delivery')) return 'In Transit';
+  if (statuses.some(s => s === 'confirmed')) return 'Processing';
+
+  return 'Pending';
 };
 
 export const RecentOrders: React.FC<RecentOrdersProps> = ({ userId }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      setLoading(true);
-      setError(null);
+      try {
+        // Fetch orders
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            created_at,
+            status
+          `)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
 
-      const { data, error } = await (supabase.rpc as any)('get_user_orders', {
-        p_user_id: userId,
-      });
+        if (ordersError) throw ordersError;
 
-      if (error) {
+        // Fetch parts and vehicles for each order
+        const orderIds = ordersData?.map(order => order.id) || [];
+        const { data: partsData, error: partsError } = await supabase
+          .from('parts')
+          .select(`
+            id,
+            order_id,
+            vehicle_id,
+            part_name,
+            part_number,
+            quantity,
+            shipping_status,
+            vehicles (
+              id,
+              make,
+              model,
+              year,
+              vin
+            )
+          `)
+          .in('order_id', orderIds);
+
+        if (partsError) throw partsError;
+
+        // Transform the data
+        const transformedOrders = ordersData?.map(order => {
+          const orderParts = (partsData as unknown as PartWithVehicle[] | null)?.filter(part => 
+            part.order_id === order.id
+          ) || [];
+
+          // Group parts by vehicle
+          const vehicleMap = new Map<string, Vehicle>();
+          orderParts.forEach(part => {
+            if (!vehicleMap.has(part.vehicle_id)) {
+              // Now TypeScript knows the shape of vehicles
+              const vehicle = part.vehicles;
+              vehicleMap.set(part.vehicle_id, {
+                id: vehicle.id,
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                vin: vehicle.vin,
+                parts: []
+              });
+            }
+
+            vehicleMap.get(part.vehicle_id)?.parts.push({
+              id: part.id,
+              part_name: part.part_name,
+              part_number: part.part_number,
+              quantity: part.quantity,
+              shipping_status: part.shipping_status
+            });
+          });
+
+          const vehicles = Array.from(vehicleMap.values());
+
+          return {
+            id: order.id,
+            created_at: order.created_at,
+            status: getOverallOrderStatus(vehicles),
+            vehicles
+          };
+        }) || [];
+
+        setOrders(transformedOrders);
+      } catch (error) {
         console.error('Error fetching orders:', error);
-        setError('Failed to fetch recent orders.');
-      } else {
-        setOrders((data as Order[]) || []);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     if (userId) {
@@ -49,82 +185,62 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ userId }) => {
     }
   }, [userId]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-20">
-        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading orders...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>No Orders</AlertTitle>
-        <AlertDescription>This user has no recent orders matching the criteria.</AlertDescription>
-      </Alert>
-    );
-  }
+  if (loading) return <div>Loading orders...</div>;
+  if (!orders.length) return <div>No orders found</div>;
 
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <div className="space-y-4">
       {orders.map(order => (
-        <AccordionItem value={order.id} key={order.id}>
-          <AccordionTrigger>
-            <div className="flex justify-between items-center w-full pr-4">
-              <div className="text-left">
-                <p className="font-semibold">
-                  Order #{order.id.substring(0, 8)}
-                  {order.vehicle && ` for ${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.year})`}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {new Date(order.created_at).toLocaleDateString()}
-                  {order.parts && ` - ${order.parts.reduce((acc, p) => acc + p.quantity, 0)} items`}
-                </p>
+        <Card key={order.id} className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-semibold">Order #{order.id.slice(0, 8)}</h3>
+              <p className="text-sm text-gray-500">
+                {format(new Date(order.created_at), 'PPP')}
+              </p>
+            </div>
+            <Badge className={getStatusColor(order.status)}>
+              {formatStatus(order.status)}
+            </Badge>
+          </div>
+
+          <div className="space-y-4">
+            {order.vehicles.map(vehicle => (
+              <div key={vehicle.id} className="border-t pt-4">
+                <div className="font-medium mb-2">
+                  {vehicle.make} {vehicle.model} {vehicle.year}
+                  {vehicle.vin && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      VIN: {vehicle.vin}
+                    </span>
+                  )}
+                </div>
+                <Label className="text-sm text-gray-600">Parts</Label>
+                <ul className="mt-2 space-y-2">
+                  {vehicle.parts.map(part => (
+                    <li key={part.id} className="flex items-center justify-between">
+                      <div>
+                        <span>{part.part_name}</span>
+                        {part.part_number && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({part.part_number})
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-500 ml-2">
+                          x{part.quantity}
+                        </span>
+                      </div>
+                      <Badge className={getStatusColor(part.shipping_status)}>
+                        {formatStatus(part.shipping_status)}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <Badge>{order.status}</Badge>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-2">
-              <p><strong>Status:</strong> <Badge variant="outline">{order.status}</Badge></p>
-              <p><strong>Paid:</strong> {order.is_paid ? <Badge color="green">Yes</Badge> : <Badge variant="secondary">No</Badge>}</p>
-              {order.invoice?.total_amount && (
-                 <p><strong>Total:</strong> AED {order.invoice.total_amount.toFixed(2)}</p>
-              )}
-              {order.is_paid && order.invoice?.invoice_url && (
-                <Button variant="link" asChild className="p-0 h-auto">
-                  <a href={order.invoice.invoice_url} target="_blank" rel="noopener noreferrer">
-                    View Invoice
-                  </a>
-                </Button>
-              )}
-              {order.parts && order.parts.length > 0 && (
-                <>
-                  <h4 className="font-semibold mt-2">Parts</h4>
-                  <ul className="list-disc list-inside pl-4">
-                    {order.parts.map((part, index) => (
-                      <li key={index}>{part.part_name} (x{part.quantity})</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+            ))}
+          </div>
+        </Card>
       ))}
-    </Accordion>
+    </div>
   );
-}; 
+};

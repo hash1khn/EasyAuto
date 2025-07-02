@@ -37,7 +37,7 @@ export const UpdateQuoteModal = ({
                     condition: updatedQuote.condition,
                     warranty: updatedQuote.warranty,
                     notes: updatedQuote.notes,
-                    image_url: updatedQuote.imageUrl,
+                    image_urls: updatedQuote.imageUrls,
                 })
                 .eq("id", updatedQuote.id);
 
@@ -142,15 +142,22 @@ export const UpdateQuoteModal = ({
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center gap-x-3">
-                                                        {part.myQuote
-                                                            ?.imageUrl && (
-                                                            <img
-                                                                src={
-                                                                    part.myQuote
-                                                                        .imageUrl
-                                                                }
-                                                                className="h-8 w-8 rounded-sm object-cover border"
-                                                            />
+                                                        {part.myQuote?.imageUrls && part.myQuote.imageUrls.length > 0 && (
+                                                            <div className="flex gap-1">
+                                                                {part.myQuote.imageUrls.slice(0, 2).map((imageUrl, index) => (
+                                                                    <img
+                                                                        key={index}
+                                                                        src={imageUrl}
+                                                                        className="h-8 w-8 rounded-sm object-cover border"
+                                                                        alt={`Part image ${index + 1}`}
+                                                                    />
+                                                                ))}
+                                                                {part.myQuote.imageUrls.length > 2 && (
+                                                                    <div className="h-8 w-8 rounded-sm bg-gray-100 border flex items-center justify-center text-xs text-gray-600">
+                                                                        +{part.myQuote.imageUrls.length - 2}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         )}
                                                         {part.myQuote
                                                             ?.isAccepted ? (

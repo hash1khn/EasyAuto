@@ -41,16 +41,16 @@ export const signUp = async (data: SignUpData) => {
 
       if (userError) throw userError;
 
-      // 3. Create user role FIRST with upsert (use ignoreDuplicates: false for updates)
+      // Update user_roles to require approval for all users
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert([{
           user_id: userId,
           role: data.userData.role,
-          is_approved: data.userData.role === 'buyer'
+          is_approved: false  // Set to false for all users initially
         }], {
           onConflict: 'user_id',
-          ignoreDuplicates: false // Allow updates to role if needed
+          ignoreDuplicates: false
         });
 
       if (roleError) {
@@ -58,7 +58,7 @@ export const signUp = async (data: SignUpData) => {
         throw roleError;
       }
 
-      // 4. Create user profile with upsert
+      // Update user_profiles with application status for all users
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert([{
@@ -69,13 +69,13 @@ export const signUp = async (data: SignUpData) => {
           location: data.userData.location,
           business_name: data.userData.business_name,
           vendor_tags: data.userData.vendor_tags || [],
-          delivery_address: data.userData.delivery_address, // Re-added missing field
+          delivery_address: data.userData.delivery_address,
           google_maps_url: data.userData.google_maps_url,
-          application_status: data.userData.role === 'vendor' ? 'pending' : 'not_applied',
-          application_submitted_at: data.userData.role === 'vendor' ? new Date().toISOString() : null
+          application_status: 'pending',  // Set pending for all users
+          application_submitted_at: new Date().toISOString()  // Set for all users
         }], {
           onConflict: 'id',
-          ignoreDuplicates: false // Allow profile updates
+          ignoreDuplicates: false
         });
 
       if (profileError) throw profileError;

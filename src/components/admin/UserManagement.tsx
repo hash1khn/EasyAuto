@@ -3,9 +3,21 @@ import { useAdminData, User } from '@/hooks/useAdminData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { UserDetailsModal } from './UserDetailsModal';
+
+const ROLE_COLORS = {
+  admin: 'bg-red-100 text-red-800',
+  vendor: 'bg-blue-100 text-blue-800',
+  buyer: 'bg-green-100 text-green-800',
+  driver: 'bg-purple-100 text-purple-800'
+};
+
+const ALL_ROLES = ['admin', 'vendor', 'buyer', 'driver'];
 
 export const UserManagement: React.FC = () => {
   const { users, refresh: refreshAdminData } = useAdminData();
@@ -63,7 +75,7 @@ export const UserManagement: React.FC = () => {
       </div>
       <div className="bg-white p-4 rounded-lg shadow">
         <Input
-          placeholder="Filter by email, name, or business..."
+          placeholder="Filter by email, name, role, business, or location..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-sm"
@@ -78,7 +90,12 @@ export const UserManagement: React.FC = () => {
               </TableHead>
               <TableHead>Full Name</TableHead>
               <TableHead>Business Name</TableHead>
-              <TableHead>Roles</TableHead>
+              <TableHead onClick={() => handleSort('role')} className="cursor-pointer">
+                Roles <ArrowUpDown className="w-4 h-4 inline-block ml-1" />
+              </TableHead>
+              <TableHead onClick={() => handleSort('created_at')} className="cursor-pointer">
+                Joined Date <ArrowUpDown className="w-4 h-4 inline-block ml-1" />
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -87,12 +104,23 @@ export const UserManagement: React.FC = () => {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.full_name || 'N/A'}</TableCell>
                 <TableCell>{user.business_name || 'N/A'}</TableCell>
-                <TableCell>{user.roles?.join(', ') || 'N/A'}</TableCell>
+                <TableCell>
+                  {user.roles?.map(role => (
+                    <span
+                      key={role}
+                      className={`inline-block rounded-full px-2 py-1 text-xs font-semibold mr-1 mb-1 ${ROLE_COLORS[role] || 'bg-gray-300 text-black'}`}
+                    >
+                      {role}
+                    </span>
+                  ))}
+                </TableCell>
+                <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+      
       <UserDetailsModal
         user={selectedUser}
         isOpen={isModalOpen}
@@ -101,4 +129,4 @@ export const UserManagement: React.FC = () => {
       />
     </div>
   );
-}; 
+};

@@ -21,6 +21,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false); // Add this line
+
   const { toast } = useToast();
 
   const fetchUserRoles = async (userId: string): Promise<string[]> => {
@@ -73,6 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setLoading(false);
+      setInitialized(true); // Add this line
+
     }
   );
 
@@ -85,6 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setLoading(false);
+    setInitialized(true); // Add this line
+
   });
 
   return () => subscription.unsubscribe();
@@ -153,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    initialized, // Add this to the context value
     signUp,
     signIn,
     signOut

@@ -7,8 +7,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles: string[];
   requireApproval?: boolean;
-  isPaymentRoute?: boolean; // New prop to identify payment route
+  isPaymentRoute?: boolean;
 }
+
+const FullPageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-background/80 z-50">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  </div>
+);
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
@@ -16,12 +22,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireApproval = false,
   isPaymentRoute = false
 }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
   const location = useLocation();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isApproved, setIsApproved] = useState<boolean>(false);
   const [checkingRole, setCheckingRole] = useState(true);
   const [paymentSessionValid, setPaymentSessionValid] = useState<boolean | null>(null);
+  const [intendedPath, setIntendedPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialized) {
+      // Store the intended path while we're waiting for auth to initialize
+      setIntendedPath(location.pathname);
+    } else if (intendedPath && intendedPath !== location.pathname) {
+      // Clear the intended path after we've initialized
+      setIntendedPath(null);
+    }
+  }, [initialized, location.pathname]);
 
   useEffect(() => {
     const fetchUserRoleAndStatus = async () => {
@@ -31,7 +48,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       }
 
       try {
-        // Get user role and approval status
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role, is_approved')
@@ -62,16 +78,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         setUserRole('buyer');
         setIsApproved(true);
       }
-
       setCheckingRole(false);
     };
 
-    fetchUserRoleAndStatus();
-  }, [user, requireApproval]);
+    if (initialized && user) {
+      fetchUserRoleAndStatus();
+    }
+  }, [user, requireApproval, initialized]);
 
   useEffect(() => {
-    // Special handling for payment route
-    if (isPaymentRoute) {
+    if (isPaymentRoute && initialized) {
       const verifyPaymentSession = async () => {
         const sessionId = new URLSearchParams(location.search).get('session_id');
         if (!sessionId) {
@@ -95,11 +111,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       verifyPaymentSession();
     }
-  }, [isPaymentRoute, location.search]);
+  }, [isPaymentRoute, location.search, initialized]);
 
   // Show loading while auth or role check is in progress
-  if (loading || checkingRole || (isPaymentRoute && paymentSessionValid === null)) {
-    return <div>Loading...</div>;
+  if (!initialized || loading || checkingRole || (isPaymentRoute && paymentSessionValid === null)) {
+    return <FullPageLoader />;
   }
 
   // Special case for payment route
@@ -108,6 +124,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return <Navigate to="/" replace />;
     }
     return <>{children}</>;
+  }
+
+  // If we have an intended path and we're now initialized, redirect there
+  if (intendedPath && intendedPath !== location.pathname) {
+    return <Navigate to={intendedPath} replace />;
   }
 
   // Normal protected route logic
@@ -121,9 +142,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to="/admin" replace />;
       case 'vendor':
         return <Navigate to="/vendor" replace />;
-      case'driver':
+      case 'sourcer':
+        return <Navigate to="/sourcer" replace />;
+      case 'driver':
         return <Navigate to="/driver/dashboard" replace />;
-
       default:
         return <Navigate to="/dashboard" replace />;
     }

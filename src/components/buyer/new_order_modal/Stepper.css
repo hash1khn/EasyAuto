@@ -1,0 +1,78 @@
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    position: relative;
+}
+
+.step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.step-label {
+    margin-left: 12px;
+}
+
+.step-title {
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.step-subtitle {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+/* Connector Line */
+.step-connector {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #e5e7eb;
+    margin: 0 16px;
+}
+
+
+/* Active State */
+.step-item.active .step-circle {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.step-item.active .step-title {
+    color: #111827;
+}
+
+/* Completed State */
+.step-item.completed .step-circle {
+    background-color: #22c55e;
+    color: #ffffff;
+    border-color: #22c55e;
+}
+
+.step-item.completed .step-title {
+    color: #111827;
+}
+
+.step-item.completed .step-connector {
+    background-color: #22c55e;
+} 
