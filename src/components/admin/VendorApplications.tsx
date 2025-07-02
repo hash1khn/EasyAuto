@@ -34,7 +34,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminData";
 
-// Add debugging for data fetching and state updates
 export const VendorApplications: React.FC = () => {
     const { applications, refresh: refetchVendorApplications } = useAdminData();
     const [loadingStates, setLoadingStates] = useState<{
@@ -45,15 +44,7 @@ export const VendorApplications: React.FC = () => {
     const [appDraft, setAppDraft] = useState<UserProfile | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    // Add debug logging for application data
-    React.useEffect(() => {
-        console.log("Current applications:", applications);
-        console.log("Filtered applications:", filteredApplications);
-    }, [applications]);
-
-    // Enhanced handleOpenModal with debugging
     const handleOpenModal = (app: UserProfile) => {
-        console.log("Opening modal for application:", app);
         setSelectedApp(app);
         setAppDraft({ ...app });
         setModalOpen(true);
@@ -69,23 +60,15 @@ export const VendorApplications: React.FC = () => {
         setAppDraft((prev) => ({ ...prev, [field]: value }));
     };
 
-    // Enhanced handleAccept with detailed error logging
     const handleAccept = async () => {
         if (!appDraft?.user_id) {
             console.error("No user_id found in appDraft:", appDraft);
             return;
         }
 
-        console.log("Starting approval process for:", {
-            userId: appDraft.user_id,
-            role: appDraft.role,
-            currentStatus: appDraft.application_status
-        });
-
         setLoadingStates((prev) => ({ ...prev, [appDraft.user_id]: true }));
 
         try {
-            console.log("Updating user_profiles...");
             // Update application status in user_profiles
             const { data: profileData, error: updateError } = await supabase
                 .from("user_profiles")
@@ -100,16 +83,8 @@ export const VendorApplications: React.FC = () => {
                 .eq("user_id", appDraft.user_id)
                 .select();
 
-            if (updateError) {
-                console.error("Profile update failed:", {
-                    error: updateError,
-                    context: appDraft
-                });
-                throw updateError;
-            }
-            console.log("Profile update successful:", profileData);
+            if (updateError) throw updateError;
 
-            console.log("Updating user_roles...");
             // Update user role
             const { data: roleData, error: roleUpdateError } = await supabase
                 .from("user_roles")
@@ -119,19 +94,9 @@ export const VendorApplications: React.FC = () => {
                 .eq("user_id", appDraft.user_id)
                 .select();
 
-            if (roleUpdateError) {
-                console.error("Role update failed:", {
-                    error: roleUpdateError,
-                    context: appDraft
-                });
-                throw roleUpdateError;
-            }
-            console.log("Role update successful:", roleData);
+            if (roleUpdateError) throw roleUpdateError;
 
-            console.log("Refetching vendor applications...");
             await refetchVendorApplications();
-            
-            console.log("Approval process completed successfully");
             handleCloseModal();
 
             toast({
@@ -139,16 +104,6 @@ export const VendorApplications: React.FC = () => {
                 description: "Vendor application has been approved successfully.",
             });
         } catch (error) {
-            console.error("Approval process failed:", {
-                error,
-                appDraft,
-                context: {
-                    userId: appDraft.user_id,
-                    role: appDraft.role,
-                    status: appDraft.application_status
-                }
-            });
-            
             toast({
                 title: "Error",
                 description: `Failed to approve the application: ${error.message}`,
@@ -159,39 +114,77 @@ export const VendorApplications: React.FC = () => {
                 ...prev,
                 [appDraft.user_id]: false,
             }));
-            console.log("Loading state cleared for user:", appDraft.user_id);
         }
     };
 
     const filteredApplications = applications.filter(
-  (app) => 
-    app.application_status !== "not_applied" && 
-    (app.role === "vendor" || app.role === "buyer") // Explicitly allow only these
-);
-
-    // Add debug logging for loading states
-    React.useEffect(() => {
-        console.log("Current loading states:", loadingStates);
-    }, [loadingStates]);
-
-    // Add debug logging for modal state
-    React.useEffect(() => {
-        console.log("Modal state:", {
-            isOpen: modalOpen,
-            selectedApp,
-            appDraft
-        });
-    }, [modalOpen, selectedApp, appDraft]);
+        (app) => 
+            app.application_status !== "not_applied" && 
+            (app.role === "vendor" || app.role === "buyer")
+    );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-4 md:p-6">
             <div>
-                <h1 className="text-2xl font-bold">User Applications</h1>
-                <p className="text-gray-500">
+                <h1 className="text-xl md:text-2xl font-bold">User Applications</h1>
+                <p className="text-sm md:text-base text-gray-500">
                     Review and manage both buyer and vendor applications.
                 </p>
             </div>
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
+            
+            {/* Mobile Cards View */}
+            <div className="block md:hidden space-y-4">
+                {filteredApplications.map((app) => (
+                    <Card key={app.id} className="p-4">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <Badge
+                                    variant={app.role === "vendor" ? "default" : "secondary"}
+                                    className={`text-xs ${app.role === "vendor" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
+                                >
+                                    {app.role === "vendor" ? "Vendor" : "Buyer"}
+                                </Badge>
+                                <h3 className="font-medium mt-1">{app.business_name || "N/A"}</h3>
+                                <p className="text-sm text-gray-600">{app.full_name}</p>
+                            </div>
+                            <Badge
+                                variant={app.application_status === "approved" ? "default" : "secondary"}
+                                className="text-xs"
+                            >
+                                {app.application_status}
+                            </Badge>
+                        </div>
+                        
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <p className="text-gray-500">Contact</p>
+                                <p>{app.whatsapp_number}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Location</p>
+                                <p>{app.location || "N/A"}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Date</p>
+                                <p>{format(new Date(app.application_submitted_at), "MMM d, yyyy")}</p>
+                            </div>
+                        </div>
+                        
+                        {app.application_status !== "approved" && (
+                            <Button
+                                size="sm"
+                                className="mt-3 w-full"
+                                onClick={() => handleOpenModal(app)}
+                            >
+                                View
+                            </Button>
+                        )}
+                    </Card>
+                ))}
+            </div>
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -255,7 +248,7 @@ export const VendorApplications: React.FC = () => {
             </div>
 
             <Dialog open={modalOpen} onOpenChange={handleCloseModal}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
                             {appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application Details
@@ -266,17 +259,17 @@ export const VendorApplications: React.FC = () => {
                     </DialogHeader>
 
                     {appDraft && (
-                        <div className="space-y-6 py-4">
-                            <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-4 py-2">
+                            <div className="grid grid-cols-1 gap-3">
                                 {/* Application Type */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Application Type
                                     </Label>
                                     <div className="px-3 py-2 rounded-md bg-muted">
                                         <Badge
                                             variant={appDraft.role === "vendor" ? "default" : "secondary"}
-                                            className={appDraft.role === "vendor" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
+                                            className={`text-xs md:text-sm ${appDraft.role === "vendor" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
                                         >
                                             {appDraft.role === "vendor" ? "Vendor" : "Buyer"}
                                         </Badge>
@@ -284,61 +277,61 @@ export const VendorApplications: React.FC = () => {
                                 </div>
 
                                 {/* Email */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Email
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
                                         {appDraft.email || "N/A"}
                                     </div>
                                 </div>
 
                                 {/* Full Name */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Full Name
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
                                         {appDraft.full_name || "N/A"}
                                     </div>
                                 </div>
 
                                 {/* Business Name */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Business Name
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
                                         {appDraft.business_name || "N/A"}
                                     </div>
                                 </div>
 
                                 {/* WhatsApp Number */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         WhatsApp Number
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
                                         {appDraft.whatsapp_number || "N/A"}
                                     </div>
                                 </div>
 
                                 {/* Location */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Location
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
                                         {appDraft.location || "N/A"}
                                     </div>
                                 </div>
 
                                 {/* Google Maps URL */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-muted-foreground">
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
                                         Google Maps URL
                                     </Label>
-                                    <div className="px-3 py-2 rounded-md bg-muted">
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm break-words">
                                         {appDraft.google_maps_url ? (
                                             <a
                                                 href={appDraft.google_maps_url}
@@ -356,17 +349,21 @@ export const VendorApplications: React.FC = () => {
                         </div>
                     )}
 
-                    <DialogFooter className="border-t pt-4">
+                    <DialogFooter className="border-t pt-4 flex flex-col sm:flex-row gap-2">
                         <Button
                             onClick={handleAccept}
                             disabled={loadingStates[appDraft?.user_id]}
-                            className={appDraft?.role === "vendor" ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}
+                            className={`w-full sm:w-auto ${appDraft?.role === "vendor" ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}`}
                         >
                             {loadingStates[appDraft?.user_id]
                                 ? "Processing..."
                                 : `Accept ${appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application`}
                         </Button>
-                        <Button variant="outline" onClick={handleCloseModal}>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleCloseModal}
+                            className="w-full sm:w-auto"
+                        >
                             Close
                         </Button>
                     </DialogFooter>
