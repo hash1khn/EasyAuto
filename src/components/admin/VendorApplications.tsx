@@ -34,6 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/hooks/useAdminData";
 
+// Add debugging for data fetching and state updates
 export const VendorApplications: React.FC = () => {
     const { applications, refresh: refetchVendorApplications } = useAdminData();
     const [loadingStates, setLoadingStates] = useState<{
@@ -44,7 +45,15 @@ export const VendorApplications: React.FC = () => {
     const [appDraft, setAppDraft] = useState<UserProfile | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const handleOpenModal = (app) => {
+    // Add debug logging for application data
+    React.useEffect(() => {
+        console.log("Current applications:", applications);
+        console.log("Filtered applications:", filteredApplications);
+    }, [applications]);
+
+    // Enhanced handleOpenModal with debugging
+    const handleOpenModal = (app: UserProfile) => {
+        console.log("Opening modal for application:", app);
         setSelectedApp(app);
         setAppDraft({ ...app });
         setModalOpen(true);
@@ -60,14 +69,25 @@ export const VendorApplications: React.FC = () => {
         setAppDraft((prev) => ({ ...prev, [field]: value }));
     };
 
+    // Enhanced handleAccept with detailed error logging
     const handleAccept = async () => {
-        if (!appDraft?.user_id) return;
+        if (!appDraft?.user_id) {
+            console.error("No user_id found in appDraft:", appDraft);
+            return;
+        }
+
+        console.log("Starting approval process for:", {
+            userId: appDraft.user_id,
+            role: appDraft.role,
+            currentStatus: appDraft.application_status
+        });
 
         setLoadingStates((prev) => ({ ...prev, [appDraft.user_id]: true }));
 
         try {
+            console.log("Updating user_profiles...");
             // Update application status in user_profiles
-            const { error: updateError } = await supabase
+            const { data: profileData, error: updateError } = await supabase
                 .from("user_profiles")
                 .update({
                     application_status: "approved",
@@ -77,31 +97,58 @@ export const VendorApplications: React.FC = () => {
                     location: appDraft.location,
                     google_maps_url: appDraft.google_maps_url,
                 })
-                .eq("user_id", appDraft.user_id);
+                .eq("user_id", appDraft.user_id)
+                .select();
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                console.error("Profile update failed:", {
+                    error: updateError,
+                    context: appDraft
+                });
+                throw updateError;
+            }
+            console.log("Profile update successful:", profileData);
 
+            console.log("Updating user_roles...");
             // Update user role
-            const { error: roleUpdateError } = await supabase
+            const { data: roleData, error: roleUpdateError } = await supabase
                 .from("user_roles")
                 .update({
-                    // role: "vendor",
                     is_approved: true,
                 })
-                .eq("user_id", appDraft.user_id);
+                .eq("user_id", appDraft.user_id)
+                .select();
 
-            if (roleUpdateError) throw roleUpdateError;
+            if (roleUpdateError) {
+                console.error("Role update failed:", {
+                    error: roleUpdateError,
+                    context: appDraft
+                });
+                throw roleUpdateError;
+            }
+            console.log("Role update successful:", roleData);
 
+            console.log("Refetching vendor applications...");
             await refetchVendorApplications();
+            
+            console.log("Approval process completed successfully");
             handleCloseModal();
 
             toast({
                 title: "Application approved",
-                description:
-                    "Vendor application has been approved successfully.",
+                description: "Vendor application has been approved successfully.",
             });
         } catch (error) {
-            console.error("Approval failed:", error);
+            console.error("Approval process failed:", {
+                error,
+                appDraft,
+                context: {
+                    userId: appDraft.user_id,
+                    role: appDraft.role,
+                    status: appDraft.application_status
+                }
+            });
+            
             toast({
                 title: "Error",
                 description: `Failed to approve the application: ${error.message}`,
@@ -112,6 +159,7 @@ export const VendorApplications: React.FC = () => {
                 ...prev,
                 [appDraft.user_id]: false,
             }));
+            console.log("Loading state cleared for user:", appDraft.user_id);
         }
     };
 
@@ -120,6 +168,20 @@ export const VendorApplications: React.FC = () => {
     app.application_status !== "not_applied" && 
     (app.role === "vendor" || app.role === "buyer") // Explicitly allow only these
 );
+
+    // Add debug logging for loading states
+    React.useEffect(() => {
+        console.log("Current loading states:", loadingStates);
+    }, [loadingStates]);
+
+    // Add debug logging for modal state
+    React.useEffect(() => {
+        console.log("Modal state:", {
+            isOpen: modalOpen,
+            selectedApp,
+            appDraft
+        });
+    }, [modalOpen, selectedApp, appDraft]);
 
     return (
         <div className="space-y-6">
