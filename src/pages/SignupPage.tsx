@@ -512,7 +512,7 @@ export const SignupPage = () => {
         whatsapp_number: `971${formData.whatsappNumber}`,
         location: formData.location,
         delivery_address: formData.address,
-        business_name: formData.role === 'vendor' ? formData.businessName : null,
+        business_name: formData.businessName || null,
         google_maps_url: formData.googleMapsUrl || null,
         role: formData.role,
         application_status: 'pending', // Set for both roles
