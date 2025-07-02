@@ -12,6 +12,7 @@ import { ChevronDown, ChevronRight, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ReceiptModal as BuyerReceiptModal } from "@/components/buyer/ReceiptModal";
 import { Badge } from "@/components/ui/badge";
+import { Link } from 'react-router-dom';
 
 interface Part {
     id: string;
@@ -714,14 +715,11 @@ const LogisticsPage = () => {
             )}
 
             {/* Go to Delivery Portal */}
-            <div className="flex justify-end">
-                <a
-                    href="/driver/dashboard"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                    <Button variant="default">Go to Delivery Portal</Button>
-                </a>
-            </div>
+           <div className="flex justify-end">
+    <Link to="/driver/dashboard">
+        <Button variant="default">Go to Delivery Portal</Button>
+    </Link>
+</div>
 
             {/* Receipt Details Modal */}
             {selectedInvoice && (
