@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -29,6 +29,8 @@ import {
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthModal } from "@/components/AuthModal";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const carLogos = [
     "https://cdn.worldvectorlogo.com/logos/toyota-1.svg",
@@ -61,32 +63,137 @@ const carLogos = [
     "https://cdn.worldvectorlogo.com/logos/gmc-2.svg",
 ];
 
-const Header = ({ onLoginClick }: { onLoginClick: () => void }) => (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-                <div className="flex items-center">
-                    <Link to="/" className="text-xl font-bold text-blue-600">
-                        EasyCarParts
-                    </Link>
-                </div>
-                <div className="hidden md:flex items-center space-x-4">
-                    <Button variant="ghost" onClick={onLoginClick}>
-                        <Wrench className="mr-2 h-4 w-4" />
-                        Login
-                    </Button>
-                    <div className="border-l border-gray-300 h-6"></div>
-                    <span className="text-sm text-gray-500">🇦🇪 UAE</span>
-                </div>
-                <div className="md:hidden">
-                    <Button variant="ghost" onClick={onLoginClick}>
-                        Login
-                    </Button>
+const Header = ({ onLoginClick }: { onLoginClick: () => void }) => {
+    const { user, signOut } = useAuth();
+    const navigate = useNavigate();
+    const [userRoles, setUserRoles] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserRoles = async () => {
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_user_roles', { check_user_id: user.id });
+
+                if (error) {
+                    console.error('Error fetching user roles:', error);
+                    setUserRoles([]);
+                } else {
+                    const fetchedRoles = data?.map((r: any) => r.role) || [];
+                    setUserRoles(fetchedRoles);
+                }
+            } catch (error) {
+                console.error('Error fetching user roles:', error);
+                setUserRoles([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserRoles();
+    }, [user]);
+
+    const handleSignOut = async () => {
+        await signOut();
+        navigate('/');
+    };
+
+    const goToDashboard = () => {
+        if (loading || !userRoles.length) return;
+
+        // Prioritize roles in order
+        if (userRoles.includes('admin')) {
+            navigate('/admin');
+        } else if (userRoles.includes('vendor')) {
+            navigate('/vendor');
+        } else if (userRoles.includes('driver')) {
+            navigate('/driver/dashboard');
+        } else if (userRoles.includes('buyer')) {
+            navigate('/dashboard');
+         } else if (userRoles.includes('sourcer')) {
+                navigate('/sourcer/dashboard');
+        } else {
+            navigate('/');
+        }
+    };
+
+    return (
+        <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    <div className="flex items-center">
+                        <Link to="/" className="text-xl font-bold text-blue-600">
+                            EasyCarParts
+                        </Link>
+                    </div>
+
+                    <div className="hidden md:flex items-center space-x-4">
+                        {user ? (
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm text-gray-600">
+                                    Welcome, {user?.user_metadata?.full_name}
+                                    {loading ? '...' : ''}
+                                </span>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={goToDashboard}
+                                    disabled={loading}
+                                >
+                                    Dashboard
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={handleSignOut}
+                                >
+                                    Sign Out
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button variant="ghost" onClick={onLoginClick}>
+                                <Wrench className="mr-2 h-4 w-4" />
+                                Login
+                            </Button>
+                        )}
+                        <div className="border-l border-gray-300 h-6"></div>
+                        <span className="text-sm text-gray-500">🇦🇪 UAE</span>
+                    </div>
+
+                    {/* Mobile menu */}
+                    <div className="md:hidden">
+                        {user ? (
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={goToDashboard}
+                                    disabled={loading}
+                                >
+                                    Dashboard
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={handleSignOut}
+                                >
+                                    Sign Out
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button variant="ghost" onClick={onLoginClick}>
+                                Login
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
-    </header>
-);
+        </header>
+    );
+};
 
 const HeroSection = () => {
     const navigate = useNavigate();
