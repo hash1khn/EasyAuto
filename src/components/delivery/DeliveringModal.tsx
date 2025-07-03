@@ -37,10 +37,11 @@ interface DeliveringModalProps {
   onClose: () => void
   parts: EnrichedPart[]
   address: string
-  onConfirm: (invoice: InvoiceData) => void
   buyerName: string
   phone: string
-  buyerData?: GroupedDeliveryData
+  businessName?: string; // Add this line
+  buyerData: GroupedDeliveryData
+  onConfirm: (data: any) => void
 }
 
 const paymentMethods = ["Cash", "Card", "Not Collected"]
@@ -53,6 +54,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   onConfirm,
   buyerName,
   phone,
+  businessName,
   buyerData,
 }) => {
   const [deliveryFee, setDeliveryFee] = useState("")
@@ -179,14 +181,22 @@ useEffect(() => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Generate Invoice & Confirm Delivery</DialogTitle>
-          <div className="text-sm text-gray-600 mt-1">
-            <span className="font-semibold">{buyerName}</span>
-            <span className="mx-2">|</span>
-            <span>{phone}</span>
-          </div>
-          <div className="text-sm text-gray-600">
-            Delivering to: <span className="font-semibold">{address}</span>
+          <DialogTitle>Confirm Delivery</DialogTitle>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">
+                {buyerName}
+                {businessName && (
+                    <span className="ml-2 font-normal text-sm text-gray-500">
+                        ({businessName})
+                    </span>
+                )}
+              </h3>
+              <div className="mt-1 space-y-1">
+                <p className="text-sm text-gray-600">{address}</p>
+                <p className="text-sm text-gray-600">{phone}</p>
+              </div>
+            </div>
           </div>
         </DialogHeader>
 

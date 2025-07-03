@@ -25,6 +25,7 @@ export const useDeliveryData = () => {
               id,
               full_name,
               whatsapp_number,
+              business_name,
               delivery_address,
               delivery_phone,
               delivery_instructions,
@@ -72,6 +73,7 @@ export const useDeliveryData = () => {
           groupedData[buyerId] = {
             buyer_id: buyerId,
             buyer_name: part.order.user_profile.full_name,
+            business_name: part.order.user_profile.business_name, // Add this line
             delivery_address: deliveryAddress,
             delivery_phone: part.order.user_profile.delivery_phone || part.order.user_profile.whatsapp_number,
             delivery_instructions: part.order.user_profile.delivery_instructions,

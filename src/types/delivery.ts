@@ -63,13 +63,14 @@ export interface DeliveryPart {
 }
 
 export interface GroupedDeliveryData {
-  buyer_id: string
-  buyer_name: string
-  delivery_address: string
-  delivery_phone: string
-  delivery_instructions: string | null
-  google_maps_url: string | null
-  parts: DeliveryPart[]
+  buyer_id: string;
+  buyer_name: string;
+  business_name?: string;  // Add this line
+  delivery_address: string;
+  delivery_phone: string;
+  delivery_instructions?: string;
+  google_maps_url?: string;
+  parts: DeliveryPart[];
 }
 
 export interface EnrichedPart {

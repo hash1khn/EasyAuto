@@ -72,6 +72,7 @@ const Delivering: React.FC = () => {
                 address: buyerData.delivery_address,
                 buyerName: buyerData.buyer_name,
                 phone: buyerData.delivery_phone,
+                business_name: buyerData.business_name,
                 lat: coords.lat,
                 lng: coords.lng,
                 google_maps_url: buyerData.google_maps_url,
@@ -252,41 +253,58 @@ const Delivering: React.FC = () => {
                                         <div className="flex flex-col text-left">
                                             <h3 className="font-bold text-lg">
                                                 {buyerData.buyer_name}
+                                                {buyerData.business_name && (
+                                                    <span className="ml-2 font-normal text-sm text-gray-500">
+                                                        ({buyerData.business_name})
+                                                    </span>
+                                                )}
                                             </h3>
-                                            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                                {buyerData.google_maps_url ? (
+                                            <div className="flex flex-col gap-2 text-sm text-gray-500 mt-1">
+                                                <div className="flex items-center gap-4">
+                                                    {buyerData.google_maps_url ? (
+                                                        <a
+                                                            href={
+                                                                buyerData.google_maps_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                            className="flex items-center gap-1 hover:text-blue-600">
+                                                            <MapPin className="h-4 w-4" />{" "}
+                                                            {
+                                                                buyerData.delivery_address
+                                                            }
+                                                        </a>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1 text-gray-500">
+                                                            <MapPin className="h-4 w-4" />{" "}
+                                                            {
+                                                                buyerData.delivery_address
+                                                            }
+                                                        </div>
+                                                    )}
                                                     <a
-                                                        href={
-                                                            buyerData.google_maps_url
-                                                        }
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                        href={`tel:${buyerData.delivery_phone}`}
                                                         onClick={(e) =>
                                                             e.stopPropagation()
                                                         }
                                                         className="flex items-center gap-1 hover:text-blue-600">
-                                                        <MapPin className="h-4 w-4" />{" "}
-                                                        {
-                                                            buyerData.delivery_address
-                                                        }
+                                                        <Phone className="h-4 w-4" />{" "}
+                                                        {buyerData.delivery_phone}
                                                     </a>
-                                                ) : (
-                                                    <div className="flex items-center gap-1 text-gray-500">
-                                                        <MapPin className="h-4 w-4" />{" "}
+                                                </div>
+                                                {buyerData.delivery_instructions && (
+                                                    <div className="text-xs text-gray-500">
+                                                        <span className="font-medium">
+                                                            Instructions:{" "}
+                                                        </span>
                                                         {
-                                                            buyerData.delivery_address
+                                                            buyerData.delivery_instructions
                                                         }
                                                     </div>
                                                 )}
-                                                <a
-                                                    href={`tel:${buyerData.delivery_phone}`}
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                    className="flex items-center gap-1 hover:text-blue-600">
-                                                    <Phone className="h-4 w-4" />{" "}
-                                                    {buyerData.delivery_phone}
-                                                </a>
                                             </div>
                                         </div>
                                         <Badge
@@ -338,8 +356,7 @@ const Delivering: React.FC = () => {
                                                             />
                                                         </TableCell>
                                                         <TableCell className="font-medium">
-                                                            <div
-                                                                className="flex items-center gap-3 cursor-pointer hover:text-blue-600"
+                                                            <div className="flex items-center gap-3 cursor-pointer hover:text-blue-600"
                                                                 onClick={() =>
                                                                     handleOpenDetailsModal(
                                                                         part
@@ -435,13 +452,15 @@ const Delivering: React.FC = () => {
                                                                             .vendor_info
                                                                             ?.name ||
                                                                             "Unknown"}
-                                                                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                                        <p className="text-xs text-gray-500">
                                                                             {part
                                                                                 .winning_bid
                                                                                 .vendor_info
                                                                                 ?.business_name ||
-                                                                                "Sourcer Added"}
-                                                                           
+                                                                                ""}
+                                                                            <Badge variant="secondary" className="ml-1 text-[10px]">
+                                                                                Sourcer Added
+                                                                            </Badge>
                                                                         </p>
                                                                     </>
                                                                 ) : (
@@ -499,6 +518,7 @@ const Delivering: React.FC = () => {
                     address={deliveringModalState.buyerData.delivery_address}
                     onConfirm={handleConfirmDelivered}
                     buyerName={deliveringModalState.buyerData.buyer_name}
+                    businessName={deliveringModalState.buyerData.business_name} // Add this line
                     phone={deliveringModalState.buyerData.delivery_phone}
                     buyerData={deliveringModalState.buyerData}
                 />
