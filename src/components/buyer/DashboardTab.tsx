@@ -80,6 +80,12 @@ export const DashboardTab = ({ setRefetchOrders }: DashboardTabProps) => {
 
      <TopCards parts={allParts} />
 
+      {/* Persistent Info Banner */}
+      <div className="w-full rounded-md bg-gray-100 text-gray-700 text-sm flex items-center gap-2 px-4 py-2 mb-2">
+        <span role="img" aria-label="lightbulb">💡</span>
+        <span>Note: 5% VAT + 5% service fee are added on top of quoted prices.</span>
+      </div>
+
       <div className="space-y-4">
         {filteredVehicles.length > 0 ? (
           filteredVehicles.map((vehicle) => (
