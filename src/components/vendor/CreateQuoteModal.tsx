@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { convert } from 'heic-convert'; // You'll need to install this package
+import imageCompression from 'browser-image-compression';
 
 interface CreateQuoteModalProps {
   part: VendorPart;
@@ -35,6 +37,15 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Update the VALID_FILE_TYPES constant
+  const VALID_FILE_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif'
+  ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,29 +146,94 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const newFiles = Array.from(event.target.files);
-      const validFiles: File[] = [];
-      const invalidReasons: string[] = [];
+  // Update the handleImageUpload function
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
 
-      // Validate each file
-      newFiles.forEach(file => {
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-          invalidReasons.push(`${file.name}: Invalid file type`);
-          return;
-        }
-        
-        if (file.size > 5 * 1024 * 1024) {
-          invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
-          return;
-        }
+    const files = Array.from(event.target.files);
+    const invalidReasons: string[] = [];
 
-        validFiles.push(file);
-      });
+    try {
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          // Check file size first
+          if (file.size > 5 * 1024 * 1024) {
+            invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+            return null;
+          }
 
-      // Show errors for invalid files
+          try {
+            // Compression options
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true
+            };
+
+            // For HEIC/HEIF files, convert to JPEG first using the Canvas API
+            if (file.type === 'image/heic' || file.type === 'image/heif') {
+              // Create a temporary URL for the file
+              const blobUrl = URL.createObjectURL(file);
+              
+              // Load the image into an Image element
+              const img = new Image();
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = blobUrl;
+              });
+
+              // Create canvas and convert to JPEG
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) throw new Error('Could not get canvas context');
+              
+              ctx.drawImage(img, 0, 0);
+              
+              // Convert to blob
+              const blob = await new Promise<Blob>((resolve) => {
+                canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+              });
+
+              // Clean up
+              URL.revokeObjectURL(blobUrl);
+
+              // Create a new file from the blob
+              const convertedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                type: 'image/jpeg'
+              });
+
+              // Compress the converted file
+              return await imageCompression(convertedFile, options);
+            }
+
+            // For other image types, just compress
+            if (VALID_FILE_TYPES.includes(file.type as any)) {
+              return await imageCompression(file, options);
+            }
+
+            invalidReasons.push(`${file.name}: Invalid file type`);
+            return null;
+          } catch (error) {
+            console.error('Error processing file:', file.name, error);
+            invalidReasons.push(`${file.name}: Failed to process image`);
+            return null;
+          }
+        })
+      );
+
+      // Filter out null results and add valid files
+      const validFiles = processedFiles.filter((f): f is File => f !== null);
+
+      if (validFiles.length > 0) {
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        setImageFiles(prev => [...prev, ...validFiles]);
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      }
+
+      // Show errors if any files were invalid
       if (invalidReasons.length > 0) {
         toast({
           title: "Some files were invalid",
@@ -166,13 +242,13 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           duration: 5000
         });
       }
-
-      // Only proceed with valid files
-      if (validFiles.length > 0) {
-        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
-        setImageFiles(prev => [...prev, ...validFiles]);
-        setImagePreviews(prev => [...prev, ...newPreviews]);
-      }
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast({
+        title: "Error Processing Images",
+        description: "Failed to process some images",
+        variant: "destructive"
+      });
     }
   };
 
@@ -306,14 +382,16 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                     <input
                       type="file"
                       className="sr-only"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                       onChange={handleImageUpload}
                       disabled={isSubmitting}
                       multiple
                     />
                   </label>
                 </div>
-                <p className="text-xs text-gray-500">JPG, PNG, WEBP (Max 5MB each)</p>
+                <p className="text-xs text-gray-500">
+                  JPG, PNG, WEBP, HEIC (Max 5MB each)
+                </p>
                 {imagePreviews.length > 0 && (
                   <p className="text-xs text-gray-500 mt-2">
                     {imagePreviews.length} file{imagePreviews.length !== 1 ? 's' : ''} selected
