@@ -32,182 +32,193 @@ import PickupMapPage from './pages/delivery/PickupMapPage';
 import DeliveringMapPage from './pages/delivery/DeliveringMapPage';
 import { SignupPage } from './pages/SignupPage';
 import { BuyerApplicationStatus } from "./pages/BuyerApplicationStatus";
+import { AuthGuard } from "./components/auth/AuthGuard";
 
 const queryClient = new QueryClient();
 
+const PUBLIC_ROUTES = ['/', '/signup', '/driver/login'];
+
 function App() {
-    return (
-        <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-                <AuthProvider>
-                    <Toaster />
-                    <BrowserRouter>
-                        <Routes>
-                            <Route path="/" element={<HomeDesign />} />
-                            <Route path="/signup" element={<SignupPage />} />
-                            <Route
-                                path="/buyerdesign1"
-                                element={<BuyerDesign1 />}
-                            />
-                            <Route
-                                path="/new-dashboard"
-                                element={<NewDashboard />}
-                            />
-                            {/* Protected Buyer Routes */}
-                            <Route
-                                path="/dashboard"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={["buyer", "admin"]}
-                                        requireApproval={true}>
-                                        <Dashboard />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/buyer/status"
-                                element={
-                                    <ProtectedRoute allowedRoles={["buyer"]}>
-                                        <BuyerApplicationStatus />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Vendor Routes */}
-                            <Route
-                                path="/vendor/status"
-                                element={
-                                    <ProtectedRoute allowedRoles={["vendor"]}>
-                                        <VendorApplicationStatus />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/vendor"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={["vendor", "admin"]}
-                                        requireApproval>
-                                        <VendorDashboard />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Protected Admin Routes */}
-                            <Route
-                                path="/admin"
-                                element={
-                                    <ProtectedRoute allowedRoles={["admin"]}>
-                                        <AdminDashboardPage />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Other Protected Routes */}
-                            <Route
-                                path="/checkout/:orderId"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={[
-                                            "buyer",
-                                            "vendor",
-                                            "admin",
-                                        ]}>
-                                        <CheckoutPage />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/payment-success"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={[
-                                            "buyer",
-                                            "vendor",
-                                            "admin",
-                                        ]}
-                                        isPaymentRoute={true}>
-                                        <PaymentConfirmation />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/receipt/:orderId"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={[
-                                            "buyer",
-                                            "vendor",
-                                            "admin",
-                                        ]}>
-                                        <PaymentReceipt />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Driver Routes */}
-                            <Route
-                                path="/driver/login"
-                                element={<DriverLoginPage />}
-                            />
-                            <Route
-                                path="/driver"
-                                element={
-                                    <ProtectedRoute
-                                        allowedRoles={["driver", "admin"]}>
-                                        <DriverLayout />
-                                    </ProtectedRoute>
-                                }>
-                                <Route
-                                    index
-                                    element={
-                                        <Navigate to="dashboard" replace />
-                                    }
-                                />
-                                <Route
-                                    path="dashboard"
-                                    element={<DriverDashboard />}
-                                />
-                                <Route
-                                    path="delivering"
-                                    element={<Delivering />}
-                                />
-                                <Route
-                                    path="history"
-                                    element={<DriverHistory />}
-                                />
-                                <Route
-                                    path="settings"
-                                    element={<DeliverySettings />}
-                                />
-                            </Route>
-                            <Route path="/delivery/map" element={<PickupMapPage />} />
-                            <Route path="/delivery/map-delivering" element={<DeliveringMapPage />} />
-                            <Route
-                                path="/sourcer"
-                                element={
-                                    <ProtectedRoute allowedRoles={["sourcer", "admin"]}>
-                                        <SourcerLayout />
-                                    </ProtectedRoute>
-                                }>
-                                <Route
-                                    index
-                                    element={
-                                        <Navigate to="dashboard" replace />
-                                    }
-                                />
-                                <Route
-                                    path="dashboard"
-                                    element={<SourcerDashboard />}
-                                />
-                                <Route
-                                    path="history"
-                                    element={<QuoteHistory />}
-                                />
-                            </Route>
-                            <Route path="*" element={<NotFound />} />
-                        </Routes>
-                    </BrowserRouter>
-                </AuthProvider>
-            </TooltipProvider>
-        </QueryClientProvider>
-    );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomeDesign />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/driver/login" element={<DriverLoginPage />} />
+
+              {/* Protected Routes */}
+              <Route element={<AuthGuard />}>
+                {/* Dashboard Route */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["buyer", "admin"]}
+                      requireApproval={true}
+                    >
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Buyer Routes */}
+                <Route
+                  path="/buyer/status"
+                  element={
+                    <ProtectedRoute allowedRoles={["buyer"]}>
+                      <BuyerApplicationStatus />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Vendor Routes */}
+                <Route
+                  path="/vendor/status"
+                  element={
+                    <ProtectedRoute allowedRoles={["vendor"]}>
+                      <VendorApplicationStatus />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendor"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["vendor", "admin"]}
+                      requireApproval
+                    >
+                      <VendorDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Protected Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <AdminDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Other Protected Routes */}
+                <Route
+                  path="/checkout/:orderId"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "buyer",
+                        "vendor",
+                        "admin",
+                      ]}
+                    >
+                      <CheckoutPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payment-success"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "buyer",
+                        "vendor",
+                        "admin",
+                      ]}
+                      isPaymentRoute={true}
+                    >
+                      <PaymentConfirmation />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/receipt/:orderId"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "buyer",
+                        "vendor",
+                        "admin",
+                      ]}
+                    >
+                      <PaymentReceipt />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Driver Routes */}
+                <Route
+                  path="/driver"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["driver", "admin"]}
+                    >
+                      <DriverLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route
+                    index
+                    element={
+                      <Navigate to="dashboard" replace />
+                    }
+                  />
+                  <Route
+                    path="dashboard"
+                    element={<DriverDashboard />}
+                  />
+                  <Route
+                    path="delivering"
+                    element={<Delivering />}
+                  />
+                  <Route
+                    path="history"
+                    element={<DriverHistory />}
+                  />
+                  <Route
+                    path="settings"
+                    element={<DeliverySettings />}
+                  />
+                </Route>
+                <Route path="/delivery/map" element={<PickupMapPage />} />
+                <Route path="/delivery/map-delivering" element={<DeliveringMapPage />} />
+                <Route
+                  path="/sourcer"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["sourcer", "admin"]}
+                    >
+                      <SourcerLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route
+                    index
+                    element={
+                      <Navigate to="dashboard" replace />
+                    }
+                  />
+                  <Route
+                    path="dashboard"
+                    element={<SourcerDashboard />}
+                  />
+                  <Route
+                    path="history"
+                    element={<QuoteHistory />}
+                  />
+                </Route>
+              </Route>
+
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 export default App;

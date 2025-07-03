@@ -155,5 +155,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/vendor/status" replace />;
   }
 
+  // Remove AuthGuard wrapper
   return <>{children}</>;
 };
