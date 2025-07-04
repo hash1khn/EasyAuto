@@ -24,12 +24,10 @@ const UAE_EMIRATES = [
 
 const ECP_AGENTS = [
   'Direct Sign Up',
-  'Ahmed Hassan',
-  'Mohammed Ali',
-  'Sarah Khan',
-  'Fatima Rahman',
-  'Omar Sheikh',
-  'Zainab Hussein'
+  'Hamdan',
+  'Jabid',
+  'Sean',
+  'Mark',
 ] as const;
 
 interface SignupFormData {
@@ -266,7 +264,7 @@ export const SignupPage = () => {
 
       <div className="space-y-2">
         <Label>
-          Vehicle Makes {formData.role === 'vendor' ? '(you work with)' : '(you own)'} <span className="text-red-500">*</span>
+          Vehicle Makes {formData.role === 'vendor' ? '(parts you sell)' : '(you work on)'} <span className="text-red-500">*</span>
         </Label>
         <div className="space-y-2">
           <Select onValueChange={handleVehicleMakeSelect}>
