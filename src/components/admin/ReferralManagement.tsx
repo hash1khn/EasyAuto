@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw, Plus, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { ReferralAssignment } from './ReferralAssignment';
+// import { ReferralAssignment } from './ReferralAssignment';
 
 import { 
   getReferralAgents,

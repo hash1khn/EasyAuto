@@ -10,7 +10,7 @@ import LogisticsPage from '@/pages/LogisticsPage';
 import { AdminLogs } from '@/components/admin/logs/AdminLogs';
 import { AdminOrders } from '@/components/admin/orders/AdminOrders';
 import { PriceModifiers } from '@/components/admin/PriceModifiers';
-import { ReferralManagement } from '@/components/admin/referralManagement';
+import { ReferralManagement } from '@/components/admin/ReferralManagement';
 
 
 const AdminDashboardPage = () => {
