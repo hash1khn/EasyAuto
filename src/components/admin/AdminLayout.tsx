@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { ResponsiveSidebar } from '@/components/layout/ResponsiveSidebar';
-import { Home, Users, FileText, Settings, LogOut, Package, History, Truck, User, Activity ,Percent} from 'lucide-react';
+import { Home, Users, FileText, Settings, LogOut, Package, History, Truck, User, Activity ,Percent,Share2} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export type AdminTabId = 'overview' | 'users' | 'applications' | 'orders' | 'logistics' | 'logs' | 'modifiers';
+export type AdminTabId = 'overview' | 'users' | 'applications' | 'orders' | 'logistics' | 'logs' | 'modifiers'| 'referral';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,7 +23,12 @@ const tabs = [
   { id: 'modifiers' as AdminTabId, label: 'Price Modifiers', icon: Percent },
 
   { id: 'logs' as AdminTabId, label: 'Logs', icon: Activity },
-];
+{
+  id: 'referral' as AdminTabId,
+  label: 'Referral Management',
+  icon: Share2, // Best for referrals (sharing concept)
+
+}];
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
   children,

@@ -10,6 +10,8 @@ import LogisticsPage from '@/pages/LogisticsPage';
 import { AdminLogs } from '@/components/admin/logs/AdminLogs';
 import { AdminOrders } from '@/components/admin/orders/AdminOrders';
 import { PriceModifiers } from '@/components/admin/PriceModifiers';
+import { ReferralManagement } from '@/components/admin/referralManagement';
+
 
 const AdminDashboardPage = () => {
   const { loading, error, refresh } = useAdminData();
@@ -52,6 +54,8 @@ const AdminDashboardPage = () => {
         return <PriceModifiers />;
       case 'logs':
         return <AdminLogs />;
+      case 'referral':
+    return <ReferralManagement />;
       default:
         return <div>Select a tab</div>;
     }

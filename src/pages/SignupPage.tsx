@@ -11,6 +11,8 @@ import { X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { SignupConfirmationModal } from '@/components/SignupConfirmationModal';
+import { getReferralAgents } from '@/services/referralAgentService';
+
 
 const UAE_EMIRATES = [
   'Abu Dhabi',
@@ -22,13 +24,6 @@ const UAE_EMIRATES = [
   'Fujairah'
 ] as const;
 
-const ECP_AGENTS = [
-  'Direct Sign Up',
-  'Hamdan',
-  'Jabid',
-  'Sean',
-  'Mark',
-] as const;
 
 interface SignupFormData {
   role: 'buyer' | 'vendor';
@@ -50,6 +45,8 @@ export const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [signupEmail, setSignupEmail] = useState('');
+  const [referralAgents, setReferralAgents] = useState([]);
+
   const { signUp } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState<SignupFormData>({
@@ -69,6 +66,17 @@ export const SignupPage = () => {
   const [isAddingCustomMake, setIsAddingCustomMake] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  useEffect(() => {
+  const loadAgents = async () => {
+    try {
+      const agents = await getReferralAgents();
+      setReferralAgents(agents);
+    } catch (error) {
+      console.error('Failed to load referral agents:', error);
+    }
+  };
+  loadAgents();
+}, []);
 
   const handleVehicleMakeSelect = (value: string) => {
     if (value === 'custom') {
@@ -416,20 +424,21 @@ export const SignupPage = () => {
           Referred By
         </Label>
         <Select 
-          value={formData.referredBy}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, referredBy: value }))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select who referred you" />
-          </SelectTrigger>
-          <SelectContent>
-            {ECP_AGENTS.map((agent) => (
-              <SelectItem key={agent} value={agent}>
-                {agent}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+  value={formData.referredBy}
+  onValueChange={(value) => setFormData(prev => ({ ...prev, referredBy: value }))}
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Select who referred you" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="direct">Direct Sign Up</SelectItem>
+    {referralAgents.map((agent) => (
+      <SelectItem key={agent.id} value={agent.id}>
+        {agent.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
         <p className="text-xs text-gray-500">Select 'Direct Sign Up' if you found us on your own</p>
       </div>
 

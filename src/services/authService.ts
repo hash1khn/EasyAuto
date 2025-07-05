@@ -6,6 +6,22 @@ export const signUp = async (data: SignUpData) => {
   try {
     const redirectUrl = `${window.location.origin}/`;
     
+    // Validate referral agent if provided
+    let referredByAgent = null;
+    if (data.userData.referred_by && data.userData.referred_by !== 'direct') {
+      const { data: agentData, error: agentError } = await supabase
+        .from('referral_agents')
+        .select('id')
+        .eq('id', data.userData.referred_by)
+        .single();
+
+      if (agentError || !agentData) {
+        console.error('Invalid referral agent:', agentError);
+        return { error: new Error('Invalid referral agent') };
+      }
+      referredByAgent = agentData.id;
+    }
+
     // 1. First create the auth user
     const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
@@ -15,7 +31,7 @@ export const signUp = async (data: SignUpData) => {
         data: {
           full_name: data.userData.full_name,
           whatsapp_number: data.userData.whatsapp_number,
-          role: data.userData.role // IMPORTANT: Keep role in auth metadata
+          role: data.userData.role
         }
       }
     });
@@ -28,7 +44,7 @@ export const signUp = async (data: SignUpData) => {
     if (authData.user) {
       const userId = authData.user.id;
 
-      // 2. Create user record in users table with upsert to avoid duplicates
+      // 2. Create user record in users table
       const { error: userError } = await supabase
         .from('users')
         .upsert([{
@@ -41,39 +57,39 @@ export const signUp = async (data: SignUpData) => {
 
       if (userError) throw userError;
 
-      // Update user_roles to require approval for all users
+      // Update user_roles
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert([{
           user_id: userId,
           role: data.userData.role,
-          is_approved: false  // Set to false for all users initially
+          is_approved: false
         }], {
           onConflict: 'user_id',
           ignoreDuplicates: false
         });
 
-      if (roleError) {
-        console.error('Role creation error:', roleError);
-        throw roleError;
-      }
+      if (roleError) throw roleError;
 
-      // Update user_profiles with application status for all users
+      // Update user_profiles with referral info
+      const profileData = {
+        id: userId,
+        user_id: userId,
+        full_name: data.userData.full_name,
+        whatsapp_number: data.userData.whatsapp_number,
+        location: data.userData.location,
+        business_name: data.userData.business_name,
+        vendor_tags: data.userData.vendor_tags || [],
+        delivery_address: data.userData.delivery_address,
+        google_maps_url: data.userData.google_maps_url,
+        application_status: 'pending',
+        application_submitted_at: new Date().toISOString(),
+        referred_by: referredByAgent // Add referral info here
+      };
+
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .upsert([{
-          id: userId,
-          user_id: userId,
-          full_name: data.userData.full_name,
-          whatsapp_number: data.userData.whatsapp_number,
-          location: data.userData.location,
-          business_name: data.userData.business_name,
-          vendor_tags: data.userData.vendor_tags || [],
-          delivery_address: data.userData.delivery_address,
-          google_maps_url: data.userData.google_maps_url,
-          application_status: 'pending',  // Set pending for all users
-          application_submitted_at: new Date().toISOString()  // Set for all users
-        }], {
+        .upsert([profileData], {
           onConflict: 'id',
           ignoreDuplicates: false
         });

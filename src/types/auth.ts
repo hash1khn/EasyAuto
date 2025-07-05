@@ -16,6 +16,8 @@ export interface SignUpData {
     delivery_phone?: string;
     delivery_instructions?: string;
     google_maps_url?: string;
+    referred_by?: string; // Add this line
+
   };
 }
 
