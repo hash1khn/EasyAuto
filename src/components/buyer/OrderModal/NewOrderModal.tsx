@@ -15,10 +15,10 @@ interface OrderModalProps {
   onOrderCreated?: () => void;
 }
 
-export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrderCreated  }) => {
+export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOrderCreated }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  
+
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -33,22 +33,22 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   const [currentPart, setCurrentPart] = useState<Part>({
     vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimatedBudget: ''
   });
-  
-   const handleClose = () => {
-  setStep(1);
-  setVehicles([]);
-  setParts([]);
-  setCurrentVehicle({ make: '', model: '', year: new Date().getFullYear(), vin: '' });
-  setCurrentPart({ 
-    vehicleIndex: 0, 
-    partName: '', 
-    partNumber: '', 
-    description: '', 
-    quantity: 1, 
-    estimatedBudget: ''  // Added this line for consistency
-  });
-  onClose();
-};
+
+  const handleClose = () => {
+    setStep(1);
+    setVehicles([]);
+    setParts([]);
+    setCurrentVehicle({ make: '', model: '', year: new Date().getFullYear(), vin: '' });
+    setCurrentPart({
+      vehicleIndex: 0,
+      partName: '',
+      partNumber: '',
+      description: '',
+      quantity: 1,
+      estimatedBudget: ''  // Added this line for consistency
+    });
+    onClose();
+  };
 
   const addVehicle = () => {
     if (!currentVehicle.make || !currentVehicle.model) {
@@ -81,20 +81,21 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   };
 
   const handleSubmitOrder = async () => {
- if (isSubmitting) return;
-    
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     setLoading(true);
+
     if (!user || vehicles.length === 0 || parts.length === 0) {
       toast({
         title: "Cannot submit order",
         description: "Please add at least one vehicle and one part.",
         variant: "destructive"
       });
+      setIsSubmitting(false);
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
 
     try {
       // Group parts by vehicle index
@@ -105,6 +106,13 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
         }
         partsByVehicle[part.vehicleIndex].push(part);
       });
+
+      // This will store data needed for notifications
+      const notificationPayloads: Array<{
+        vehicle: Vehicle;
+        parts: Part[];
+        orderId: string;
+      }> = [];
 
       // Process each vehicle and its parts
       const orderPromises = Object.entries(partsByVehicle).map(async ([vehicleIndexStr, vehicleParts]) => {
@@ -155,38 +163,22 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
 
         await Promise.all(partPromises);
 
-        // Trigger WhatsApp notifications
-        const { error: notificationError } = await supabase.functions.invoke('whatsapp-notify', {
-          body: {
-            vehicle: {
-              make: vehicle.make,
-              model: vehicle.model,
-              year: vehicle.year,
-              vin: vehicle.vin || null,
-            },
-            parts: vehicleParts.map(p => ({
-              partName: p.partName,
-              partNumber: p.partNumber || null,
-              estimatedBudget: p.estimatedBudget || null
-            })),
-            orderId: orderData.id,
-          }
+        // Store data for notifications
+        notificationPayloads.push({
+          vehicle,
+          parts: vehicleParts,
+          orderId: orderData.id
         });
 
-        if (notificationError) {
-          console.error("WhatsApp notification failed:", notificationError);
-          // Handle silently or show non-blocking toast to admin
-        }
-
         return orderData.id;
-
       });
 
       await Promise.all(orderPromises);
 
+      // Show success message immediately
       toast({
         title: "Order submitted successfully!",
-        description: "Vendors are being notified via WhatsApp."
+        description: "Vendors will be notified shortly."
       });
 
       handleClose();
@@ -194,6 +186,15 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
       if (onOrderCreated) {
         onOrderCreated();
       }
+
+      // Process notifications in the background without awaiting
+      if (notificationPayloads.length > 0) {
+        processWhatsAppNotifications(notificationPayloads).catch(error => {
+          console.error("Failed to process WhatsApp notifications:", error);
+          // You could add error logging here if needed
+        });
+      }
+
     } catch (error: any) {
       console.error('Error submitting order:', error);
       toast({
@@ -202,10 +203,47 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
         variant: "destructive"
       });
     } finally {
-    setTimeout(() => {
+      setTimeout(() => {
         setIsSubmitting(false);
         setLoading(false);
       }, 500);
+    }
+  };
+
+  // Separate function to handle WhatsApp notifications
+  const processWhatsAppNotifications = async (payloads: Array<{
+    vehicle: Vehicle;
+    parts: Part[];
+    orderId: string;
+  }>) => {
+    try {
+      // Process notifications sequentially to avoid rate limiting
+      for (const payload of payloads) {
+        try {
+          await supabase.functions.invoke('whatsapp-notify', {
+            body: {
+              vehicle: {
+                make: payload.vehicle.make,
+                model: payload.vehicle.model,
+                year: payload.vehicle.year,
+                vin: payload.vehicle.vin || null,
+              },
+              parts: payload.parts.map(p => ({
+                partName: p.partName,
+                partNumber: p.partNumber || null,
+                estimatedBudget: p.estimatedBudget || null
+              })),
+              orderId: payload.orderId,
+            }
+          });
+        } catch (error) {
+          console.error(`Failed to send notification for order ${payload.orderId}:`, error);
+          // Continue with next notification even if one fails
+        }
+      }
+    } catch (error) {
+      console.error("WhatsApp notification processing failed:", error);
+      // You might want to log this to an error tracking service
     }
   };
 
@@ -225,8 +263,8 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden flex flex-col" onOpenAutoFocus={(e) => {
-              e.preventDefault(); // Prevent auto-focus on open
-            }}>
+        e.preventDefault(); // Prevent auto-focus on open
+      }}>
         <OrderModalHeader currentStep={step} />
         <div className="flex-1 overflow-y-auto p-6">
           {renderStepContent()}
