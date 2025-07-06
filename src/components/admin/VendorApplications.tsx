@@ -3,6 +3,7 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Table,
     TableBody,
@@ -43,6 +44,8 @@ export const VendorApplications: React.FC = () => {
     const [selectedApp, setSelectedApp] = useState<UserProfile | null>(null);
     const [appDraft, setAppDraft] = useState<UserProfile | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [showRejectionModal, setShowRejectionModal] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
 
     const handleOpenModal = (app: UserProfile) => {
         setSelectedApp(app);
@@ -117,11 +120,70 @@ export const VendorApplications: React.FC = () => {
         }
     };
 
+    const handleReject = async () => {
+        if (!appDraft?.user_id || !rejectionReason.trim()) {
+            toast({
+                title: "Error",
+                description: "Please provide a reason for rejection",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setLoadingStates((prev) => ({ ...prev, [appDraft.user_id]: true }));
+
+        try {
+            // Update application status in user_profiles
+            const { error: updateError } = await supabase
+                .from("user_profiles")
+                .update({
+                    application_status: "rejected",
+                    rejection_reason: rejectionReason,
+                })
+                .eq("user_id", appDraft.user_id);
+
+            if (updateError) throw updateError;
+
+            await refetchVendorApplications();
+            setShowRejectionModal(false);
+            handleCloseModal();
+
+            toast({
+                title: "Application rejected",
+                description: `${appDraft.role} application has been rejected.`,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: `Failed to reject the application: ${error.message}`,
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingStates((prev) => ({
+                ...prev,
+                [appDraft.user_id]: false,
+            }));
+            setRejectionReason("");
+        }
+    };
+
     const filteredApplications = applications.filter(
         (app) =>
             app.application_status !== "not_applied" &&
             (app.role === "vendor" || app.role === "buyer")
     );
+
+    // First, add a helper function for status colors
+    const getStatusBadgeVariant = (status: string) => {
+        switch (status) {
+            case "approved":
+                return "default";
+            case "rejected":
+                return "destructive";
+            default:
+                return "secondary";
+        }
+    };
 
     return (
         <div className="space-y-6 p-4 md:p-6">
@@ -174,7 +236,7 @@ export const VendorApplications: React.FC = () => {
                             </div>
                         </div>
 
-                        {app.application_status !== "approved" && (
+                        {app.application_status !== "approved" && app.application_status !== "rejected" && (
                             <Button
                                 size="sm"
                                 className="mt-3 w-full"
@@ -225,18 +287,12 @@ export const VendorApplications: React.FC = () => {
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    <Badge
-                                        variant={
-                                            app.application_status ===
-                                                "approved"
-                                                ? "default"
-                                                : "secondary"
-                                        }>
+                                    <Badge variant={getStatusBadgeVariant(app.application_status)}>
                                         {app.application_status}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {app.application_status !== "approved" && (
+                                    {app.application_status !== "approved" && app.application_status !== "rejected" && (
                                         <Button
                                             size="sm"
                                             onClick={() =>
@@ -374,11 +430,60 @@ export const VendorApplications: React.FC = () => {
                                 : `Accept ${appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application`}
                         </Button>
                         <Button
+                            variant="destructive"
+                            onClick={() => setShowRejectionModal(true)}
+                            disabled={loadingStates[appDraft?.user_id]}
+                            className="w-full sm:w-auto"
+                        >
+                            Reject
+                        </Button>
+                        <Button
                             variant="outline"
                             onClick={handleCloseModal}
                             className="w-full sm:w-auto"
                         >
                             Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Rejection Reason Modal */}
+            <Dialog open={showRejectionModal} onOpenChange={setShowRejectionModal}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Reject Application</DialogTitle>
+                        <DialogDescription>
+                            Please provide a reason for rejecting this application.
+                            This will be visible to the applicant.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Rejection Reason</Label>
+                            <Textarea
+                                placeholder="Enter the reason for rejection..."
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                className="min-h-[100px]"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowRejectionModal(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleReject}
+                            disabled={!rejectionReason.trim() || loadingStates[appDraft?.user_id]}
+                        >
+                            {loadingStates[appDraft?.user_id] ? "Rejecting..." : "Confirm Rejection"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
