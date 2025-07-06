@@ -229,12 +229,7 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
                   <span>Subtotal</span>
                   <span className="font-medium">{formatCurrency(calculations.subtotal)}</span>
                 </div>
-                {calculations.discountAmount > 0 && (
-      <div className="flex justify-between text-green-600">
-        <span>Discount</span>
-        <span className="font-medium">-{formatCurrency(calculations.discountAmount)}</span>
-      </div>
-    )}
+              
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span className="font-medium">{formatCurrency(calculations.deliveryFee)}</span>
@@ -247,6 +242,12 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
                   <span>Service Fee</span>
                   <span className="font-medium">{formatCurrency(calculations.serviceFee)}</span>
                 </div>
+                {calculations.discountAmount > 0 && (
+      <div className="flex justify-between text-green-600">
+        <span>Discount</span>
+        <span className="font-medium">-{formatCurrency(calculations.discountAmount)}</span>
+      </div>
+    )}
                 <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
                   <span>Grand Total</span>
                   <span>{formatCurrency(grandTotal)}</span>
