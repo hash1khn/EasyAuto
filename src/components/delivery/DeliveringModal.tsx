@@ -1,5 +1,5 @@
 import type React from "react"
-import { useState,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,7 @@ interface InvoiceData {
   serviceFee: number
   grandTotal: number
   buyerData?: GroupedDeliveryData
-    priceModifiers: {
+  priceModifiers: {
     vendor_percentage: number
     vat_percentage: number
     service_charge_percentage: number
@@ -63,12 +63,14 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
   const [deliveryPhotos, setDeliveryPhotos] = useState<File[]>([])
   const [deliveryNotes, setDeliveryNotes] = useState("")
   const [driverName, setDriverName] = useState("")
-   const [priceModifiers, setPriceModifiers] = useState({
+  const [discountAmount, setDiscountAmount] = useState("")
+
+  const [priceModifiers, setPriceModifiers] = useState({
     vendor_percentage: 10,
     vat_percentage: 5,
     service_charge_percentage: 5
   })
-useEffect(() => {
+  useEffect(() => {
     const fetchModifiers = async () => {
       const { data } = await supabase
         .from('price_modifiers')
@@ -80,9 +82,11 @@ useEffect(() => {
   }, [])
 
 
- const calculatePrices = () => {
+  const calculatePrices = () => {
     const deliveryFeeNum = Number.parseFloat(deliveryFee) || 0
-    
+    const discountNum = Number.parseFloat(discountAmount) || 0
+
+
     // Calculate subtotal with vendor markup
     const subtotal = parts.reduce((sum, part) => {
       const basePrice = part.winning_bid?.price || 0
@@ -91,19 +95,19 @@ useEffect(() => {
     }, 0)
 
     // Calculate taxable amount (subtotal + delivery)
-    const taxableAmount = subtotal + deliveryFeeNum
-    
+    const taxableAmount = subtotal + deliveryFeeNum - discountNum
+
     // Calculate VAT and Service Charge
     const vatAmount = taxableAmount * (priceModifiers.vat_percentage / 100)
     const serviceFee = taxableAmount * (priceModifiers.service_charge_percentage / 100)
-    
-    // Calculate grand total
-    const grandTotal = subtotal + deliveryFeeNum + vatAmount + serviceFee
 
-    return { subtotal, deliveryFeeNum, vatAmount, serviceFee, grandTotal }
+    // Calculate grand total
+    const grandTotal = subtotal + deliveryFeeNum - discountNum + vatAmount + serviceFee
+
+    return { subtotal, deliveryFeeNum, discountNum, vatAmount, serviceFee, grandTotal }
   }
 
-  const { subtotal, deliveryFeeNum, vatAmount, serviceFee, grandTotal } = calculatePrices()
+  const { subtotal, deliveryFeeNum, discountNum, vatAmount, serviceFee, grandTotal } = calculatePrices()
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AE", {
@@ -153,7 +157,8 @@ useEffect(() => {
         vatAmount,
         serviceFee,
         grandTotal,
-        priceModifiers
+        priceModifiers,
+        discountAmount: discountNum
       }
 
       await handleDeliveryConfirmation(invoiceData)
@@ -187,9 +192,9 @@ useEffect(() => {
               <h3 className="font-semibold">
                 {buyerName}
                 {businessName && (
-                    <span className="ml-2 font-normal text-sm text-gray-500">
-                        ({businessName})
-                    </span>
+                  <span className="ml-2 font-normal text-sm text-gray-500">
+                    ({businessName})
+                  </span>
                 )}
               </h3>
               <div className="mt-1 space-y-1">
@@ -225,7 +230,7 @@ useEffect(() => {
                           <td className="px-3 py-2 text-center">{part.quantity}</td>
                           <td className="px-3 py-2 text-right">
                             {formatCurrency(unitPrice)}
-                            
+
                           </td>
                           <td className="px-3 py-2 text-right">
                             {formatCurrency(unitPrice * (part.quantity || 1))}
@@ -256,6 +261,7 @@ useEffect(() => {
                         />
                       </td>
                     </tr>
+                    
                     <tr>
                       <td colSpan={3} className="px-3 py-2 text-right">
                         + VAT ({priceModifiers.vat_percentage}%):
@@ -268,6 +274,34 @@ useEffect(() => {
                       </td>
                       <td className="px-3 py-2 text-right">{formatCurrency(serviceFee)}</td>
                     </tr>
+                   <tr>
+  <td colSpan={3} className="px-3 py-2 text-right">
+    - Discount:
+  </td>
+  <td className="px-3 py-2 text-right">
+    <div className="flex items-center justify-end gap-2">
+      <Input
+        type="number"
+        min={0}
+        max={subtotal + deliveryFeeNum}
+        placeholder="AED"
+        value={discountAmount}
+        onKeyPress={(e) => {
+          if (e.key === '-') {
+            e.preventDefault();
+          }
+        }}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value === '' || (Number(value) >= 0 )) {
+            setDiscountAmount(value);
+          }
+        }}
+        className="w-28 text-right"
+      />
+    </div>
+  </td>
+</tr>
                     <tr>
                       <td colSpan={3} className="px-3 py-2 text-right font-bold">
                         Grand Total:
