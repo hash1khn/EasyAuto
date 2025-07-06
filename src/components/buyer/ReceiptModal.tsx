@@ -117,7 +117,8 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
     // Get values directly from invoice
     deliveryFee: invoice.delivery_fee || 0,
     vatAmount: invoice.vat_amount || 0,
-    serviceFee: invoice.service_fee || 0
+    serviceFee: invoice.service_fee || 0,
+    discountAmount: invoice.discount_amount || 0, // Assuming discount amount is directly available on the invoice
   };
 
   // Use invoice.total_amount instead of calculating our own total
@@ -228,6 +229,12 @@ export const ReceiptModal = ({ isOpen, onOpenChange, invoiceId }: ReceiptModalPr
                   <span>Subtotal</span>
                   <span className="font-medium">{formatCurrency(calculations.subtotal)}</span>
                 </div>
+                {calculations.discountAmount > 0 && (
+      <div className="flex justify-between text-green-600">
+        <span>Discount</span>
+        <span className="font-medium">-{formatCurrency(calculations.discountAmount)}</span>
+      </div>
+    )}
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span className="font-medium">{formatCurrency(calculations.deliveryFee)}</span>
