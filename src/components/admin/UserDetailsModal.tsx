@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { User } from '@/hooks/useAdminData';
 import { RecentOrders } from './RecentOrders';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserDetailsModalProps {
   user: User | null;
@@ -18,9 +20,13 @@ interface UserDetailsModalProps {
 export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ 
   user, 
   isOpen, 
-  onClose 
+  onClose,
+  onUserUpdate
 }) => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+  const{user:currentAdmin}=useAuth();
 
   useEffect(() => {
     if (user) {
@@ -44,6 +50,70 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
   }, [user]);
 
   const isBuyer = editedUser?.roles?.includes('buyer');
+
+  const handleDeleteUser = async () => {
+    if (!editedUser) return;
+
+    setIsDeleting(true);
+    try {
+      // First, log the deletion action
+      const logResult = await supabase
+        .from('admin_logs')
+        .insert({
+          admin_id: currentAdmin.id,
+          action: 'delete_user',
+          target_table: 'users',
+          target_id: editedUser.id,
+          details: {
+            email: editedUser.email,
+            roles: editedUser.roles
+          }
+        });
+
+      if (logResult.error) throw logResult.error;
+
+      // Delete from user_roles first (due to foreign key constraints)
+      const roleDeleteResult = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editedUser.id);
+
+      if (roleDeleteResult.error) throw roleDeleteResult.error;
+
+      // Delete from user_profiles
+      const profileDeleteResult = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('id', editedUser.id);
+
+      if (profileDeleteResult.error) throw profileDeleteResult.error;
+
+      // Finally delete from auth.users
+      const userDeleteResult = await supabase
+        .from('users')
+        .delete()
+        .eq('id', editedUser.id);
+
+      if (userDeleteResult.error) throw userDeleteResult.error;
+
+      toast({
+        title: 'User deleted successfully',
+        description: `User ${editedUser.email} has been removed from the system.`,
+      });
+
+      onUserUpdate();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Error deleting user',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -70,6 +140,20 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
               <div>
                 <Label>WhatsApp</Label>
                 <Input value={editedUser.whatsapp_number || 'N/A'} readOnly />
+              </div>
+              {/* Address Section */}
+              <div className="col-span-2 mt-4 pt-4 border-t">
+                <h4 className="font-medium mb-2">Delivery Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Delivery Address</Label>
+                    <Input 
+                      value={editedUser.delivery_address || 'N/A'} 
+                      readOnly 
+                    />
+                  </div>
+                  
+                </div>
               </div>
               <div>
                 <Label>Location</Label>
@@ -104,6 +188,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         )}
 
         <DialogFooter className="mt-4 border-t pt-4">
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteUser}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete User'}
+          </Button>
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>

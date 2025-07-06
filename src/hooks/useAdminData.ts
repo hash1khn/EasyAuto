@@ -30,6 +30,7 @@ export type User = {
   whatsapp_number: string | null;
   location: string | null;
   google_maps_url: string | null;
+  delivery_address:string |null;
   roles: string[];
   status: 'active' | 'disabled';
   user_id: string;

@@ -118,8 +118,8 @@ export const VendorApplications: React.FC = () => {
     };
 
     const filteredApplications = applications.filter(
-        (app) => 
-            app.application_status !== "not_applied" && 
+        (app) =>
+            app.application_status !== "not_applied" &&
             (app.role === "vendor" || app.role === "buyer")
     );
 
@@ -131,7 +131,7 @@ export const VendorApplications: React.FC = () => {
                     Review and manage both buyer and vendor applications.
                 </p>
             </div>
-            
+
             {/* Mobile Cards View */}
             <div className="block md:hidden space-y-4">
                 {filteredApplications.map((app) => (
@@ -154,7 +154,7 @@ export const VendorApplications: React.FC = () => {
                                 {app.application_status}
                             </Badge>
                         </div>
-                        
+
                         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                             <div>
                                 <p className="text-gray-500">Contact</p>
@@ -165,11 +165,15 @@ export const VendorApplications: React.FC = () => {
                                 <p>{app.location || "N/A"}</p>
                             </div>
                             <div>
+                                <p className="text-gray-500">Delivery Address</p>
+                                <p>{app.delivery_address || "N/A"}</p>
+                            </div>
+                            <div>
                                 <p className="text-gray-500">Date</p>
                                 <p>{format(new Date(app.application_submitted_at), "MMM d, yyyy")}</p>
                             </div>
                         </div>
-                        
+
                         {app.application_status !== "approved" && (
                             <Button
                                 size="sm"
@@ -182,7 +186,7 @@ export const VendorApplications: React.FC = () => {
                     </Card>
                 ))}
             </div>
-            
+
             {/* Desktop Table View */}
             <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
                 <Table>
@@ -213,6 +217,7 @@ export const VendorApplications: React.FC = () => {
                                 <TableCell>{app.full_name}</TableCell>
                                 <TableCell>{app.whatsapp_number}</TableCell>
                                 <TableCell>{app.location}</TableCell>
+
                                 <TableCell>
                                     {format(
                                         new Date(app.application_submitted_at),
@@ -223,7 +228,7 @@ export const VendorApplications: React.FC = () => {
                                     <Badge
                                         variant={
                                             app.application_status ===
-                                            "approved"
+                                                "approved"
                                                 ? "default"
                                                 : "secondary"
                                         }>
@@ -325,6 +330,15 @@ export const VendorApplications: React.FC = () => {
                                         {appDraft.location || "N/A"}
                                     </div>
                                 </div>
+                                {/* Delivery Address */}
+                                <div className="space-y-1">
+                                    <Label className="text-xs md:text-sm text-muted-foreground">
+                                        Delivery Address
+                                    </Label>
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
+                                        {appDraft.delivery_address || "N/A"}
+                                    </div>
+                                </div>
 
                                 {/* Google Maps URL */}
                                 <div className="space-y-1">
@@ -359,8 +373,8 @@ export const VendorApplications: React.FC = () => {
                                 ? "Processing..."
                                 : `Accept ${appDraft?.role === "vendor" ? "Vendor" : "Buyer"} Application`}
                         </Button>
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={handleCloseModal}
                             className="w-full sm:w-auto"
                         >
