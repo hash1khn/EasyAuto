@@ -163,7 +163,6 @@ export const AdminOrders = () => {
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [search, setSearch] = useState("")
-  const [partToCancel, setPartToCancel] = useState<any>(null)
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([])
   const [selectedRefundRequest, setSelectedRefundRequest] = useState<RefundRequest | null>(null)
@@ -520,7 +519,7 @@ export const AdminOrders = () => {
       if (activeSubTab === "open") {
         return order.status !== "Fully Delivered" && order.status !== "Cancelled"
       } else {
-        return order.status === "Fully Delivered" || order.status === "Cancelled"
+        return order.status === "Fully Delivered"
       }
     })
     .filter((order) => {
@@ -538,34 +537,7 @@ export const AdminOrders = () => {
   const handleViewOrder = (order: AdminOrder) => setSelectedOrder(order)
   const handleViewDelivery = (delivery: any) => setSelectedDelivery(delivery)
   const handleViewInvoice = (invoice: any) => setSelectedInvoice(invoice)
-
-  // Handler for cancel confirmation
-  const handleCancelPart = (part: any) => {
-    setPartToCancel(part)
-  }
-
-  const confirmCancelPart = async () => {
-    if (partToCancel) {
-      try {
-        const { error } = await supabase
-          .from("parts")
-          .update({ shipping_status: "cancelled" })
-          .eq("id", partToCancel.id)
-
-        if (error) throw error
-
-        alert(`Cancelled part ${partToCancel.part_name}`)
-        setPartToCancel(null)
-        fetchOrders() // Refresh data
-      } catch (error) {
-        console.error("Error cancelling part:", error)
-        alert("Failed to cancel part")
-      }
-    }
-  }
-
-  const closeCancelDialog = () => setPartToCancel(null)
-
+  
   // Refund request handlers
   const handleViewRefundRequest = (request: RefundRequest) => {
     setSelectedRefundRequest(request)
@@ -947,13 +919,6 @@ export const AdminOrders = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-2">
-                              {canCancel && (
-                                <Button size="sm" variant="destructive" onClick={() => handleCancelPart(part)}>
-                                  Cancel
-                                </Button>
-                              )}
-                            </div>
                           </li>
                         )
                       })}
@@ -1093,7 +1058,7 @@ export const AdminOrders = () => {
         </Dialog>
       )}
 
-      {/* Cancel Part Confirmation Dialog */}
+      {/* Cancel Part Confirmation Dialog
       <Dialog open={!!partToCancel} onOpenChange={closeCancelDialog}>
         <DialogContent>
           <DialogHeader>
@@ -1111,7 +1076,7 @@ export const AdminOrders = () => {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Invoice Details Modal */}
       {selectedInvoice && (
