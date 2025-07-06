@@ -9,6 +9,7 @@ import { RecentOrders } from './RecentOrders';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface UserDetailsModalProps {
   user: User | null;
@@ -25,6 +26,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 }) => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const { toast } = useToast();
   const{user:currentAdmin}=useAuth();
 
@@ -115,6 +117,19 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteAlert(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    await handleDeleteUser();
+    setShowDeleteAlert(false);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteAlert(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
@@ -190,7 +205,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         <DialogFooter className="mt-4 border-t pt-4">
           <Button 
             variant="destructive" 
-            onClick={handleDeleteUser}
+            onClick={handleDeleteClick}
             disabled={isDeleting}
           >
             {isDeleting ? 'Deleting...' : 'Delete User'}
@@ -198,6 +213,23 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} alt>
+              {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
