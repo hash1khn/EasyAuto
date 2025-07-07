@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserDetailsModalProps {
   user: User | null;
@@ -26,13 +27,14 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 }) => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const { toast } = useToast();
-  const{user:currentAdmin}=useAuth();
+  const { user: currentAdmin } = useAuth();
 
   useEffect(() => {
     if (user) {
-      // Fetch the current role from user_roles table
       const fetchUserRole = async () => {
         const { data, error } = await supabase
           .from('user_roles')
@@ -52,6 +54,112 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
   }, [user]);
 
   const isBuyer = editedUser?.roles?.includes('buyer');
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveClick = async () => {
+    if (!editedUser) return;
+
+    setIsSaving(true);
+    try {
+      // Update user profile in user_profiles table
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: editedUser.full_name,
+          business_name: editedUser.business_name,
+          whatsapp_number: editedUser.whatsapp_number,
+          delivery_address: editedUser.delivery_address,
+          location: editedUser.location,
+          google_maps_url: editedUser.google_maps_url
+        })
+        .eq('id', editedUser.id);
+
+      if (profileError) throw profileError;
+
+      // Update user role in user_roles table if changed
+      if (editedUser.roles && editedUser.roles.length > 0) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: editedUser.id,
+            role: editedUser.roles[0]
+          }, {
+            onConflict: 'user_id'
+          });
+
+        if (roleError) throw roleError;
+      }
+
+      // Log the update action
+      const { error: logError } = await supabase
+        .from('admin_logs')
+        .insert({
+          admin_id: currentAdmin.id,
+          action: 'update_user',
+          target_table: 'user_profiles,user_roles',
+          target_id: editedUser.id,
+          details: {
+            updated_fields: {
+              full_name: editedUser.full_name,
+              business_name: editedUser.business_name,
+              whatsapp_number: editedUser.whatsapp_number,
+              delivery_address: editedUser.delivery_address,
+              location: editedUser.location,
+              google_maps_url: editedUser.google_maps_url,
+              role: editedUser.roles?.[0]
+            }
+          }
+        });
+
+      if (logError) throw logError;
+
+      toast({
+        title: 'User updated successfully',
+        description: `Changes to ${editedUser.email} have been saved.`,
+      });
+
+      onUserUpdate();
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: 'Error updating user',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset to original user data
+    if (user) {
+      setEditedUser({ ...user, roles: editedUser?.roles || [] });
+    }
+    setIsEditing(false);
+  };
+
+  const handleFieldChange = (field: keyof User, value: string) => {
+    if (editedUser) {
+      setEditedUser({
+        ...editedUser,
+        [field]: value
+      });
+    }
+  };
+
+  const handleRoleChange = (role: string) => {
+    if (editedUser) {
+      setEditedUser({
+        ...editedUser,
+        roles: [role]
+      });
+    }
+  };
 
   const handleDeleteUser = async () => {
     if (!editedUser) return;
@@ -146,15 +254,27 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
               </div>
               <div>
                 <Label>Full Name</Label>
-                <Input value={editedUser.full_name || 'N/A'} readOnly />
+                <Input 
+                  value={editedUser.full_name || ''} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleFieldChange('full_name', e.target.value)}
+                />
               </div>
               <div>
                 <Label>Business Name</Label>
-                <Input value={editedUser.business_name || 'N/A'} readOnly />
+                <Input 
+                  value={editedUser.business_name || ''} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleFieldChange('business_name', e.target.value)}
+                />
               </div>
               <div>
                 <Label>WhatsApp</Label>
-                <Input value={editedUser.whatsapp_number || 'N/A'} readOnly />
+                <Input 
+                  value={editedUser.whatsapp_number || ''} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleFieldChange('whatsapp_number', e.target.value)}
+                />
               </div>
               {/* Address Section */}
               <div className="col-span-2 mt-4 pt-4 border-t">
@@ -163,34 +283,58 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                   <div className="col-span-2">
                     <Label>Delivery Address</Label>
                     <Input 
-                      value={editedUser.delivery_address || 'N/A'} 
-                      readOnly 
+                      value={editedUser.delivery_address || ''} 
+                      readOnly={!isEditing}
+                      onChange={(e) => handleFieldChange('delivery_address', e.target.value)}
                     />
                   </div>
-                  
                 </div>
               </div>
               <div>
                 <Label>Location</Label>
-                <Input value={editedUser.location || 'N/A'} readOnly />
+                <Input 
+                  value={editedUser.location || ''} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleFieldChange('location', e.target.value)}
+                />
               </div>
               <div>
                 <Label>Google Maps URL</Label>
-                <Input value={editedUser.google_maps_url || 'N/A'} readOnly />
+                <Input 
+                  value={editedUser.google_maps_url || ''} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleFieldChange('google_maps_url', e.target.value)}
+                />
               </div>
             </div>
 
             <div className="mt-4">
               <Label>Current Role</Label>
-              <div className="flex gap-2 mt-2">
-                {editedUser.roles?.[0] ? (
-                  <Badge variant="default">
-                    {editedUser.roles[0]}
-                  </Badge>
-                ) : (
-                  <span className="text-sm text-gray-500">No role assigned</span>
-                )}
-              </div>
+              {isEditing ? (
+                <Select 
+                  value={editedUser.roles?.[0] || ''} 
+                  onValueChange={handleRoleChange}
+                >
+                  <SelectTrigger className="w-[180px] mt-2">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="seller">Seller</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex gap-2 mt-2">
+                  {editedUser.roles?.[0] ? (
+                    <Badge variant="default">
+                      {editedUser.roles[0]}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-gray-500">No role assigned</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {isBuyer && (
@@ -203,14 +347,44 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         )}
 
         <DialogFooter className="mt-4 border-t pt-4">
-          <Button 
-            variant="destructive" 
-            onClick={handleDeleteClick}
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete User'}
-          </Button>
-          <Button variant="outline" onClick={onClose}>Close</Button>
+          {isEditing ? (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveClick}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete User'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={handleEditClick}
+              >
+                Edit User
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
 
@@ -224,7 +398,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} alt>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
               {isDeleting ? 'Deleting...' : 'Yes, Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
