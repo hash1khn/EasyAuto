@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import imageCompression from 'browser-image-compression'
 
 // Use a more flexible interface that can work with both types
 interface PickupPart {
@@ -29,15 +31,112 @@ interface PickupModalProps {
   onConfirm: (pickupNotes: string, photos: File[]) => Promise<void> | void
 }
 
+const VALID_FILE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif'
+] as const;
+
 const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendorName, onConfirm }) => {
   const [pickupNotes, setPickupNotes] = useState("")
   const [pickupPhotos, setPickupPhotos] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      // Combine existing photos with new ones
-      setPickupPhotos((prevPhotos) => [...prevPhotos, ...Array.from(e.target.files!)])
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const files = Array.from(e.target.files);
+    const invalidReasons: string[] = [];
+
+    try {
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          // Check file size first
+          if (file.size > 5 * 1024 * 1024) {
+            invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+            return null;
+          }
+
+          try {
+            // Compression options
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true
+            };
+
+            // For HEIC/HEIF files, convert to JPEG first
+            if (file.type === 'image/heic' || file.type === 'image/heif') {
+              const blobUrl = URL.createObjectURL(file);
+              const img = new Image();
+              
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = blobUrl;
+              });
+
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) throw new Error('Could not get canvas context');
+              
+              ctx.drawImage(img, 0, 0);
+              
+              const blob = await new Promise<Blob>((resolve) => {
+                canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+              });
+
+              URL.revokeObjectURL(blobUrl);
+
+              const convertedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                type: 'image/jpeg'
+              });
+
+              return await imageCompression(convertedFile, options);
+            }
+
+            // For other image types, just compress
+            if (VALID_FILE_TYPES.includes(file.type as any)) {
+              return await imageCompression(file, options);
+            }
+
+            invalidReasons.push(`${file.name}: Invalid file type`);
+            return null;
+          } catch (error) {
+            console.error('Error processing file:', file.name, error);
+            invalidReasons.push(`${file.name}: Failed to process image`);
+            return null;
+          }
+        })
+      );
+
+      // Filter out null results and add valid files
+      const validFiles = processedFiles.filter((f): f is File => f !== null);
+
+      if (validFiles.length > 0) {
+        setPickupPhotos(prev => [...prev, ...validFiles]);
+      }
+
+      // Show errors if any files were invalid
+      if (invalidReasons.length > 0) {
+        toast({
+          title: "Some files were invalid",
+          description: invalidReasons.join('\n'),
+          variant: "destructive",
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast({
+        title: "Error Processing Images",
+        description: "Failed to process some images",
+        variant: "destructive"
+      });
     }
   }
 
@@ -97,11 +196,14 @@ const PickupModal: React.FC<PickupModalProps> = ({ isOpen, onClose, parts, vendo
             <Input
               id="picture"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               multiple
               onChange={handlePhotoChange}
               className="cursor-pointer"
             />
+            <div className="text-xs text-gray-500">
+              Supported formats: JPG, PNG, WEBP, HEIC (Max 5MB each)
+            </div>
             {pickupPhotos.length > 0 && (
               <div className="mt-2">
                 <div className="text-sm text-gray-600 mb-2">
