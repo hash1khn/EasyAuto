@@ -9,6 +9,7 @@ import type { EnrichedPart, GroupedDeliveryData } from "@/types/delivery"
 import { handleDeliveryConfirmation } from "@/lib/delivery-service"
 import { toast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import imageCompression from 'browser-image-compression';
 
 interface InvoiceData {
   parts: EnrichedPart[]
@@ -116,10 +117,107 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
     }).format(amount)
   }
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      // Combine existing photos with new ones
-      setDeliveryPhotos(prevPhotos => [...prevPhotos, ...Array.from(e.target.files!)]);
+  const VALID_FILE_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif'
+  ] as const;
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const files = Array.from(e.target.files);
+    const invalidReasons: string[] = [];
+
+    try {
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          // Check file size first
+          if (file.size > 5 * 1024 * 1024) {
+            invalidReasons.push(`${file.name}: File exceeds 5MB limit`);
+            return null;
+          }
+
+          try {
+            // Compression options
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true
+            };
+
+            // For HEIC/HEIF files, convert to JPEG first
+            if (file.type === 'image/heic' || file.type === 'image/heif') {
+              const blobUrl = URL.createObjectURL(file);
+              const img = new Image();
+              
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = blobUrl;
+              });
+
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) throw new Error('Could not get canvas context');
+              
+              ctx.drawImage(img, 0, 0);
+              
+              const blob = await new Promise<Blob>((resolve) => {
+                canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+              });
+
+              URL.revokeObjectURL(blobUrl);
+
+              const convertedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                type: 'image/jpeg'
+              });
+
+              return await imageCompression(convertedFile, options);
+            }
+
+            // For other image types, just compress
+            if (VALID_FILE_TYPES.includes(file.type as any)) {
+              return await imageCompression(file, options);
+            }
+
+            invalidReasons.push(`${file.name}: Invalid file type`);
+            return null;
+          } catch (error) {
+            console.error('Error processing file:', file.name, error);
+            invalidReasons.push(`${file.name}: Failed to process image`);
+            return null;
+          }
+        })
+      );
+
+      // Filter out null results and add valid files
+      const validFiles = processedFiles.filter((f): f is File => f !== null);
+
+      if (validFiles.length > 0) {
+        setDeliveryPhotos(prev => [...prev, ...validFiles]);
+      }
+
+      // Show errors if any files were invalid
+      if (invalidReasons.length > 0) {
+        toast({
+          title: "Some files were invalid",
+          description: invalidReasons.join('\n'),
+          variant: "destructive",
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast({
+        title: "Error Processing Images",
+        description: "Failed to process some images",
+        variant: "destructive"
+      });
     }
   };
 
@@ -347,7 +445,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                 id="deliveryPhotos"
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                 onChange={handlePhotoChange}
                 className="cursor-pointer"
               />
@@ -379,6 +477,9 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
               />
+              <div className="text-xs text-gray-500">
+                Supported formats: JPG, PNG, WEBP, HEIC (Max 5MB each)
+              </div>
             </div>
 
             {/* Section 4: Driver Info */}
