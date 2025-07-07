@@ -33,6 +33,9 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
   const { toast } = useToast();
   const { user: currentAdmin } = useAuth();
 
+    const availableRoles = ['buyer', 'vendor', 'admin', 'driver', 'sourcer'];
+
+
   useEffect(() => {
     if (user) {
       const fetchUserRole = async () => {
@@ -319,16 +322,18 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="buyer">Buyer</SelectItem>
-                    <SelectItem value="seller">Seller</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    {availableRoles.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (
                 <div className="flex gap-2 mt-2">
                   {editedUser.roles?.[0] ? (
                     <Badge variant="default">
-                      {editedUser.roles[0]}
+                      {editedUser.roles[0].charAt(0).toUpperCase() + editedUser.roles[0].slice(1)}
                     </Badge>
                   ) : (
                     <span className="text-sm text-gray-500">No role assigned</span>
