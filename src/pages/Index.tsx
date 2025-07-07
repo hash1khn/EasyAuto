@@ -110,11 +110,11 @@ const Header = ({ onLoginClick }: { onLoginClick: () => void }) => {
         if (userRoles.includes('admin')) {
             navigate('/admin');
         } else if (userRoles.includes('vendor')) {
-            navigate('/vendor');
+            navigate('/vendor/status');
         } else if (userRoles.includes('driver')) {
             navigate('/driver/dashboard');
         } else if (userRoles.includes('buyer')) {
-            navigate('/dashboard');
+            navigate('/buyer/status');
          } else if (userRoles.includes('sourcer')) {
                 navigate('/sourcer/dashboard');
         } else {
