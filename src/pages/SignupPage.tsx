@@ -525,6 +525,8 @@ export const SignupPage = () => {
         application_status: 'pending', // Set for both roles
         application_submitted_at: new Date().toISOString(), // Set for both roles
         vehicle_makes: formData.vehicleMakes, // Store for both roles
+        referred_by: formData.referredBy === 'direct' ? null : formData.referredBy // Add this line
+
       };
 
       const { error, needsConfirmation } = await signUp({
