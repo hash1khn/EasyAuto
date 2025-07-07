@@ -33,6 +33,7 @@ import DeliveringMapPage from './pages/delivery/DeliveringMapPage';
 import { SignupPage } from './pages/SignupPage';
 import { BuyerApplicationStatus } from "./pages/BuyerApplicationStatus";
 import { AuthGuard } from "./components/auth/AuthGuard";
+import { ExternalRedirect } from './components/ExternalRedirect';
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,15 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<HomeDesign />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/driver/login" element={<DriverLoginPage />} />
+              <Route path="/driver-login" element={<DriverLoginPage />} />
+              <Route 
+                path="/sourcer-job" 
+                element={
+                  <ExternalRedirect 
+                    to="https://docs.google.com/forms/d/1LfVVdJL-mNEqNw2DTRzo57BIL8OpExkDEkH_uwVv3bE/" 
+                  />
+                } 
+              />
 
               {/* Protected Routes */}
               <Route element={<AuthGuard />}>
