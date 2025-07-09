@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { X } from "lucide-react"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { useToast } from "@/hooks/use-toast"
-
+import { PartCondition } from "../buyer/OrderModal/types"
 const ImageCarousel = ({ images }: { images: string[] }) => {
   if (!images || images.length === 0) return null
 
@@ -36,6 +36,9 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
       </Carousel>
     </div>
   )
+}
+interface PartConditionPreference {
+  condition: PartCondition; // Use the type here
 }
 
 interface VendorQuote {
@@ -68,6 +71,7 @@ interface VendorQuote {
   }
 }
 
+
 interface Part {
   id: string
   partName: string
@@ -79,6 +83,8 @@ interface Part {
   inspectionImages?: string[]
   inspectedBy?: string
   inspectedAt?: string
+  part_condition_preferences?: PartConditionPreference[];
+  conditions?: PartCondition[];
 }
 
 interface Vehicle {
@@ -220,10 +226,10 @@ const SourcerDashboard: React.FC = () => {
   }
 
   const fetchLiveOrders = async () => {
-    try {
-      const { data: partsData, error: partsError } = await supabase
-        .from("parts")
-        .select(`
+  try {
+    const { data: partsData, error: partsError } = await supabase
+      .from("parts")
+      .select(`
         *,
         inspection_images,
         inspected_by,
@@ -273,79 +279,83 @@ const SourcerDashboard: React.FC = () => {
             vendor_info,
             is_sourcer_provided,
             sourcer_notes
+        ),
+        part_condition_preferences(
+            condition
         )
-    `)
-        .in("shipping_status", ["pending"])
-        .not("is_accepted", "eq", true)
-        .order("created_at", { ascending: false })
+      `)
+      .in("shipping_status", ["pending"])
+      .not("is_accepted", "eq", true)
+      .order("created_at", { ascending: false })
 
-      if (partsError) throw partsError
+    if (partsError) throw partsError
 
-      const ordersMap = new Map<string, Order>()
+    const ordersMap = new Map<string, Order>()
 
-      partsData?.forEach((part) => {
-        const orderId = part.orders.id
-        if (!ordersMap.has(orderId)) {
-          ordersMap.set(orderId, {
-            id: part.orders.id,
-            userId: part.orders.user_id,
-            status: part.orders.status,
-            createdAt: part.orders.created_at,
-            userProfile: {
-              id: part.orders.user_profiles.id,
-              fullName: part.orders.user_profiles.full_name,
-              whatsappNumber: part.orders.user_profiles.whatsapp_number,
-              location: part.orders.user_profiles.location,
-              deliveryAddress: part.orders.user_profiles.delivery_address,
-            },
-            parts: [],
-          })
-        }
-
-        const order = ordersMap.get(orderId)!
-        order.parts.push({
-          id: part.id,
-          partName: part.part_name,
-          partNumber: part.part_number,
-          quantity: part.quantity,
-          description: part.description,
-          estimatedBudget: part.estimated_budget,
-          inspectionImages: part.inspection_images || [],
-          inspectedBy: part.inspected_by,
-          inspectedAt: part.inspected_at,
-          vehicle: part.vehicles,
-          vendorQuotes: part.bids.map((bid) => {
-            const isSourcerProvided = bid.is_sourcer_provided
-            const vendorInfo = bid.vendor_info
-
-            return {
-              id: bid.id,
-              vendorName: isSourcerProvided ? vendorInfo?.name : bid.vendor?.full_name || "Unknown Vendor",
-              vendorAddress: isSourcerProvided ? vendorInfo?.address : bid.vendor?.location || "No address provided",
-              vendorPhone: isSourcerProvided ? vendorInfo?.phone : bid.vendor?.whatsapp_number || "No phone provided",
-              vendorEmail: isSourcerProvided ? vendorInfo?.email : bid.vendor?.user?.email || "No email provided",
-              price: bid.price,
-              condition: bid.condition,
-              warranty: bid.warranty,
-              imageUrls: bid.image_urls,
-              vendorNotes: bid.notes,
-              submittedAt: bid.created_at,
-              isAccepted: bid.status === "accepted",
-              isSourcerProvided,
-              status: bid.status,
-              vendor_info: vendorInfo,
-              sourcerNotes: bid.sourcer_notes || (isSourcerProvided ? vendorInfo?.sourcerNotes : undefined),
-            }
-          }),
+    partsData?.forEach((part) => {
+      const orderId = part.orders.id
+      if (!ordersMap.has(orderId)) {
+        ordersMap.set(orderId, {
+          id: part.orders.id,
+          userId: part.orders.user_id,
+          status: part.orders.status,
+          createdAt: part.orders.created_at,
+          userProfile: {
+            id: part.orders.user_profiles.id,
+            fullName: part.orders.user_profiles.full_name,
+            whatsappNumber: part.orders.user_profiles.whatsapp_number,
+            location: part.orders.user_profiles.location,
+            deliveryAddress: part.orders.user_profiles.delivery_address,
+          },
+          parts: [],
         })
-      })
+      }
 
-      const processedOrders = Array.from(ordersMap.values())
-      setOrders(processedOrders)
-    } catch (error) {
-      console.error("Error fetching orders:", error)
-    }
+      const order = ordersMap.get(orderId)!
+      order.parts.push({
+        id: part.id,
+        partName: part.part_name,
+        partNumber: part.part_number,
+        quantity: part.quantity,
+        description: part.description,
+        estimatedBudget: part.estimated_budget,
+        inspectionImages: part.inspection_images || [],
+        inspectedBy: part.inspected_by,
+        inspectedAt: part.inspected_at,
+        vehicle: part.vehicles,
+        part_condition_preferences: part.part_condition_preferences || [], // Add this line
+        vendorQuotes: part.bids.map((bid) => {
+          const isSourcerProvided = bid.is_sourcer_provided
+          const vendorInfo = bid.vendor_info
+
+          return {
+            id: bid.id,
+            vendorName: isSourcerProvided ? vendorInfo?.name : bid.vendor?.full_name || "Unknown Vendor",
+            vendorAddress: isSourcerProvided ? vendorInfo?.address : bid.vendor?.location || "No address provided",
+            vendorPhone: isSourcerProvided ? vendorInfo?.phone : bid.vendor?.whatsapp_number || "No phone provided",
+            vendorEmail: isSourcerProvided ? vendorInfo?.email : bid.vendor?.user?.email || "No email provided",
+            price: bid.price,
+            condition: bid.condition,
+            warranty: bid.warranty,
+            imageUrls: bid.image_urls,
+            vendorNotes: bid.notes,
+            submittedAt: bid.created_at,
+            isAccepted: bid.status === "accepted",
+            isSourcerProvided,
+            status: bid.status,
+            vendor_info: vendorInfo,
+            sourcerNotes: bid.sourcer_notes || (isSourcerProvided ? vendorInfo?.sourcerNotes : undefined),
+          }
+        }),
+      })
+    })
+
+    const processedOrders = Array.from(ordersMap.values())
+    setOrders(processedOrders)
+  } catch (error) {
+    console.error("Error fetching orders:", error)
   }
+}
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
@@ -833,6 +843,9 @@ const SourcerDashboard: React.FC = () => {
                             Budget
                           </th>
                           <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+  Conditions
+</th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Quote Status
                           </th>
                           <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -864,6 +877,22 @@ const SourcerDashboard: React.FC = () => {
                                   <span className="text-sm text-gray-500">-</span>
                                 )}
                               </td>
+                              <td className="py-4 px-4 whitespace-nowrap">
+  {part.part_condition_preferences?.length ? (
+    <div className="flex flex-wrap gap-1">
+      {part.part_condition_preferences.map((pref, i) => (
+        <span 
+          key={i} 
+          className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs capitalize"
+        >
+          {pref.condition.replace('_', ' ')}
+        </span>
+      ))}
+    </div>
+  ) : (
+    <span className="text-gray-400 text-sm">Any</span>
+  )}
+</td>
                               <td className="py-4 px-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${quoteStatus.color}`}>
                                   {quoteStatus.text}
@@ -914,6 +943,20 @@ const SourcerDashboard: React.FC = () => {
                                   {part.estimatedBudget ? `AED ${part.estimatedBudget}` : "-"}
                                 </p>
                               </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+  {part.part_condition_preferences?.length ? (
+    part.part_condition_preferences.map((pref, i) => (
+      <span 
+        key={i} 
+        className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs capitalize"
+      >
+        {pref.condition.replace('_', ' ')}
+      </span>
+    ))
+  ) : (
+    <span className="text-gray-400 text-xs">Any condition</span>
+  )}
+</div>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
@@ -1538,6 +1581,23 @@ const SourcerDashboard: React.FC = () => {
                         {selectedPart.estimatedBudget ? `AED ${selectedPart.estimatedBudget}` : "N/A"}
                       </p>
                     </div>
+<div className="mt-2">
+  <p className="text-sm text-gray-600">Acceptable Conditions:</p>
+  <div className="flex flex-wrap gap-1 mt-1">
+    {selectedPart.part_condition_preferences?.length ? (
+      selectedPart.part_condition_preferences.map((pref, i) => (
+        <span 
+          key={i} 
+          className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs capitalize"
+        >
+          {pref.condition.replace('_', ' ')}
+        </span>
+      ))
+    ) : (
+      <span className="text-gray-400 text-xs">Any condition accepted</span>
+    )}
+  </div>
+</div>
                     {selectedPart.description && (
                       <div className="col-span-full">
                         <p className="text-gray-500">Description</p>
