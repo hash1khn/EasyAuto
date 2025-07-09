@@ -318,17 +318,7 @@ export const PartsStep: React.FC<PartsStepProps> = ({
                             `(with ${currentPart.imageFiles.length} images)`}
                     </Button>
 
-                    <Button
-                        onClick={handleAddPart}
-                        className="w-full bg-primary hover:bg-primary/90 text-white py-2"
-                        size="sm"
-                        disabled={
-                            !currentPart.partName ||
-                            !currentPart.conditions?.length
-                        }>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Part to Order
-                    </Button>
+                    
                 </CardContent>
             </Card>
 
