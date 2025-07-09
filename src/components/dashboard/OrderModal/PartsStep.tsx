@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, X, ArrowLeft, ArrowRight, Settings, Package, Car, DollarSign } from 'lucide-react';
+import { ConditionSelector } from '@/components/buyer/OrderModal/ConditionSelector';
+import { Part } from '@/components/buyer/OrderModal/types';
+import { toast } from "@/hooks/use-toast";
 
 interface Vehicle {
   make: string;
@@ -15,14 +18,6 @@ interface Vehicle {
   vin: string;
 }
 
-interface Part {
-  vehicleIndex: number;
-  partName: string;
-  partNumber: string;
-  description: string;
-  quantity: number;
-  estimatedBudget?: string;
-}
 
 interface PartsStepProps {
   vehicles: Vehicle[];
@@ -48,6 +43,21 @@ export const PartsStep: React.FC<PartsStepProps> = ({
   const canProceed = parts.length > 0;
 
   const handleAddPart = () => {
+      if (!currentPart.partName) {
+    toast({ title: "Missing part information", description: "Please enter the part name.", variant: "destructive" });
+    return;
+  }
+    // Validate at least one condition is selected
+    if (!currentPart.conditions || currentPart.conditions.length === 0) {
+      // You might want to show a toast notification here
+      toast({ 
+      title: "Missing condition selection", 
+      description: "Please select at least one acceptable condition.", 
+      variant: "destructive" 
+    });
+      return;
+    }
+    
     const selectedVehicleIndex = currentPart.vehicleIndex;
     onAddPart();
     // Preserve the selected vehicle after adding a part
@@ -58,8 +68,13 @@ export const PartsStep: React.FC<PartsStepProps> = ({
       partNumber: '',
       description: '',
       quantity: 1,
-      estimatedBudget: ''
+      estimatedBudget: '',
+      conditions: []
     }));
+  };
+
+  const handleConditionChange = (conditions: string[]) => {
+    setCurrentPart(prev => ({ ...prev, conditions: conditions as Part['conditions'] }));
   };
 
   return (
@@ -140,6 +155,14 @@ export const PartsStep: React.FC<PartsStepProps> = ({
               </div>
             </div>
             
+            {/* Condition Selector */}
+            <div className="md:col-span-2">
+              <ConditionSelector 
+                conditions={currentPart.conditions || []} 
+                onChange={handleConditionChange} 
+              />
+            </div>
+            
             <div className="md:col-span-2">
               <Label htmlFor="description">Additional Details (Optional)</Label>
               <Textarea
@@ -157,6 +180,7 @@ export const PartsStep: React.FC<PartsStepProps> = ({
             onClick={handleAddPart} 
             className="w-full bg-primary hover:bg-primary/90 text-white py-2"
             size="sm"
+            disabled={!currentPart.partName || !currentPart.conditions?.length}
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Part to Order
@@ -206,6 +230,19 @@ export const PartsStep: React.FC<PartsStepProps> = ({
                         </div>
                         {part.partNumber && (
                           <p className="text-xs text-gray-500 mt-0.5">Part #: {part.partNumber}</p>
+                        )}
+                        {part.conditions && part.conditions.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {part.conditions.map((condition, i) => (
+                              <Badge 
+                                key={i} 
+                                variant="outline" 
+                                className="text-xs px-1.5 py-0.5 capitalize"
+                              >
+                                {condition.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>

@@ -76,6 +76,21 @@ export function PartModal({ part, vehicle, onOpenChange ,priceModifiers}: PartMo
                     <p className="font-medium">AED {part.estimated_budget}</p>
                   </div>
                 )}
+                {part.conditions && part.conditions.length > 0 && (
+      <div className="col-span-2">
+        <p className="text-sm text-muted-foreground">Acceptable Conditions</p>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {part.conditions.map((condition, index) => (
+            <span 
+              key={index} 
+              className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs capitalize"
+            >
+              {condition.replace('_', ' ')}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
                 <div className="col-span-2">
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{part.description || "No description provided"}</p>

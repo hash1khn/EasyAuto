@@ -31,7 +31,7 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
   });
 
   const [currentPart, setCurrentPart] = useState<Part>({
-    vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimatedBudget: ''
+    vehicleIndex: 0, partName: '', partNumber: '', description: '', quantity: 1, estimatedBudget: '',  conditions: []
   });
 
   const handleClose = () => {
@@ -146,22 +146,43 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
 
         if (vehicleError) throw vehicleError;
 
-        // Create parts with estimated_budget
-        const partPromises = vehicleParts.map(part =>
-          supabase
-            .from('parts')
-            .insert({
-              order_id: orderData.id,
-              vehicle_id: vehicleData.id,
-              part_name: part.partName,
-              part_number: part.partNumber || null,
-              description: part.description || null,
-              quantity: part.quantity,
-              estimated_budget: part.estimatedBudget ? parseFloat(part.estimatedBudget) : null
-            })
-        );
+        // Create parts with estimated_budget and conditions
+      const partPromises = vehicleParts.map(part => {
+        return supabase
+          .from('parts')
+          .insert({
+            order_id: orderData.id,
+            vehicle_id: vehicleData.id,
+            part_name: part.partName,
+            part_number: part.partNumber || null,
+            description: part.description || null,
+            quantity: part.quantity,
+            estimated_budget: part.estimatedBudget ? parseFloat(part.estimatedBudget) : null
+          })
+          .select()
+          .single()
+          .then(async ({ data: partData, error: partError }) => {
+            if (partError) throw partError;
+            
+            // Insert condition preferences if they exist
+            if (part.conditions && part.conditions.length > 0) {
+              const conditionInserts = part.conditions.map(condition => ({
+                part_id: partData.id,
+                condition
+              }));
+              
+              const { error: conditionError } = await supabase
+                .from('part_condition_preferences')
+                .insert(conditionInserts);
+                
+              if (conditionError) throw conditionError;
+            }
+            
+            return partData;
+          });
+      });
 
-        await Promise.all(partPromises);
+      await Promise.all(partPromises);
 
         // Store data for notifications
         notificationPayloads.push({
@@ -231,7 +252,10 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose, onOr
               parts: payload.parts.map(p => ({
                 partName: p.partName,
                 partNumber: p.partNumber || null,
-                estimatedBudget: p.estimatedBudget || null
+                estimatedBudget: p.estimatedBudget || null,
+                quantity:p.quantity,
+                conditions: p.conditions || [] // Include conditions in notification
+
               })),
               orderId: payload.orderId,
             }

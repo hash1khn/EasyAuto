@@ -59,6 +59,8 @@ export interface Part {
   inspection_images: string[] | null;
   inspected_by: string | null;
   inspected_at: string | null;
+  conditions?: string[]; // Add this line
+
   
   // Relations
   vehicle?: Vehicle;

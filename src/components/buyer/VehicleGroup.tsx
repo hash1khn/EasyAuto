@@ -96,7 +96,15 @@ export const VehicleGroup = ({ vehicle, parts, onPartDeleted }: VehicleGroupProp
     // Show loading state immediately
     setLocalParts(prev => prev.filter(p => p.id !== partToDelete));
 
-    // Delete related bids first (if any)
+    // First delete related condition preferences
+    const { error: deleteConditionsError } = await supabase
+      .from('part_condition_preferences')
+      .delete()
+      .eq('part_id', partToDelete);
+    
+    if (deleteConditionsError) throw deleteConditionsError;
+
+    // Then delete related bids
     const { error: deleteBidsError } = await supabase
       .from('bids')
       .delete()
@@ -104,7 +112,7 @@ export const VehicleGroup = ({ vehicle, parts, onPartDeleted }: VehicleGroupProp
     
     if (deleteBidsError) throw deleteBidsError;
 
-    // Now delete the part
+    // Finally delete the part itself
     const { error: deletePartError } = await supabase
       .from('parts')
       .delete()

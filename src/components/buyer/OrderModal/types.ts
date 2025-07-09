@@ -1,3 +1,6 @@
+export type PartCondition = 'used' | 'new_oem' | 'new_aftermarket' | 'any';
+
+
 export interface Vehicle {
   make: string;
   model: string;
@@ -12,4 +15,7 @@ export interface Part {
   description: string;
   quantity: number;
   estimatedBudget?: string;
+  conditions?: PartCondition[]; // Add this line
+
+
 } 

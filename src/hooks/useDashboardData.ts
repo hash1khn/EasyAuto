@@ -36,58 +36,67 @@ export const useDashboardData = () => {
 
       // Fetch orders with all related data
       const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
+      .from('orders')
+      .select(`
+        id,
+        created_at,
+        status,
+        is_paid,
+        parts (
           id,
+          part_name,
+          description,
+          part_number,
+          quantity,
+          inspection_images,
+          shipping_status,
+          estimated_budget,
           created_at,
-          status,
-          is_paid,
-          parts (
+          vehicle:vehicles (
             id,
-            part_name,
-            description,
-            part_number,
-            quantity,
-            inspection_images,
-            shipping_status,
-            estimated_budget,
+            make,
+            model,
+            year,
+            vin
+          ),
+          bids (
+            id,
+            price,
+            notes,
+            warranty,
+            condition,
+            status,
+            image_url,
             created_at,
-            vehicle:vehicles (
+            vendor:user_profiles!vendor_id (
               id,
-              make,
-              model,
-              year,
-              vin
-            ),
-            bids (
-              id,
-              price,
-              notes,
-              warranty,
-              condition,
-              status,
-              image_url,
-              created_at,
-              vendor:user_profiles!vendor_id (
-                id,
-                full_name,
-                business_name
-              )
+              full_name,
+              business_name
             )
+          ),
+          part_condition_preferences (
+            condition
           )
-        `)
-        .eq('user_id', userProfile.id)
-        .neq('status', 'cancelled')
-        .order('created_at', { ascending: false });
+        )
+      `)
+      .eq('user_id', userProfile.id)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
+    if (ordersError) throw ordersError;
 
       // Process orders for live orders display
-      const liveOrdersData = ordersData?.filter(order => 
-        order.status === 'open' && order.parts.some(part => 
-          part.shipping_status !== 'delivered' && part.shipping_status !== 'admin_collected'
-        )
-      ) || [];
+      const liveOrdersData = ordersData?.map(order => ({
+      ...order,
+      parts: order.parts.map(part => ({
+        ...part,
+        conditions: part.part_condition_preferences?.map(p => p.condition) || []
+      }))
+    })).filter(order => 
+      order.status === 'open' && order.parts.some(part => 
+        part.shipping_status !== 'delivered' && part.shipping_status !== 'admin_collected'
+      )
+    ) || [];
 
       const processedOrders = liveOrdersData.map(order => {
         const partsWithDetails = order.parts
