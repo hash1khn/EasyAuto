@@ -16,6 +16,6 @@ export interface Part {
   quantity: number;
   estimatedBudget?: string;
   conditions?: PartCondition[]; // Add this line
-
-
+  photos?: string[];
+  imageFiles?: File[];
 } 
