@@ -263,7 +263,11 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({
             });
             return;
         }
+
+        // Add the current part to the parts array
         setParts([...parts, currentPart]);
+
+        // Reset the form including imageFiles
         setCurrentPart({
             ...currentPart,
             partName: "",
@@ -271,7 +275,18 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({
             description: "",
             quantity: 1,
             estimatedBudget: "",
+            conditions: [],
+            imageFiles: [], // Reset the image files
         });
+
+        // Revoke any existing object URLs to prevent memory leaks
+        if (currentPart.imageFiles?.length) {
+            currentPart.imageFiles.forEach(file => {
+                if (file instanceof File) {
+                    URL.revokeObjectURL(URL.createObjectURL(file));
+                }
+            });
+        }
     };
 
     const removePart = (index: number) => {
