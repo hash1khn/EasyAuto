@@ -5,6 +5,11 @@ export interface Order {
   status: 'open' | 'partial' | 'closed' | 'cancelled' | 'refunded' | 'ready_for_checkout' | 'completed';
   is_paid?: boolean;
 }
+export type PartCondition = 'used' | 'new_oem' | 'new_aftermarket' | 'any';
+export interface PartConditionPreference {
+  part_id: number;
+  condition: PartCondition;
+}
 
 // Rename the second interface to avoid conflict
 export interface OrderWithPartsResponse {
@@ -68,6 +73,8 @@ export type Part = {
   inspection_images?: string[]
   inspected_by?: string
   inspected_at?: string
+  part_condition_preferences?: PartConditionPreference[];
+
   // Add any other missing properties from your schema
 }
 

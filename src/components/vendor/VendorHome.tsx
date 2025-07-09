@@ -136,7 +136,8 @@ export const VendorHome: React.FC = () => {
           parts!inner(
             *,
             vehicle:vehicles(*),
-            bids(*)
+            bids(*),
+            part_condition_preferences(condition)
           )
         `)
         .order("created_at", { ascending: false })
@@ -168,6 +169,7 @@ export const VendorHome: React.FC = () => {
               existing_bid: part.bids?.find((bid) => bid.vendor_id === vendorProfileId),
               other_bids_count:
                 part.bids?.filter((b) => b.vendor_id !== vendorProfileId && b.status === "pending").length || 0,
+                conditions: part.part_condition_preferences?.map(p => p.condition) || [] 
             })),
         }))
         // Remove orders that have no visible parts after filtering
@@ -209,7 +211,7 @@ export const VendorHome: React.FC = () => {
           partName: part.part_name,
           partNumber: part.part_number || "",
           quantity: part.quantity,
-          myQuote: part.existing_bid
+          conditions: part.part_condition_preferences?.map(p => p.condition) || [],          myQuote: part.existing_bid
             ? {
                 id: part.existing_bid.id,
                 price: part.existing_bid.price,

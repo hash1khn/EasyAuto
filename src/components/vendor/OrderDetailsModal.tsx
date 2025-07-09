@@ -21,6 +21,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 }) => {
   const [quotePart, setQuotePart] = useState<VendorPart | null>(null);
 
+  const formatCondition = (condition: string) => {
+    return condition
+      .replace('_', ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  };
   const handleQuoteSubmitted = () => {
     setQuotePart(null);  // Close the quote modal
     onRefreshData?.();   // Refresh the data
@@ -56,6 +61,23 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         <span className="font-mono">Part #: {part.partNumber}</span>
                         <Badge variant="secondary">Qty: {part.quantity}</Badge>
                       </div>
+                      {/* Add conditions display here */}
+                      {part.conditions && part.conditions.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500">Acceptable Conditions:</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {part.conditions.map((condition, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="outline"
+                                className="text-xs capitalize"
+                              >
+                                {formatCondition(condition)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {part.quoteRange && (
                         <div className="text-xs text-gray-500 mt-2 p-2 bg-blue-50 border-l-4 border-blue-300">
                           <span>Quote Range from other vendors: </span>

@@ -1,5 +1,5 @@
 import { Part } from './orders';
-
+import { PartCondition } from '@/components/buyer/OrderModal/types';
 export type QuoteCondition = 'Used - Excellent' | 'Used - Good' | 'Used - Fair';
 export type QuoteWarranty = 'No Warranty' | '3 Days' | '7 Days' | '14 Days' | '30 Days' | string; 
 export interface MyQuote {
@@ -24,6 +24,7 @@ export interface VendorPart {
   quantity: number;
   quoteRange?: QuoteRange;    // Changed from quote_range
   additionalInfo?: string;
+  conditions?:PartCondition[];
   myQuote?: MyQuote;
   order_id?: string;         // Add if needed for compatibility
 }
