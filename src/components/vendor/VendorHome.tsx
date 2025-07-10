@@ -130,17 +130,18 @@ export const VendorHome: React.FC = () => {
     try {
       // Fetch all orders with parts and bids
       const { data, error } = await supabase
-        .from("orders")
-        .select(`
+      .from("orders")
+      .select(`
+        *,
+        parts!inner(
           *,
-          parts!inner(
-            *,
-            vehicle:vehicles(*),
-            bids(*),
-            part_condition_preferences(condition)
-          )
-        `)
-        .order("created_at", { ascending: false })
+          photos,
+          vehicle:vehicles(*),
+          bids(*),
+          part_condition_preferences(condition)
+        )
+      `)
+      .order("created_at", { ascending: false })
 
       if (error) throw error
 
@@ -169,7 +170,8 @@ export const VendorHome: React.FC = () => {
               existing_bid: part.bids?.find((bid) => bid.vendor_id === vendorProfileId),
               other_bids_count:
                 part.bids?.filter((b) => b.vendor_id !== vendorProfileId && b.status === "pending").length || 0,
-                conditions: part.part_condition_preferences?.map(p => p.condition) || [] 
+                conditions: part.part_condition_preferences?.map(p => p.condition) || [] ,
+                photos: part.photos || [] // Add this line
             })),
         }))
         // Remove orders that have no visible parts after filtering
@@ -211,6 +213,7 @@ export const VendorHome: React.FC = () => {
           partName: part.part_name,
           partNumber: part.part_number || "",
           quantity: part.quantity,
+          photos: part.photos,
           conditions: part.part_condition_preferences?.map(p => p.condition) || [],          myQuote: part.existing_bid
             ? {
                 id: part.existing_bid.id,

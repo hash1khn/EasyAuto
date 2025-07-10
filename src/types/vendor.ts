@@ -24,6 +24,7 @@ export interface VendorPart {
   quantity: number;
   quoteRange?: QuoteRange;    // Changed from quote_range
   additionalInfo?: string;
+  photos?: string[]; // Add this line
   conditions?:PartCondition[];
   myQuote?: MyQuote;
   order_id?: string;         // Add if needed for compatibility
