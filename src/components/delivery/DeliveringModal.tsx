@@ -91,7 +91,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
     // Calculate subtotal with vendor markup
     const subtotal = parts.reduce((sum, part) => {
       const basePrice = part.winning_bid?.price || 0
-      const finalUnitPrice = basePrice * (1 + priceModifiers.vendor_percentage / 100)
+      const finalUnitPrice = basePrice
       return sum + (finalUnitPrice * (part.quantity || 1))
     }, 0)
 
@@ -237,7 +237,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
         ...part,
         winning_bid: {
           ...part.winning_bid,
-          price: (part.winning_bid?.price || 0) * (1 + priceModifiers.vendor_percentage / 100)
+          price: part.winning_bid?.price || 0
         }
       }))
 
@@ -321,17 +321,16 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                   <tbody>
                     {parts.map((part) => {
                       const basePrice = part.winning_bid?.price || 0
-                      const unitPrice = basePrice * (1 + priceModifiers.vendor_percentage / 100)
                       return (
                         <tr key={part.id}>
                           <td className="px-3 py-2">{part.partName}</td>
                           <td className="px-3 py-2 text-center">{part.quantity}</td>
                           <td className="px-3 py-2 text-right">
-                            {formatCurrency(unitPrice)}
+                            {formatCurrency(basePrice)}
 
                           </td>
                           <td className="px-3 py-2 text-right">
-                            {formatCurrency(unitPrice * (part.quantity || 1))}
+                            {formatCurrency(basePrice * (part.quantity || 1))}
                           </td>
                         </tr>
                       )

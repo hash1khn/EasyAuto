@@ -106,8 +106,9 @@ export function PartModal({ part, vehicle, onOpenChange ,priceModifiers}: PartMo
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Accepted Price</p>
-                      <p className="font-bold text-lg">AED {getBuyerPrice(acceptedBid.price).toFixed(2)}</p>
-                    </div>
+<p className="font-bold text-lg">
+                      AED {acceptedBid.customer_paid}
+                    </p>                    </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Condition</p>

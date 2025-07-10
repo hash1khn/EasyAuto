@@ -62,6 +62,7 @@ export const useDashboardData = () => {
           bids (
             id,
             price,
+            customer_paid,
             notes,
             warranty,
             condition,

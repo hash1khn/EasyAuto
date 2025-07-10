@@ -41,6 +41,8 @@ export const useDeliveryData = () => {
           bids!inner (
             id,
             price,
+            customer_paid,
+
             condition,
             warranty,
             status,
@@ -91,7 +93,7 @@ export const useDeliveryData = () => {
           winning_bid: winningBid
             ? {
                 id: winningBid.id,
-                price: winningBid.price,
+                price: winningBid.customer_paid,
                 condition: winningBid.condition,
                 warranty: winningBid.warranty,
                 is_sourcer_provided: winningBid.is_sourcer_provided || false,

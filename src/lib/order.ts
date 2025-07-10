@@ -73,6 +73,7 @@ export interface Bid {
   part_id: string;
   vendor_id: string;
   price: number;
+  customer_paid:number;
   notes: string | null;
   status: BidStatus;
   image_url: string | null;

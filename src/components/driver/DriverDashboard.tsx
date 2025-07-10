@@ -43,6 +43,8 @@ interface SupabaseBid {
     condition: QuoteCondition;
     status: string;
     price: number;
+    customer_paid: number;
+
     warranty: string;
     notes: string | null;
     created_at: string;
@@ -296,6 +298,7 @@ export const DriverDashboard: React.FC = () => {
             condition,
             status,
             price,
+            customer_paid,
             warranty,
             notes,
             created_at,
@@ -357,7 +360,7 @@ export const DriverDashboard: React.FC = () => {
                             vendor_id: bid.vendor_id,
                             condition: bid.condition,
                             status: bid.status,
-                            price: bid.price,
+                            price: bid.customer_paid,
                             warranty: bid.warranty,
                             notes: bid.notes,
                             created_at: bid.created_at,
@@ -378,7 +381,7 @@ export const DriverDashboard: React.FC = () => {
                               vendor_id: bid.vendor_id,
                               condition: bid.condition,
                               status: bid.status,
-                              price: bid.price,
+                                price: bid.customer_paid,
                               warranty: bid.warranty,
                               notes: bid.notes,
                               created_at: bid.created_at,
