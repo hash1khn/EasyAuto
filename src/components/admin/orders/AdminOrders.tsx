@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ReceiptModal } from "@/components/buyer/ReceiptModal"
+
 
 interface RefundRequest {
   id: string
@@ -169,6 +171,8 @@ export const AdminOrders = () => {
   const [selectedRefundRequest, setSelectedRefundRequest] = useState<RefundRequest | null>(null)
   const [adminNotes, setAdminNotes] = useState("")
   const [loading, setLoading] = useState(true)
+  const [partToDelete, setPartToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrders()
@@ -540,29 +544,97 @@ export const AdminOrders = () => {
   const handleViewInvoice = (invoice: any) => setSelectedInvoice(invoice)
 
   // Handler for cancel confirmation
-  const handleCancelPart = (part: any) => {
-    setPartToCancel(part)
-  }
+  const handleDeletePart = (partId: string) => {
+  setPartToDelete(partId);
+};
 
-  const confirmCancelPart = async () => {
-    if (partToCancel) {
-      try {
-        const { error } = await supabase
-          .from("parts")
-          .update({ shipping_status: "cancelled" })
-          .eq("id", partToCancel.id)
+  const confirmDeletePart = async () => {
+  if (!partToDelete || isDeleting || !selectedOrder) return;
+  
+  setIsDeleting(true);
+  try {
+    // Get the part details first
+    const { data: partData, error: partError } = await supabase
+      .from('parts')
+      .select('id, order_id')
+      .eq('id', partToDelete)
+      .single();
 
-        if (error) throw error
+    if (partError || !partData) throw partError || new Error("Part not found");
 
-        alert(`Cancelled part ${partToCancel.part_name}`)
-        setPartToCancel(null)
-        fetchOrders() // Refresh data
-      } catch (error) {
-        console.error("Error cancelling part:", error)
-        alert("Failed to cancel part")
-      }
+    const orderId = partData.order_id;
+
+    // Check if there are any accepted bids for this part
+    const { data: bids, error: bidsError } = await supabase
+      .from('bids')
+      .select('id, status')
+      .eq('part_id', partToDelete);
+    
+    if (bidsError) throw bidsError;
+    
+    const hasAcceptedBid = bids?.some(bid => bid.status === "accepted");
+    if (hasAcceptedBid) {
+      alert("Cannot delete part with accepted bids");
+      return;
     }
+
+    // First delete related condition preferences
+    const { error: deleteConditionsError } = await supabase
+      .from('part_condition_preferences')
+      .delete()
+      .eq('part_id', partToDelete);
+    
+    if (deleteConditionsError) throw deleteConditionsError;
+
+    // Then delete related bids
+    const { error: deleteBidsError } = await supabase
+      .from('bids')
+      .delete()
+      .eq('part_id', partToDelete);
+    
+    if (deleteBidsError) throw deleteBidsError;
+
+    // Finally delete the part itself
+    const { error: deletePartError } = await supabase
+      .from('parts')
+      .delete()
+      .eq('id', partToDelete);
+    
+    if (deletePartError) throw deletePartError;
+
+    // Check if this was the last part in the order
+    const { data: remainingParts, error: partsError } = await supabase
+      .from('parts')
+      .select('id')
+      .eq('order_id', orderId);
+
+    if (partsError) throw partsError;
+
+    // If no parts left, delete the order
+    if (remainingParts && remainingParts.length === 0) {
+      const { error: deleteOrderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (deleteOrderError) throw deleteOrderError;
+      
+      alert("Deleted the last part in the order, so the entire order has been deleted.");
+    } else {
+      alert("Part deleted successfully");
+    }
+
+    // Close modals and refresh data
+    setPartToDelete(null);
+    setSelectedOrder(null);
+    fetchOrders();
+  } catch (error) {
+    console.error("Error deleting part:", error);
+    alert("Failed to delete part. Please try again.");
+  } finally {
+    setIsDeleting(false);
   }
+};
 
   const closeCancelDialog = () => setPartToCancel(null)
 
@@ -949,10 +1021,13 @@ export const AdminOrders = () => {
                             </div>
                             <div className="flex gap-2">
                               {canCancel && (
-                                <Button size="sm" variant="destructive" onClick={() => handleCancelPart(part)}>
-                                  Cancel
-                                </Button>
-                              )}
+  <Button 
+    size="sm" 
+    variant="destructive" 
+    onClick={() => handleDeletePart(part.id)}  >
+    Delete
+  </Button>
+)}
                             </div>
                           </li>
                         )
@@ -1093,25 +1168,38 @@ export const AdminOrders = () => {
         </Dialog>
       )}
 
-      {/* Cancel Part Confirmation Dialog */}
-      <Dialog open={!!partToCancel} onOpenChange={closeCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Part</DialogTitle>
-          </DialogHeader>
-          <div>
-            Are you sure you want to cancel <b>{partToCancel?.part_name}</b>? This action cannot be undone.
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeCancelDialog}>
-              No, Go Back
-            </Button>
-            <Button variant="destructive" onClick={confirmCancelPart}>
-              Yes, Cancel Part
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+     {/* Delete Part Confirmation Dialog */}
+<Dialog open={!!partToDelete} onOpenChange={() => !isDeleting && setPartToDelete(null)}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Delete Part</DialogTitle>
+    </DialogHeader>
+    <div>
+      Are you sure you want to delete this part? 
+      {selectedOrder?.vehicles.flatMap(v => v.parts).length === 1 && (
+        <span className="block mt-2 text-red-500">
+          Warning: This is the last part in the order - deleting it will remove the entire order.
+        </span>
+      )}
+    </div>
+    <DialogFooter>
+      <Button 
+        variant="outline" 
+        onClick={() => setPartToDelete(null)}
+        disabled={isDeleting}
+      >
+        Cancel
+      </Button>
+      <Button 
+        variant="destructive" 
+        onClick={confirmDeletePart}
+        disabled={isDeleting}
+      >
+        {isDeleting ? "Deleting..." : "Confirm Delete"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       {/* Invoice Details Modal */}
       {selectedInvoice && (
