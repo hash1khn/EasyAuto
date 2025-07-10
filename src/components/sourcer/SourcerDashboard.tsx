@@ -206,6 +206,52 @@ const SourcerDashboard: React.FC = () => {
         vendorNotes: "",
     });
 
+    useEffect(() => {
+        if (selectedPart && vendorPercentage !== null) {
+            if (selectedPart.estimatedBudget) {
+                const calculatedValue =
+                    selectedPart.estimatedBudget / (1 + vendorPercentage / 100);
+                const roundedValue = Math.floor(calculatedValue / 5) * 5;
+                setMaxAllowedSpend(roundedValue);
+            } else {
+                setMaxAllowedSpend(null);
+            }
+        }
+    }, [selectedPart, vendorPercentage]);
+
+    const fetchVendorPercentageAndCalculateSpend = async (estimatedBudget: number | undefined) => {
+        try {
+            const { data, error } = await supabase
+                .from("price_modifiers")
+                .select("vendor_percentage")
+                .single();
+    
+            if (error) throw error;
+            
+            setVendorPercentage(data.vendor_percentage);
+            
+            if (estimatedBudget && data.vendor_percentage !== null) {
+                const calculatedValue = estimatedBudget / (1 + data.vendor_percentage / 100);
+                const roundedValue = Math.floor(calculatedValue / 5) * 5;
+                setMaxAllowedSpend(roundedValue);
+            }
+        } catch (error) {
+            console.error("Error fetching vendor percentage:", error);
+            toast({
+                title: "Error",
+                description: "Could not fetch vendor percentage. Using default 15%.",
+                variant: "destructive",
+            });
+            setVendorPercentage(15); // fallback to 15%
+            
+            if (estimatedBudget) {
+                const calculatedValue = estimatedBudget / 1.15; // Using default 15%
+                const roundedValue = Math.floor(calculatedValue / 5) * 5;
+                setMaxAllowedSpend(roundedValue);
+            }
+        }
+    };
+
     const handleAddQuoteImageUpload = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -643,6 +689,7 @@ const SourcerDashboard: React.FC = () => {
         setSelectedPart(part);
         setSelectedVehicle(part.vehicle);
         setIsViewAllQuotesModalOpen(true);
+        fetchVendorPercentageAndCalculateSpend(part.estimatedBudget);
     };
 
     const closeViewAllQuotesModal = () => {
@@ -759,18 +806,7 @@ const SourcerDashboard: React.FC = () => {
         return Math.floor(calculatedValue / 5) * 5; // Round down to nearest 5
     };
 
-    useEffect(() => {
-        if (selectedPart && vendorPercentage !== null) {
-            if (selectedPart.estimatedBudget) {
-                const calculatedValue =
-                    selectedPart.estimatedBudget / (1 + vendorPercentage / 100);
-                const roundedValue = Math.floor(calculatedValue / 5) * 5;
-                setMaxAllowedSpend(roundedValue);
-            } else {
-                setMaxAllowedSpend(null);
-            }
-        }
-    }, [selectedPart, vendorPercentage]);
+
 
     const closeAddQuoteModal = () => {
         setIsAddQuoteModalOpen(false);
@@ -1309,6 +1345,7 @@ const SourcerDashboard: React.FC = () => {
 
             {/* View All Quotes Modal */}
             {isViewAllQuotesModalOpen && selectedPart && selectedVehicle && (
+               
                 <div
                     className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
                     onClick={closeViewAllQuotesModal}>
