@@ -673,6 +673,7 @@ const SourcerDashboard: React.FC = () => {
     };
 
     // Add this helper function at the top of the component
+    // Update the calculateProfitMargin function
     const calculateProfitMargin = (
         customerPaid: string,
         vendorPrice: string
@@ -683,7 +684,8 @@ const SourcerDashboard: React.FC = () => {
         if (!customer || !vendor || customer <= 0 || vendor <= 0) return null;
 
         const profit = customer - vendor;
-        const margin = (profit / customer) * 100;
+        // New formula: ((customer - vendor) / vendor) x 100
+        const margin = (profit / vendor) * 100;
 
         return {
             profit,
@@ -1684,7 +1686,8 @@ const SourcerDashboard: React.FC = () => {
                                         </p>
                                         {maxAllowedSpend !== null && (
                                             <p className="text-xs text-gray-500 mt-1">
-                                                Max allowed spend: AED {maxAllowedSpend.toFixed(2)}
+                                                Max allowed spend: AED{" "}
+                                                {maxAllowedSpend.toFixed(2)}
                                             </p>
                                         )}
                                     </div>
@@ -1730,7 +1733,6 @@ const SourcerDashboard: React.FC = () => {
                                                 return (
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between">
-                                                            
                                                             <span className="text-gray-600">
                                                                 Customer Pays:
                                                             </span>
