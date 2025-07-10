@@ -163,7 +163,6 @@ export const AdminOrders = () => {
   const [activeSubTab, setActiveSubTab] = useState<"open" | "history">("open")
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null)
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [search, setSearch] = useState("")
   const [partToCancel, setPartToCancel] = useState<any>(null)
   const [orders, setOrders] = useState<AdminOrder[]>([])
@@ -173,6 +172,8 @@ export const AdminOrders = () => {
   const [loading, setLoading] = useState(true)
   const [partToDelete, setPartToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [receiptInvoiceId, setReceiptInvoiceId] = useState<string | null>(null);
+
 
   useEffect(() => {
     fetchOrders()
@@ -524,7 +525,7 @@ export const AdminOrders = () => {
       if (activeSubTab === "open") {
         return order.status !== "Fully Delivered" && order.status !== "Cancelled"
       } else {
-        return order.status === "Fully Delivered" || order.status === "Cancelled"
+        return order.status === "Fully Delivered"
       }
     })
     .filter((order) => {
@@ -541,7 +542,7 @@ export const AdminOrders = () => {
   // Actions
   const handleViewOrder = (order: AdminOrder) => setSelectedOrder(order)
   const handleViewDelivery = (delivery: any) => setSelectedDelivery(delivery)
-  const handleViewInvoice = (invoice: any) => setSelectedInvoice(invoice)
+  const handleViewInvoice = (invoice: any) => setReceiptInvoiceId(invoice.id);
 
   // Handler for cancel confirmation
   const handleDeletePart = (partId: string) => {
@@ -1054,7 +1055,7 @@ export const AdminOrders = () => {
                             )}
                           </div>
                           <Button size="sm" variant="outline" onClick={() => handleViewInvoice(delivery.invoice)}>
-                            More Details
+                            Receipt
                           </Button>
                         </div>
                       </Card>
@@ -1202,76 +1203,11 @@ export const AdminOrders = () => {
 </Dialog>
 
       {/* Invoice Details Modal */}
-      {selectedInvoice && (
-        <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
-          <DialogContent className="max-w-2xl p-0 bg-transparent shadow-none">
-            <Card className="w-full max-h-[90vh] overflow-y-auto">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">Invoice Details</CardTitle>
-                <CardDescription>All invoice, delivery, and vendor info for this delivery.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                  <div className="font-medium text-gray-600">
-                    Invoice ID: <span className="font-normal text-gray-900">{selectedInvoice.id}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Status: <span className="font-normal text-gray-900">{selectedInvoice.payment_status}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Subtotal:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Delivery Fee:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.delivery_fee.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    VAT: <span className="font-normal text-gray-900">AED {selectedInvoice.vat_amount.toFixed(2)}</span>
-                  </div>
-                  <div className="font-medium text-gray-600">
-                    Total:{" "}
-                    <span className="font-normal text-gray-900">AED {selectedInvoice.total_amount.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <Label>Parts Breakdown</Label>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Part Name</TableHead>
-                        <TableHead>Part Number</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Unit Price</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Vendor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedInvoice.parts_breakdown.map((part: any) => (
-                        <TableRow key={part.part_id}>
-                          <TableCell>{part.part_name}</TableCell>
-                          <TableCell>{part.part_number || "-"}</TableCell>
-                          <TableCell>{part.quantity}</TableCell>
-                          <TableCell>AED {part.unit_price.toFixed(2)}</TableCell>
-                          <TableCell>AED {(part.unit_price * part.quantity).toFixed(2)}</TableCell>
-                          <TableCell>{part.vendor_name || "N/A"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-t pt-6">
-                <Button type="button" variant="outline" onClick={() => setSelectedInvoice(null)}>
-                  Close
-                </Button>
-              </CardFooter>
-            </Card>
-          </DialogContent>
-        </Dialog>
-      )}
+      <ReceiptModal
+        isOpen={!!receiptInvoiceId}
+        onOpenChange={() => setReceiptInvoiceId(null)}
+        invoiceId={receiptInvoiceId}
+      />
     </div>
   )
 }
