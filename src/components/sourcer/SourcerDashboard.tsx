@@ -182,7 +182,8 @@ const SourcerDashboard: React.FC = () => {
     const [reviewForm, setReviewForm] = useState({
         inspectionImages: [] as File[],
         reviewNotes: "",
-        customerPaid: "", // Add this
+        customerPaid: "",
+        vendorPrice: selectedQuote?.price.toString() || "", // Add this
     });
 
     const [vendorPercentage, setVendorPercentage] = useState<number | null>(
@@ -479,9 +480,10 @@ const SourcerDashboard: React.FC = () => {
                 .from("bids")
                 .update({
                     status: "accepted",
+                    price: parseFloat(reviewForm.vendorPrice), // Updated price
                     updated_at: new Date().toISOString(),
                     sourcer_notes: reviewForm.reviewNotes,
-                    customer_paid: parseFloat(reviewForm.customerPaid) || null, // Add this
+                    customer_paid: parseFloat(reviewForm.customerPaid) || null,
                 })
                 .eq("id", quote.id);
 
@@ -503,10 +505,18 @@ const SourcerDashboard: React.FC = () => {
 
             await handleLoadData();
             closeReviewModal();
-            alert("Quote accepted successfully!");
+            toast({
+                title: "Success",
+                description: "Quote accepted successfully!",
+                variant: "default",
+            });
         } catch (error) {
             console.error("Error accepting quote:", error);
-            alert("Error accepting quote. Please try again.");
+            toast({
+                title: "Error",
+                description: "Error accepting quote. Please try again.",
+                variant: "destructive",
+            });
         } finally {
             setSubmitting(false);
         }
@@ -650,11 +660,15 @@ const SourcerDashboard: React.FC = () => {
         setSelectedVehicle(part.vehicle);
         setIsReviewModalOpen(true);
 
-        // Set initial customerPaid value
+        // Calculate max allowed spend immediately
+        const maxSpend = calculateMaxAllowedSpend(part.estimatedBudget);
+        setMaxAllowedSpend(maxSpend);
+
         setReviewForm({
             inspectionImages: [],
             reviewNotes: "",
             customerPaid: part.estimatedBudget?.toString() || "",
+            vendorPrice: quote.price.toString(),
         });
     };
 
@@ -687,6 +701,7 @@ const SourcerDashboard: React.FC = () => {
             inspectionImages: [],
             reviewNotes: "",
             customerPaid: "",
+            vendorPrice: "", // Initialize with quote price
         });
     };
 
@@ -710,12 +725,15 @@ const SourcerDashboard: React.FC = () => {
 
         // Fetch vendor percentage
         const fetchVendorPercentage = async () => {
-            const { data, error } = await supabase
-                .from("price_modifiers")
-                .select("vendor_percentage")
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from("price_modifiers")
+                    .select("vendor_percentage")
+                    .single();
 
-            if (error) {
+                if (error) throw error;
+                setVendorPercentage(data.vendor_percentage);
+            } catch (error) {
                 console.error("Error fetching vendor percentage:", error);
                 toast({
                     title: "Error",
@@ -723,13 +741,20 @@ const SourcerDashboard: React.FC = () => {
                         "Could not fetch vendor percentage. Using default 15%.",
                     variant: "destructive",
                 });
-                setVendorPercentage(15);
-            } else {
-                setVendorPercentage(data.vendor_percentage);
+                setVendorPercentage(15); // fallback to 15%
             }
         };
 
         fetchVendorPercentage();
+    };
+
+    // Inside SourcerDashboard component
+    const calculateMaxAllowedSpend = (
+        budget: number | undefined
+    ): number | null => {
+        if (!budget || vendorPercentage === null) return null;
+        const calculatedValue = budget / (1 + vendorPercentage / 100);
+        return Math.floor(calculatedValue / 5) * 5; // Round down to nearest 5
     };
 
     useEffect(() => {
@@ -1584,7 +1609,6 @@ const SourcerDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Review Modal */}
             {isReviewModalOpen && selectedQuote && selectedPart && (
                 <div
                     className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -1612,7 +1636,6 @@ const SourcerDashboard: React.FC = () => {
 
                         <div className="flex-1 overflow-y-auto">
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Left Column - Quote Details */}
                                 <div className="space-y-6">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1621,10 +1644,10 @@ const SourcerDashboard: React.FC = () => {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            value={addQuoteForm.customerPaid}
+                                            value={reviewForm.customerPaid}
                                             onChange={(e) =>
-                                                setAddQuoteForm({
-                                                    ...addQuoteForm,
+                                                setReviewForm({
+                                                    ...reviewForm,
                                                     customerPaid:
                                                         e.target.value,
                                                 })
@@ -1632,25 +1655,168 @@ const SourcerDashboard: React.FC = () => {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             required
                                         />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Prefilled with customer budget. Can
+                                            be adjusted as needed.
+                                        </p>
                                     </div>
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Vendor Price (AED)
+                                            We Pay Vendor (AED)
                                         </label>
                                         <input
                                             type="number"
                                             step="0.01"
-                                            value={addQuoteForm.vendorPrice}
+                                            value={reviewForm.vendorPrice}
                                             onChange={(e) =>
-                                                setAddQuoteForm({
-                                                    ...addQuoteForm,
+                                                setReviewForm({
+                                                    ...reviewForm,
                                                     vendorPrice: e.target.value,
                                                 })
                                             }
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             required
                                         />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Vendor's quoted price. Can be
+                                            adjusted if needed.
+                                        </p>
+                                        {maxAllowedSpend !== null && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Max allowed spend: AED {maxAllowedSpend.toFixed(2)}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Profit Margin Calculator - Fixed */}
+                                    <div className="bg-gray-50 p-4 rounded-lg border">
+                                        <h4 className="font-medium text-gray-800 mb-3">
+                                            Profit Calculation
+                                        </h4>
+                                        {reviewForm.customerPaid &&
+                                        reviewForm.vendorPrice ? (
+                                            (() => {
+                                                const profitInfo =
+                                                    calculateProfitMargin(
+                                                        reviewForm.customerPaid,
+                                                        reviewForm.vendorPrice
+                                                    );
+
+                                                if (!profitInfo) {
+                                                    return (
+                                                        <div className="text-gray-500">
+                                                            Invalid input values
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const {
+                                                    profit,
+                                                    margin,
+                                                    status,
+                                                } = profitInfo;
+                                                const profitColor = {
+                                                    red: "text-red-600",
+                                                    orange: "text-orange-600",
+                                                    green: "text-green-600",
+                                                }[status];
+                                                const marginColor = {
+                                                    red: "text-red-600",
+                                                    orange: "text-orange-600",
+                                                    green: "text-green-600",
+                                                }[status];
+
+                                                return (
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between">
+                                                            
+                                                            <span className="text-gray-600">
+                                                                Customer Pays:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                                AED{" "}
+                                                                {parseFloat(
+                                                                    reviewForm.customerPaid
+                                                                ).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">
+                                                                We Pay Vendor:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                                AED{" "}
+                                                                {parseFloat(
+                                                                    reviewForm.vendorPrice
+                                                                ).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="border-t border-gray-200 my-2"></div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">
+                                                                Profit Amount:
+                                                            </span>
+                                                            <span
+                                                                className={`font-bold ${profitColor}`}>
+                                                                AED{" "}
+                                                                {profit.toFixed(
+                                                                    2
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">
+                                                                Profit Margin:
+                                                            </span>
+                                                            <span
+                                                                className={`font-bold ${marginColor}`}>
+                                                                {margin.toFixed(
+                                                                    1
+                                                                )}
+                                                                %
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Inside Review Modal */}
+                                                        {maxAllowedSpend !==
+                                                            null &&
+                                                            parseFloat(
+                                                                reviewForm.vendorPrice
+                                                            ) >
+                                                                maxAllowedSpend && (
+                                                                <div className="mt-2 bg-red-50 border-l-4 border-red-500 p-2">
+                                                                    <p className="text-red-700 text-sm">
+                                                                        <span className="font-bold">
+                                                                            Warning:
+                                                                        </span>{" "}
+                                                                        This
+                                                                        quote
+                                                                        exceeds
+                                                                        maximum
+                                                                        allowed
+                                                                        spend by
+                                                                        AED{" "}
+                                                                        {(
+                                                                            parseFloat(
+                                                                                reviewForm.vendorPrice
+                                                                            ) -
+                                                                            maxAllowedSpend
+                                                                        ).toFixed(
+                                                                            2
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                    </div>
+                                                );
+                                            })()
+                                        ) : (
+                                            <div className="text-gray-500">
+                                                Enter both amounts to see profit
+                                                calculation.
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>
