@@ -167,7 +167,6 @@ const SourcerDashboard: React.FC = () => {
     const [isViewAllQuotesModalOpen, setIsViewAllQuotesModalOpen] =
         useState(false);
     const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
-    const [isEditPriceModalOpen, setIsEditPriceModalOpen] = useState(false);
     const [selectedPart, setSelectedPart] = useState<Part | null>(null);
     const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
         null
@@ -179,10 +178,18 @@ const SourcerDashboard: React.FC = () => {
     >("all");
     const [viewMode, setViewMode] = useState<"table" | "card">("table");
     const [submitting, setSubmitting] = useState(false);
+
     const [reviewForm, setReviewForm] = useState({
         inspectionImages: [] as File[],
         reviewNotes: "",
+        customerPaid: "", // Add this
     });
+
+    const [vendorPercentage, setVendorPercentage] = useState<number | null>(
+        null
+    );
+    const [maxAllowedSpend, setMaxAllowedSpend] = useState<number | null>(null);
+
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const { toast } = useToast();
     const [addQuoteForm, setAddQuoteForm] = useState({
@@ -190,17 +197,12 @@ const SourcerDashboard: React.FC = () => {
         vendorAddress: "",
         vendorPhone: "",
         vendorEmail: "",
-        price: "",
+        vendorPrice: "", // Changed from 'price'
+        customerPaid: "", // New field
         condition: "",
         warranty: "",
         imageFiles: [] as File[],
         vendorNotes: "",
-    });
-
-    // New state for price editing
-    const [editPriceForm, setEditPriceForm] = useState({
-        newPrice: "",
-        priceUpdateNotes: "",
     });
 
     const handleAddQuoteImageUpload = (
@@ -328,6 +330,7 @@ const SourcerDashboard: React.FC = () => {
                 )
             ),
             price,
+            customer_paid,
             notes,
             status,
             image_urls,
@@ -461,53 +464,6 @@ const SourcerDashboard: React.FC = () => {
         }
     };
 
-    // New function to handle price updates
-    const handleUpdatePrice = async () => {
-        if (!selectedQuote || !editPriceForm.newPrice) return;
-
-        setSubmitting(true);
-        try {
-            const newPrice = Number.parseFloat(editPriceForm.newPrice);
-
-            // Update the bid price in the database
-            const { error: updateError } = await supabase
-                .from("bids")
-                .update({
-                    price: newPrice,
-                    sourcer_notes: editPriceForm.priceUpdateNotes
-                        ? `${
-                              selectedQuote.sourcerNotes || ""
-                          }\n\nPrice updated: ${
-                              editPriceForm.priceUpdateNotes
-                          }`.trim()
-                        : selectedQuote.sourcerNotes,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", selectedQuote.id);
-
-            if (updateError) throw updateError;
-
-            // Refresh data
-            await handleLoadData();
-            closeEditPriceModal();
-
-            toast({
-                title: "Price Updated Successfully",
-                description: `Bid price updated to AED ${newPrice}`,
-                variant: "default",
-            });
-        } catch (error) {
-            console.error("Error updating price:", error);
-            toast({
-                title: "Error Updating Price",
-                description: "Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     const handleAcceptQuote = async (quote: VendorQuote) => {
         if (!user || !selectedPart) return;
 
@@ -525,6 +481,7 @@ const SourcerDashboard: React.FC = () => {
                     status: "accepted",
                     updated_at: new Date().toISOString(),
                     sourcer_notes: reviewForm.reviewNotes,
+                    customer_paid: parseFloat(reviewForm.customerPaid) || null, // Add this
                 })
                 .eq("id", quote.id);
 
@@ -580,7 +537,9 @@ const SourcerDashboard: React.FC = () => {
             const { error: insertError } = await supabase.from("bids").insert({
                 part_id: selectedPart.id,
                 vendor_id: user.id,
-                price: Number.parseFloat(addQuoteForm.price),
+                price: Number.parseFloat(addQuoteForm.vendorPrice),
+                customer_paid:
+                    Number.parseFloat(addQuoteForm.customerPaid) || null,
                 notes: addQuoteForm.vendorNotes,
                 status: "accepted",
                 image_urls: imageUrls.length > 0 ? imageUrls : null,
@@ -690,6 +649,33 @@ const SourcerDashboard: React.FC = () => {
         setSelectedPart(part);
         setSelectedVehicle(part.vehicle);
         setIsReviewModalOpen(true);
+
+        // Set initial customerPaid value
+        setReviewForm({
+            inspectionImages: [],
+            reviewNotes: "",
+            customerPaid: part.estimatedBudget?.toString() || "",
+        });
+    };
+
+    // Add this helper function at the top of the component
+    const calculateProfitMargin = (
+        customerPaid: string,
+        vendorPrice: string
+    ) => {
+        const customer = parseFloat(customerPaid);
+        const vendor = parseFloat(vendorPrice);
+
+        if (!customer || !vendor || customer <= 0 || vendor <= 0) return null;
+
+        const profit = customer - vendor;
+        const margin = (profit / customer) * 100;
+
+        return {
+            profit,
+            margin,
+            status: margin < 15 ? "red" : margin === 15 ? "orange" : "green",
+        };
     };
 
     const closeReviewModal = () => {
@@ -700,6 +686,7 @@ const SourcerDashboard: React.FC = () => {
         setReviewForm({
             inspectionImages: [],
             reviewNotes: "",
+            customerPaid: "",
         });
     };
 
@@ -707,7 +694,56 @@ const SourcerDashboard: React.FC = () => {
         setSelectedPart(part);
         setSelectedVehicle(part.vehicle);
         setIsAddQuoteModalOpen(true);
+
+        setAddQuoteForm({
+            vendorName: "",
+            vendorAddress: "",
+            vendorPhone: "",
+            vendorEmail: "",
+            vendorPrice: "",
+            customerPaid: part.estimatedBudget?.toString() || "", // Prefill here
+            condition: "",
+            warranty: "",
+            imageFiles: [],
+            vendorNotes: "",
+        });
+
+        // Fetch vendor percentage
+        const fetchVendorPercentage = async () => {
+            const { data, error } = await supabase
+                .from("price_modifiers")
+                .select("vendor_percentage")
+                .single();
+
+            if (error) {
+                console.error("Error fetching vendor percentage:", error);
+                toast({
+                    title: "Error",
+                    description:
+                        "Could not fetch vendor percentage. Using default 15%.",
+                    variant: "destructive",
+                });
+                setVendorPercentage(15);
+            } else {
+                setVendorPercentage(data.vendor_percentage);
+            }
+        };
+
+        fetchVendorPercentage();
     };
+
+    useEffect(() => {
+        if (selectedPart && vendorPercentage !== null) {
+            if (selectedPart.estimatedBudget) {
+                const calculatedValue =
+                    selectedPart.estimatedBudget / (1 + vendorPercentage / 100);
+                const roundedValue = Math.floor(calculatedValue / 5) * 5;
+                setMaxAllowedSpend(roundedValue);
+            } else {
+                setMaxAllowedSpend(null);
+            }
+        }
+    }, [selectedPart, vendorPercentage]);
 
     const closeAddQuoteModal = () => {
         setIsAddQuoteModalOpen(false);
@@ -718,30 +754,12 @@ const SourcerDashboard: React.FC = () => {
             vendorAddress: "",
             vendorPhone: "",
             vendorEmail: "",
-            price: "",
+            vendorPrice: "", // Changed from 'price'
+            customerPaid: "", // New field
             condition: "",
             warranty: "",
-            imageFiles: [],
+            imageFiles: [] as File[],
             vendorNotes: "",
-        });
-    };
-
-    // New functions for price editing modal
-    const openEditPriceModal = (quote: VendorQuote) => {
-        setSelectedQuote(quote);
-        setEditPriceForm({
-            newPrice: quote.price.toString(),
-            priceUpdateNotes: "",
-        });
-        setIsEditPriceModalOpen(true);
-    };
-
-    const closeEditPriceModal = () => {
-        setIsEditPriceModalOpen(false);
-        setSelectedQuote(null);
-        setEditPriceForm({
-            newPrice: "",
-            priceUpdateNotes: "",
         });
     };
 
@@ -1537,19 +1555,6 @@ const SourcerDashboard: React.FC = () => {
                                                                     Review &
                                                                     Accept
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setIsViewAllQuotesModalOpen(
-                                                                            false
-                                                                        );
-                                                                        openEditPriceModal(
-                                                                            quote
-                                                                        );
-                                                                    }}
-                                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                                                                    <Edit2 className="h-4 w-4" />
-                                                                    Edit Price
-                                                                </button>
                                                             </>
                                                         ) : (
                                                             <>
@@ -1565,23 +1570,6 @@ const SourcerDashboard: React.FC = () => {
                                                                         ? "Accepted"
                                                                         : "Rejected"}
                                                                 </span>
-                                                                {quote.status ===
-                                                                    "accepted" && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setIsViewAllQuotesModalOpen(
-                                                                                false
-                                                                            );
-                                                                            openEditPriceModal(
-                                                                                quote
-                                                                            );
-                                                                        }}
-                                                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                                                                        <Edit2 className="h-4 w-4" />
-                                                                        Edit
-                                                                        Price
-                                                                    </button>
-                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -1591,140 +1579,6 @@ const SourcerDashboard: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Edit Price Modal */}
-            {isEditPriceModalOpen && selectedQuote && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-                    onClick={closeEditPriceModal}>
-                    <div
-                        className="bg-white rounded-lg shadow-xl max-w-md w-full"
-                        onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-start p-6 border-b">
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-800">
-                                    Update Bid Price
-                                </h3>
-                                <p className="text-gray-600 mt-1">
-                                    Vendor: {selectedQuote.vendorName}
-                                </p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={closeEditPriceModal}
-                                className="rounded-full -mt-2 -mr-2">
-                                <span className="text-2xl">&times;</span>
-                            </Button>
-                        </div>
-
-                        <div className="p-6">
-                            {/* Vendor % Reminder */}
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                                <div className="flex items-start">
-                                    <div className="flex-shrink-0">
-                                        <span className="text-yellow-600 text-lg">
-                                            ⚠️
-                                        </span>
-                                    </div>
-                                    <div className="ml-3">
-                                        <h4 className="text-sm font-medium text-yellow-800">
-                                            Pricing Reminder
-                                        </h4>
-                                        <p className="text-sm text-yellow-700 mt-1">
-                                            Keep the vendor percentage in mind
-                                            when updating the price. Ensure the
-                                            new price maintains fair vendor
-                                            margins.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">
-                                            Current Price:
-                                        </span>
-                                        <span className="font-semibold text-lg text-gray-800">
-                                            AED {selectedQuote.price}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        New Price (AED){" "}
-                                        <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={editPriceForm.newPrice}
-                                        onChange={(e) =>
-                                            setEditPriceForm({
-                                                ...editPriceForm,
-                                                newPrice: e.target.value,
-                                            })
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Enter new price"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Update Notes (Optional)
-                                    </label>
-                                    <textarea
-                                        value={editPriceForm.priceUpdateNotes}
-                                        onChange={(e) =>
-                                            setEditPriceForm({
-                                                ...editPriceForm,
-                                                priceUpdateNotes:
-                                                    e.target.value,
-                                            })
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        rows={3}
-                                        placeholder="Reason for price update (optional)..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex space-x-3 p-6 bg-gray-50 border-t">
-                            <button
-                                type="button"
-                                onClick={closeEditPriceModal}
-                                disabled={submitting}
-                                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50">
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleUpdatePrice}
-                                disabled={
-                                    submitting ||
-                                    !editPriceForm.newPrice ||
-                                    Number.parseFloat(editPriceForm.newPrice) <=
-                                        0
-                                }
-                                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center">
-                                {submitting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Updating...
-                                    </>
-                                ) : (
-                                    "Update Price"
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1760,6 +1614,45 @@ const SourcerDashboard: React.FC = () => {
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Left Column - Quote Details */}
                                 <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Customer Paid (AED)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={addQuoteForm.customerPaid}
+                                            onChange={(e) =>
+                                                setAddQuoteForm({
+                                                    ...addQuoteForm,
+                                                    customerPaid:
+                                                        e.target.value,
+                                                })
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Vendor Price (AED)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={addQuoteForm.vendorPrice}
+                                            onChange={(e) =>
+                                                setAddQuoteForm({
+                                                    ...addQuoteForm,
+                                                    vendorPrice: e.target.value,
+                                                })
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            required
+                                        />
+                                    </div>
+
                                     <div>
                                         <h4 className="font-medium text-gray-800 mb-3">
                                             Quote Details
@@ -2115,6 +2008,32 @@ const SourcerDashboard: React.FC = () => {
                                                     : "N/A"}
                                             </p>
                                         </div>
+                                        {vendorPercentage !== null && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-gray-500">
+                                                        Vendor Percentage
+                                                    </p>
+                                                    <p className="font-medium text-gray-800">
+                                                        {vendorPercentage}%
+                                                    </p>
+                                                </div>
+                                                {maxAllowedSpend !== null && (
+                                                    <div>
+                                                        <p className="text-gray-500">
+                                                            Max Allowed Spend
+                                                        </p>
+                                                        <p className="font-bold text-green-600">
+                                                            AED{" "}
+                                                            {maxAllowedSpend.toFixed(
+                                                                2
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <div className="mt-2">
                                             <p className="text-sm text-gray-600">
                                                 Acceptable Conditions:
@@ -2277,24 +2196,142 @@ const SourcerDashboard: React.FC = () => {
                                     <legend className="text-lg font-semibold text-gray-800 px-2">
                                         Quote Details
                                     </legend>
+
+                                    {/* Customer Pays Us */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Price (AED)
+                                            The customer pays us (AED)
                                         </label>
                                         <input
                                             type="number"
                                             step="0.01"
-                                            value={addQuoteForm.price}
+                                            value={addQuoteForm.customerPaid}
                                             onChange={(e) =>
                                                 setAddQuoteForm({
                                                     ...addQuoteForm,
-                                                    price: e.target.value,
+                                                    customerPaid:
+                                                        e.target.value,
                                                 })
                                             }
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             required
                                         />
                                     </div>
+
+                                    {/* We Pay Vendor */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            We pay the vendor (AED)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={addQuoteForm.vendorPrice}
+                                            onChange={(e) =>
+                                                setAddQuoteForm({
+                                                    ...addQuoteForm,
+                                                    vendorPrice: e.target.value,
+                                                })
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Profit Margin Indicator */}
+                                    {addQuoteForm.customerPaid &&
+                                        addQuoteForm.vendorPrice && (
+                                            <div className="md:col-span-2 p-4 rounded-lg border">
+                                                {(() => {
+                                                    const profitInfo =
+                                                        calculateProfitMargin(
+                                                            addQuoteForm.customerPaid,
+                                                            addQuoteForm.vendorPrice
+                                                        );
+
+                                                    if (!profitInfo)
+                                                        return null;
+
+                                                    const {
+                                                        profit,
+                                                        margin,
+                                                        status,
+                                                    } = profitInfo;
+                                                    const bgColor = {
+                                                        red: "bg-red-50 border-red-200",
+                                                        orange: "bg-orange-50 border-orange-200",
+                                                        green: "bg-green-50 border-green-200",
+                                                    }[status];
+
+                                                    const textColor = {
+                                                        red: "text-red-800",
+                                                        orange: "text-orange-800",
+                                                        green: "text-green-800",
+                                                    }[status];
+
+                                                    return (
+                                                        <div
+                                                            className={`${bgColor} p-4 rounded-lg space-y-2`}>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-medium">
+                                                                    Profit
+                                                                    Margin:
+                                                                </span>
+                                                                <span
+                                                                    className={`font-bold ${textColor}`}>
+                                                                    {margin.toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-medium">
+                                                                    Profit
+                                                                    Amount:
+                                                                </span>
+                                                                <span
+                                                                    className={`font-bold ${textColor}`}>
+                                                                    AED{" "}
+                                                                    {profit.toFixed(
+                                                                        2
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                            {margin < 15 && (
+                                                                <p className="text-red-600 text-sm mt-2">
+                                                                    Warning:
+                                                                    Profit
+                                                                    margin is
+                                                                    below the
+                                                                    recommended
+                                                                    15%
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+
+                                    {maxAllowedSpend !== null &&
+                                        parseFloat(addQuoteForm.vendorPrice) >
+                                            maxAllowedSpend && (
+                                            <div className="bg-red-50 border-l-4 border-red-500 p-4">
+                                                <p className="text-red-700">
+                                                    <span className="font-bold">
+                                                        Warning:
+                                                    </span>{" "}
+                                                    Your quote exceeds the
+                                                    maximum allowed spend by AED{" "}
+                                                    {(
+                                                        parseFloat(
+                                                            addQuoteForm.vendorPrice
+                                                        ) - maxAllowedSpend
+                                                    ).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        )}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Condition
@@ -2465,7 +2502,7 @@ const SourcerDashboard: React.FC = () => {
                                 disabled={
                                     submitting ||
                                     !addQuoteForm.vendorName ||
-                                    !addQuoteForm.price ||
+                                    !addQuoteForm.vendorPrice ||
                                     !addQuoteForm.condition ||
                                     !addQuoteForm.warranty
                                 }
