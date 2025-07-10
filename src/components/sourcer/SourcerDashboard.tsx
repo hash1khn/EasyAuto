@@ -1685,7 +1685,7 @@ const SourcerDashboard: React.FC = () => {
                                             adjusted if needed.
                                         </p>
                                         {maxAllowedSpend !== null && (
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-md text-red-500 mt-1">
                                                 Max allowed spend: AED{" "}
                                                 {maxAllowedSpend.toFixed(2)}
                                             </p>
