@@ -52,6 +52,7 @@ interface RefundRequest {
   }
 }
 
+
 interface AdminOrder {
   id: string
   created_at: string
@@ -82,6 +83,7 @@ interface AdminOrder {
       accepted_bid?: {
         id: string
         price: number
+        customer_paid: number 
         vendor: {
           full_name: string
           business_name?: string
@@ -114,6 +116,10 @@ interface AdminOrder {
       }>
     }
   }>
+  // ADDED FINANCIAL METRICS
+  totalCustomerPayment: number
+  totalVendorPayment: number
+  totalProfit: number
 }
 
 const getStatusColor = (status: string) => {
@@ -340,6 +346,7 @@ export const AdminOrders = () => {
           id,
           part_id,
           price,
+          customer_paid, 
           vendor_id,
           user_profiles!bids_vendor_id_fkey (
             full_name,
@@ -392,9 +399,13 @@ export const AdminOrders = () => {
       const transformedOrders: AdminOrder[] =
         ordersData?.map((order) => {
           const orderParts = partsData?.filter((part) => part.order_id === order.id) || []
-
+          
+          // Initialize financial metrics at order level
+          let totalCustomerPayment = 0;
+          let totalVendorPayment = 0;
+          
           // Group parts by vehicle
-          const vehicleMap = new Map()
+          const vehicleMap = new Map();
           orderParts.forEach((part) => {
             if (!vehicleMap.has(part.vehicle_id)) {
               // Handle vehicles array - take first element if it's an array
@@ -410,10 +421,15 @@ export const AdminOrders = () => {
             }
 
             const acceptedBid = bidsData?.find((bid) => bid.part_id === part.id)
-            // Handle user_profiles array - take first element if it's an array
             const vendorProfile = Array.isArray(acceptedBid?.user_profiles)
               ? acceptedBid?.user_profiles[0]
               : acceptedBid?.user_profiles
+
+            // Add to totals if there's an accepted bid
+            if (acceptedBid) {
+              totalCustomerPayment += (acceptedBid.customer_paid || 0) * (part.quantity || 1);
+              totalVendorPayment += (acceptedBid.price || 0) * (part.quantity || 1);
+            }
 
             vehicleMap.get(part.vehicle_id).parts.push({
               id: part.id,
@@ -427,6 +443,7 @@ export const AdminOrders = () => {
                 ? {
                     id: acceptedBid.id,
                     price: acceptedBid.price,
+                    customer_paid: acceptedBid.customer_paid,
                     vendor: {
                       full_name: vendorProfile?.full_name || "",
                       business_name: vendorProfile?.business_name,
@@ -438,6 +455,7 @@ export const AdminOrders = () => {
           })
 
           const vehicles = Array.from(vehicleMap.values())
+          const totalProfit = totalCustomerPayment - totalVendorPayment
 
           // Handle user_profiles array - take first element if it's an array
           const userProfile = Array.isArray(order.user_profiles) ? order.user_profiles[0] : order.user_profiles
@@ -474,6 +492,20 @@ export const AdminOrders = () => {
               }
             })
 
+            let totalCustomerPayment = 0;
+            let totalVendorPayment = 0;
+            
+            vehicles.forEach(vehicle => {
+              vehicle.parts.forEach(part => {
+                if (part.accepted_bid) {
+                  totalCustomerPayment += part.accepted_bid.customer_paid * part.quantity;
+                  totalVendorPayment += part.accepted_bid.price * part.quantity;
+                }
+              });
+            });
+            
+            const totalProfit = totalCustomerPayment - totalVendorPayment;  
+
             return {
               id: invoice.id,
               driver_name: invoice.driver_name,
@@ -490,6 +522,9 @@ export const AdminOrders = () => {
                 service_fee: invoice.service_fee,
                 parts_breakdown: partsBreakdown,
               },
+              totalCustomerPayment,
+              totalVendorPayment,
+              totalProfit,
             }
           })
 
@@ -508,6 +543,9 @@ export const AdminOrders = () => {
             },
             vehicles,
             deliveries,
+            totalCustomerPayment,
+            totalVendorPayment,
+            totalProfit,
           }
         }) || []
 
@@ -850,6 +888,13 @@ export const AdminOrders = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Parts Delivered</TableHead>
+                  {activeSubTab === "history" && (
+                    <>
+                      <TableHead>Customer Paid</TableHead>
+                      <TableHead>Vendor Paid</TableHead>
+                      <TableHead>Profit</TableHead>
+                    </>
+                  )}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -879,6 +924,17 @@ export const AdminOrders = () => {
                       <TableCell>
                         {deliveredParts} of {totalParts}
                       </TableCell>
+                      {activeSubTab === "history" && (
+                        <>
+                          <TableCell>AED {order.totalCustomerPayment.toFixed(2)}</TableCell>
+                          <TableCell>AED {order.totalVendorPayment.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <span className={order.totalProfit >= 0 ? "text-green-600" : "text-red-600"}>
+                              AED {order.totalProfit.toFixed(2)}
+                            </span>
+                          </TableCell>
+                        </>
+                      )}
                       <TableCell>
                         <Button size="sm" onClick={() => handleViewOrder(order)}>
                           View
