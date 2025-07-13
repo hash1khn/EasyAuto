@@ -56,7 +56,7 @@ export const ReviewQuoteModal: React.FC<ReviewQuoteModalProps> = ({
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Paid (AED)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Price (AED)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -73,7 +73,7 @@ export const ReviewQuoteModal: React.FC<ReviewQuoteModalProps> = ({
                 <p className="text-xs text-gray-500 mt-1">Prefilled with customer budget. Can be adjusted as needed.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">We Pay Vendor (AED)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Price (AED)</label>
                 <input
                   type="number"
                   step="0.01"

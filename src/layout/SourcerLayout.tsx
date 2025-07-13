@@ -66,7 +66,7 @@ const SourcerLayout: React.FC = () => {
               ))}
             </nav>
           </div>
-          <div className="mt-auto p-6 space-y-3">
+          <div className="sticky bottom-0 mt-auto p-6 space-y-3">
             {/* Update this check to call isAdmin as a function */}
             {isAdmin() && (
               <Button

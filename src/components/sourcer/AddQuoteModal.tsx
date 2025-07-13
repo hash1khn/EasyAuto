@@ -260,7 +260,7 @@ export const AddQuoteModal: React.FC<AddQuoteModalProps> = ({
               <legend className="text-lg font-semibold text-gray-800 px-2">Quote Details</legend>
               {/* Customer Pays Us */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">The customer pays us (AED)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Price (AED)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -277,7 +277,7 @@ export const AddQuoteModal: React.FC<AddQuoteModalProps> = ({
               </div>
               {/* We Pay Vendor */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">We pay the vendor (AED)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Price (AED)</label>
                 <input
                   type="number"
                   step="0.01"

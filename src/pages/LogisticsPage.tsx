@@ -408,8 +408,15 @@ const LogisticsPage = () => {
             {/* Ready for Collection Section */}
             {activeTab === "collection" && (
                 <div>
-                    <div className="font-semibold mb-2">
-                        Ready for Collection ({readyParts.length} parts)
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="font-semibold">
+                            Ready for Collection ({readyParts.length} parts)
+                        </h2>
+                        <Link to="/driver/dashboard">
+                            <Button variant="default" className="ml-4">
+                                Go to Delivery Portal
+                            </Button>
+                        </Link>
                     </div>
                     {readyParts.length === 0 ? (
                         <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
@@ -491,7 +498,14 @@ const LogisticsPage = () => {
             {/* Active Deliveries Table, single table with Buyer column */}
             {activeTab === "active" && (
                 <div>
-                    <div className="font-semibold mb-2">Active Deliveries</div>
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="font-semibold">Active Deliveries</h2>
+                        <Link to="/driver/dashboard">
+                            <Button variant="default" className="ml-4">
+                                Go to Delivery Portal
+                            </Button>
+                        </Link>
+                    </div>
                     <div className="bg-white rounded-lg shadow overflow-x-auto">
                         {activeParts.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
@@ -637,7 +651,14 @@ const LogisticsPage = () => {
             {/* Receipts Table */}
             {activeTab === "receipts" && (
                 <div>
-                    <div className="font-semibold mb-2">Receipts</div>
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="font-semibold">Receipts</h2>
+                        <Link to="/driver/dashboard">
+                            <Button variant="default" className="ml-4">
+                                Go to Delivery Portal
+                            </Button>
+                        </Link>
+                    </div>
                     <div className="bg-white rounded-lg shadow overflow-x-auto">
                         {completedInvoices.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
@@ -713,14 +734,6 @@ const LogisticsPage = () => {
                     </div>
                 </div>
             )}
-
-            {/* Go to Delivery Portal */}
-           <div className="flex justify-end">
-    <Link to="/driver/dashboard">
-        <Button variant="default">Go to Delivery Portal</Button>
-    </Link>
-</div>
-
             {/* Receipt Details Modal */}
             {selectedInvoice && (
                 <BuyerReceiptModal

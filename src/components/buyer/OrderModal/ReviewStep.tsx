@@ -2,9 +2,10 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, ArrowRight,ArrowLeft } from 'lucide-react';
+import { CheckCircle, ArrowRight, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle, Part } from './types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ReviewStepProps {
   vehicles: Vehicle[];
@@ -26,7 +27,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ vehicles, parts, onBack,
         <CheckCircle className="h-4 w-4" />
         <AlertTitle>Review Your Order</AlertTitle>
         <AlertDescription>
-          Please verify all details including part conditions before submitting to vendors.
+          Please verify all details including part conditions and images before submitting to vendors.
         </AlertDescription>
       </Alert>
 
@@ -87,6 +88,34 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ vehicles, parts, onBack,
                     )}
                   </div>
 
+                  {/* Image Preview Section */}
+                  {part.imageFiles?.length > 0 && (
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex items-center gap-2 mb-2 text-sm font-medium text-gray-700">
+                        <ImageIcon className="h-4 w-4" />
+                        Reference Images ({part.imageFiles.length})
+                      </div>
+                      <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                        <div className="flex w-max space-x-4 p-4">
+                          {part.imageFiles.map((file, imgIndex) => (
+                            <div key={imgIndex} className="relative">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`${part.partName} reference ${imgIndex + 1}`}
+                                className="h-32 w-32 object-cover rounded-md border"
+                              />
+                              <div className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1 rounded">
+                                {file.name.length > 15 
+                                  ? `${file.name.substring(0, 12)}...${file.name.split('.').pop()}`
+                                  : file.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+
                   {part.description && (
                     <div className="mt-3 pt-3 border-t">
                       <p className="text-sm text-gray-600">
@@ -104,7 +133,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ vehicles, parts, onBack,
       <div className="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-md">
         <p className="font-bold">What happens next?</p>
         <p className="mt-1 text-sm">
-          Vendors will see your condition preferences when bidding. You'll receive quotes matching your selected conditions.
+          Vendors will see your condition preferences and reference images when bidding. 
+          You'll receive quotes matching your selected conditions.
         </p>
       </div>
 
