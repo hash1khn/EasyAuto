@@ -76,9 +76,10 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           }
 
           // Generate unique filename
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${user.id}_${part.id}.${fileExt}`;
-          const filePath = `quotes/${fileName}`;
+         const fileExt = file.name.split('.').pop();
+const timestamp = Date.now();
+const fileName = `${user.id}_${part.id}_${timestamp}.${fileExt}`;
+const filePath = `quotes/${fileName}`;
 
           // Upload to Supabase Storage
           const { data: uploadData, error: uploadError } = await supabase.storage
