@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Package, Truck, History, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Package, Truck, History, Settings, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRoles } from '@/hooks/useUserRoles';
 
@@ -43,6 +43,10 @@ export const DriverLayout: React.FC = () => {
     navigate('/');
   };
 
+  const handleAdminMode = () => {
+    navigate('/admin');
+  };
+
   return (
     <div className="relative min-h-screen bg-gray-50 md:flex">
       {/* Sidebar */}
@@ -73,10 +77,19 @@ export const DriverLayout: React.FC = () => {
               ))}
             </nav>
           </div>
-          <div className="mt-auto p-6">
+          <div className="sticky bottom-0 mt-auto p-6 space-y-3">
+            {isAdmin && (
+              <button
+                onClick={handleAdminMode}
+                className="w-full flex items-center px-4 py-3 rounded-lg transition-colors bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
+              >
+                <Shield className="h-5 w-5 mr-3" />
+                <span className="font-medium">Admin Mode</span>
+              </button>
+            )}
             <button 
               onClick={handleSignOut}
-              className="w-full flex items-center px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+              className="w-full flex items-center px-4 py-3 rounded-lg transition-colors text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-5 w-5 mr-3" />
               <span className="font-medium">Sign Out</span>
@@ -108,7 +121,7 @@ export const DriverLayout: React.FC = () => {
                 Welcome, {user?.user_metadata?.full_name || user?.email}
               </span>
               <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                Driver
+                {isAdmin ? 'Admin' : 'Driver'}
               </span>
             </div>
           </div>

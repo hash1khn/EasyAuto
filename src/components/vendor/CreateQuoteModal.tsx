@@ -54,7 +54,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
     try {
       // Get current user (vendor)
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+
       if (authError || !user) {
         throw new Error('Vendor authentication required');
       }
@@ -69,7 +69,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           if (!validTypes.includes(file.type)) {
             throw new Error('Only JPG, PNG, and WEBP images are allowed');
           }
-          
+
           // Size limit (5MB)
           if (file.size > 5 * 1024 * 1024) {
             throw new Error(`File ${file.name} exceeds 5MB limit`);
@@ -77,7 +77,8 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
 
           // Generate unique filename
           const fileExt = file.name.split('.').pop();
-          const fileName = `${user.id}_${part.id}.${fileExt}`;
+          const timestamp = Date.now();
+          const fileName = `${user.id}_${part.id}_${timestamp}.${fileExt}`;
           const filePath = `quotes/${fileName}`;
 
           // Upload to Supabase Storage
@@ -91,7 +92,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
           const { data: urlData } = supabase.storage
             .from('mybucket')
             .getPublicUrl(uploadData.path);
-          
+
           imageUrls.push(urlData.publicUrl);
         }
       }
@@ -128,7 +129,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
       onAddQuote(orderId, part.id, newQuote);
       onQuoteSubmitted?.();  // This will trigger parent modal close
       onClose();  // Close this modal
-      
+
       toast({
         title: "Quote submitted successfully",
         description: "Your quote has been sent to the buyer.",
@@ -174,7 +175,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
             if (file.type === 'image/heic' || file.type === 'image/heif') {
               // Create a temporary URL for the file
               const blobUrl = URL.createObjectURL(file);
-              
+
               // Load the image into an Image element
               const img = new Image();
               await new Promise((resolve, reject) => {
@@ -189,9 +190,9 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
               canvas.height = img.height;
               const ctx = canvas.getContext('2d');
               if (!ctx) throw new Error('Could not get canvas context');
-              
+
               ctx.drawImage(img, 0, 0);
-              
+
               // Convert to blob
               const blob = await new Promise<Blob>((resolve) => {
                 canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
@@ -258,20 +259,20 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[200] flex items-center justify-center" 
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
       onClick={onClose}
     >
       <div className="fixed inset-0 bg-black/70" />
-      <div 
+      <div
         className="relative bg-white rounded-xl shadow-2xl w-full max-w-md m-4 p-6 overflow-visible"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">Create Quote for: <span className="text-blue-600">{part.partName}</span></h3>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             disabled={isSubmitting}
           >
@@ -303,7 +304,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
 
           <div className="space-y-2 relative">
             <label className="text-sm font-medium">Condition</label>
-            <Select 
+            <Select
               value={condition}
               onValueChange={(value: QuoteCondition) => setCondition(value)}
             >
@@ -321,7 +322,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
 
           <div className="space-y-2 relative">
             <label className="text-sm font-medium">Warranty</label>
-            <Select 
+            <Select
               value={warranty}
               onValueChange={(value: QuoteWarranty) => setWarranty(value)}
             >
@@ -357,10 +358,10 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {imagePreviews.map((preview, index) => (
                       <div key={index} className="relative">
-                        <img 
-                          src={preview} 
-                          alt={`Preview ${index + 1}`} 
-                          className="h-24 w-full rounded-md object-cover" 
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="h-24 w-full rounded-md object-cover"
                         />
                         <button
                           type="button"
@@ -403,16 +404,16 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
         </div>
 
         <div className="flex gap-2 mt-6">
-          <Button 
-            variant="outline" 
-            onClick={onClose} 
+          <Button
+            variant="outline"
+            onClick={onClose}
             className="flex-1"
             disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             className="flex-1 bg-blue-600 hover:bg-blue-700"
             disabled={isSubmitting || !price}
           >

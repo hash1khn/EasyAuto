@@ -45,7 +45,7 @@ interface DeliveringModalProps {
   onConfirm: (data: any) => void
 }
 
-const paymentMethods = ["Cash", "Card", "Not Collected"]
+const paymentMethods = ["Cash", "Card", "Not Collected","Bank Transfer"]
 
 const DeliveringModal: React.FC<DeliveringModalProps> = ({
   isOpen,
@@ -359,18 +359,23 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                       </td>
                     </tr>
                     
-                    <tr>
-                      <td colSpan={3} className="px-3 py-2 text-right">
-                        + VAT ({priceModifiers.vat_percentage}%):
-                      </td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(vatAmount)}</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={3} className="px-3 py-2 text-right">
-                        + Service Charge ({priceModifiers.service_charge_percentage}%):
-                      </td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(serviceFee)}</td>
-                    </tr>
+                    {vatAmount > 0 && (
+    <tr>
+      <td colSpan={3} className="px-3 py-2 text-right">
+        + VAT ({priceModifiers.vat_percentage}%):
+      </td>
+      <td className="px-3 py-2 text-right">{formatCurrency(vatAmount)}</td>
+    </tr>
+  )}
+  
+  {serviceFee > 0 && (
+    <tr>
+      <td colSpan={3} className="px-3 py-2 text-right">
+        + Service Charge ({priceModifiers.service_charge_percentage}%):
+      </td>
+      <td className="px-3 py-2 text-right">{formatCurrency(serviceFee)}</td>
+    </tr>
+  )}
                    <tr>
   <td colSpan={3} className="px-3 py-2 text-right">
     - Discount:
@@ -448,6 +453,9 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                 onChange={handlePhotoChange}
                 className="cursor-pointer"
               />
+              <div className="text-xs text-gray-500">
+                Supported formats: JPG, PNG, WEBP, HEIC (Max 5MB each)
+              </div>
               {deliveryPhotos.length > 0 && (
                 <div className="mt-2">
                   <div className="text-sm text-gray-600 mb-2">{deliveryPhotos.length} photo(s) selected</div>
@@ -464,6 +472,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                         >
                           ×
                         </button>
+                        
                       </div>
                     ))}
                   </div>
@@ -476,9 +485,7 @@ const DeliveringModal: React.FC<DeliveringModalProps> = ({
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
               />
-              <div className="text-xs text-gray-500">
-                Supported formats: JPG, PNG, WEBP, HEIC (Max 5MB each)
-              </div>
+              
             </div>
 
             {/* Section 4: Driver Info */}

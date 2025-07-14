@@ -294,190 +294,139 @@ export const NewOrderModal: React.FC<OrderModalProps> = ({
     };
 
     const handleSubmitOrder = async () => {
-        if (isSubmitting) return;
-
-        setIsSubmitting(true);
-        setLoading(true);
-
-        if (!user || vehicles.length === 0 || parts.length === 0) {
+    if (isSubmitting || !user || vehicles.length === 0 || parts.length === 0) {
+        if (!isSubmitting) {
             toast({
                 title: "Cannot submit order",
                 description: "Please add at least one vehicle and one part.",
                 variant: "destructive",
             });
-            setIsSubmitting(false);
-            setLoading(false);
-            return;
         }
+        return;
+    }
 
-        try {
-            // Group parts by vehicle index
-            const partsByVehicle: Record<number, Part[]> = {};
-            parts.forEach((part) => {
-                if (!partsByVehicle[part.vehicleIndex]) {
-                    partsByVehicle[part.vehicleIndex] = [];
-                }
-                partsByVehicle[part.vehicleIndex].push(part);
-            });
+    setIsSubmitting(true);
+    setLoading(true);
 
-            // This will store data needed for notifications
-            const notificationPayloads: Array<{
-                vehicle: Vehicle;
-                parts: Part[];
-                orderId: string;
-            }> = [];
-
-            // Process each vehicle and its parts
-            const orderPromises = Object.entries(partsByVehicle).map(
-                async ([vehicleIndexStr, vehicleParts]) => {
-                    const vehicleIndex = parseInt(vehicleIndexStr);
-                    const vehicle = vehicles[vehicleIndex];
-
-                    // Create order
-                    const { data: orderData, error: orderError } =
-                        await supabase
-                            .from("orders")
-                            .insert({
-                                user_id: user.id,
-                                status: "open",
-                            })
-                            .select()
-                            .single();
-
-                    if (orderError) throw orderError;
-
-                    // Create vehicle record
-                    const { data: vehicleData, error: vehicleError } =
-                        await supabase
-                            .from("vehicles")
-                            .insert({
-                                user_id: user.id,
-                                make: vehicle.make,
-                                model: vehicle.model,
-                                year: vehicle.year,
-                                vin: vehicle.vin || null,
-                            })
-                            .select()
-                            .single();
-
-                    if (vehicleError) throw vehicleError;
-
-                    // Create parts with estimated_budget and conditions
-                    const partPromises = vehicleParts.map(async (part) => {
-                        try {
-                            let photos: string[] = [];
-                            
-                            if (part.imageFiles?.length) {
-                                photos = await uploadImages(
-                                    part.imageFiles,
-                                    orderData.id,
-                                    part.partName
-                                );
-                            }
-
-                            const { data: partData, error: partError } = await supabase
-                                .from("parts")
-                                .insert({
-                                    order_id: orderData.id,
-                                    vehicle_id: vehicleData.id,
-                                    part_name: part.partName,
-                                    part_number: part.partNumber || null,
-                                    description: part.description || null,
-                                    quantity: part.quantity,
-                                    estimated_budget: part.estimatedBudget
-                                        ? parseFloat(part.estimatedBudget)
-                                        : null,
-                                    photos: photos.length > 0 ? photos : null  // Make sure to include photos
-                                })
-                                .select()
-                                .single();
-
-                            if (partError) throw partError;
-
-                            // Insert condition preferences if they exist
-                            if (
-                                part.conditions &&
-                                part.conditions.length > 0
-                            ) {
-                                const conditionInserts =
-                                    part.conditions.map(
-                                        (condition) => ({
-                                            part_id: partData.id,
-                                            condition,
-                                        })
-                                    );
-
-                                const { error: conditionError } =
-                                    await supabase
-                                        .from(
-                                            "part_condition_preferences"
-                                        )
-                                        .insert(conditionInserts);
-
-                                if (conditionError)
-                                    throw conditionError;
-                            }
-
-                            return partData;
-                        } catch (error) {
-                            console.error('Error creating part:', error);
-                            throw error;
-                        }
-                    });
-
-                    await Promise.all(partPromises);
-
-                    // Store data for notifications
-                    notificationPayloads.push({
-                        vehicle,
-                        parts: vehicleParts,
-                        orderId: orderData.id,
-                    });
-
-                    return orderData.id;
-                }
-            );
-
-            await Promise.all(orderPromises);
-
-            // Show success message immediately
-            toast({
-                title: "Order submitted successfully!",
-                description: "Vendors will be notified shortly.",
-            });
-
-            handleClose();
-
-            if (onOrderCreated) {
-                onOrderCreated();
+    try {
+        // Group parts by vehicle index
+        const partsByVehicle = parts.reduce<Record<number, Part[]>>((acc, part) => {
+            if (!acc[part.vehicleIndex]) {
+                acc[part.vehicleIndex] = [];
             }
+            acc[part.vehicleIndex].push(part);
+            return acc;
+        }, {});
 
-            // Process notifications in the background without awaiting
-            if (notificationPayloads.length > 0) {
-                processWhatsAppNotifications(notificationPayloads).catch(
-                    (error) => {
-                        console.error(
-                            "Failed to process WhatsApp notifications:",
-                            error
-                        );
-                        // You could add error logging here if needed
+        // Process all vehicles and parts in parallel
+        const orderCreationPromises = Object.entries(partsByVehicle).map(
+            async ([vehicleIndexStr, vehicleParts]) => {
+                const vehicleIndex = parseInt(vehicleIndexStr);
+                const vehicle = vehicles[vehicleIndex];
+
+                // Create order and vehicle in a transaction
+                const { data: orderData, error: orderError } = await supabase
+                    .from("orders")
+                    .insert({
+                        user_id: user.id,
+                        status: "open",
+                    })
+                    .select()
+                    .single();
+
+                if (orderError) throw orderError;
+
+                const { data: vehicleData, error: vehicleError } = await supabase
+                    .from("vehicles")
+                    .insert({
+                        user_id: user.id,
+                        make: vehicle.make,
+                        model: vehicle.model,
+                        year: vehicle.year,
+                        vin: vehicle.vin || null,
+                    })
+                    .select()
+                    .single();
+
+                if (vehicleError) throw vehicleError;
+
+                // Process parts in parallel
+                const partCreationPromises = vehicleParts.map(async (part) => {
+                    // Upload images in parallel if they exist
+                    const photos = part.imageFiles?.length
+                        ? await uploadImages(part.imageFiles, orderData.id, part.partName)
+                        : [];
+
+                    // Create part record
+                    const { data: partData, error: partError } = await supabase
+                        .from("parts")
+                        .insert({
+                            order_id: orderData.id,
+                            vehicle_id: vehicleData.id,
+                            part_name: part.partName,
+                            part_number: part.partNumber || null,
+                            description: part.description || null,
+                            quantity: part.quantity,
+                            estimated_budget: part.estimatedBudget
+                                ? parseFloat(part.estimatedBudget)
+                                : null,
+                            photos: photos.length > 0 ? photos : null
+                        })
+                        .select()
+                        .single();
+
+                    if (partError) throw partError;
+
+                    // Insert conditions if they exist
+                    if (part.conditions?.length) {
+                        const conditionInserts = part.conditions.map((condition) => ({
+                            part_id: partData.id,
+                            condition,
+                        }));
+
+                        const { error: conditionError } = await supabase
+                            .from("part_condition_preferences")
+                            .insert(conditionInserts);
+
+                        if (conditionError) throw conditionError;
                     }
-                );
+
+                    return partData;
+                });
+
+                await Promise.all(partCreationPromises);
+                return orderData.id;
             }
-        } catch (error: any) {
-            console.error("Error submitting order:", error);
-            toast({
-                title: "Error submitting order",
-                description: error.message,
-                variant: "destructive",
-            });
-        } finally {
-            setTimeout(() => {
-                setIsSubmitting(false);
-                setLoading(false);
-            }, 500);
+        );
+
+        const orderIds = await Promise.all(orderCreationPromises);
+
+        // Show success message
+        toast({
+            title: "Order submitted successfully!",
+            description: "Vendors will be notified shortly.",
+        });
+
+        handleClose();
+        onOrderCreated?.();
+
+        // Process notifications in the background without blocking
+        if (orderIds.length > 0) {
+            processWhatsAppNotifications(orderIds).catch(console.error);
         }
-    };
+
+    } catch (error: any) {
+        console.error("Error submitting order:", error);
+        toast({
+            title: "Error submitting order",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+        setLoading(false);
+    }
+};
 
     // Separate function to handle WhatsApp notifications
     const processWhatsAppNotifications = async (

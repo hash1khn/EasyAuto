@@ -13,6 +13,8 @@ import {
   ChevronsLeftRight,
   LogOut,
 } from "lucide-react"
+import { Button } from '@/components/ui/button';
+
 
 interface SidebarProps {
   className?: string
@@ -171,43 +173,31 @@ export const Sidebar = ({ className, activeTab, onTabChange, children }: Sidebar
         ))}
       </nav>
 
-      <div className="mt-auto space-y-1">
-        {canAccessAdmin && (
-          <button
-            onClick={handleAdminMode}
-            className={cn(
-              "flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <ShieldAlert className="h-5 w-5" />
-            Admin Mode
-          </button>
-        )}
+     <div className="sticky bottom-0 mt-auto space-y-3">
+  {canAccessAdmin && (
+    <div className="space-y-2 border-b border-gray-200 pb-3 mb-3">
+      <Button
+        onClick={handleAdminMode}
+        variant="outline"
+        className="w-full text-sm bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+      >
+        <ShieldAlert className="w-4 h-4 mr-2" />
+        Admin Mode
+      </Button>
+    </div>
+  )}
 
-        {canSwitchToVendor && (
-          <button
-            onClick={handleSwitchDashboard}
-            className={cn(
-              "flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <ChevronsLeftRight className="h-5 w-5" />
-            Switch to Vendor
-          </button>
-        )}
+  {children}
 
-        {children} {/* Add this line */}
-
-        <button
-          onClick={handleSignOut}
-          className={cn(
-            "flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-red-600 hover:bg-red-50",
-          )}
-        >
-          <LogOut className="h-5 w-5" />
-          Sign Out
-        </button>
-      </div>
+  <Button
+    onClick={handleSignOut}
+    variant="outline"
+    className="w-full text-sm bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+  >
+    <LogOut className="w-4 h-4 mr-2" />
+    Sign Out
+  </Button>
+</div>
     </div>
   )
 }
