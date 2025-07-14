@@ -76,18 +76,6 @@ export default function DashboardLayout() {
       activeTab={activeTab} 
       onTabChange={setActiveTab}
     >
-      {isAdmin() && (
-        <div className="p-4 border-t mt-auto">
-          <Button
-            onClick={() => navigate('/admin')}
-            variant="outline"
-            className="w-full text-sm bg-red-50 border-red-200 text-red-700 hover:bg-red-100 flex items-center justify-center"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Admin Mode
-          </Button>
-        </div>
-      )}
     </Sidebar>
   );
 
