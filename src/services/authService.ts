@@ -2,6 +2,27 @@ import { AuthResult, SignUpData } from '@/types/auth';  // Import the types from
 import { supabase } from '@/integrations/supabase/client';
 import { ensureUserRecordsExist } from './userRecordService';
 
+
+const notifyAdminsInBackground = async (userData: {
+  email: string;
+  full_name: string;
+  role: string;
+  business_name?: string;
+  whatsapp_number: string;
+  location: string;
+  referred_by: string | null;
+}) => {
+  try {
+    // Using void to explicitly ignore the promise (fire-and-forget)
+    void supabase.functions.invoke('send-admin-notification', {
+      body: { userData }
+    });
+  } catch (error) {
+    console.error('Background notification error:', error);
+    // Errors are logged but not propagated
+  }
+};
+
 export const signUp = async (data: SignUpData) => {
   try {
     const redirectUrl = `${window.location.origin}/`;
@@ -95,6 +116,17 @@ export const signUp = async (data: SignUpData) => {
         });
 
       if (profileError) throw profileError;
+      // 3. Trigger background notification (non-blocking)
+      notifyAdminsInBackground({
+        email: data.email,
+        full_name: data.userData.full_name,
+        role: data.userData.role,
+        business_name: data.userData.business_name || undefined,
+        whatsapp_number: data.userData.whatsapp_number,
+        location: data.userData.location,
+        referred_by: referredByAgent
+      });
+    
     }
 
     if (!authData.session) {
